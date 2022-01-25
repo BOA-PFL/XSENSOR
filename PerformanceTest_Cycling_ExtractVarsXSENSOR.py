@@ -12,14 +12,14 @@ import matplotlib.pyplot as plt
 import os
 
 fwdLook = 30
-fThresh = 10
-
+fThresh = 40
+freq = 75 # sampling frequency (intending to change to 150 after this study)
 # list of functions 
 # finding landings on the force plate once the filtered force exceeds the force threshold
 def findLandings(force, fThreshold):
     ric = []
     for step in range(len(force)-1):
-        if force[step] == 0 and force[step + 1] >= fThreshold:
+        if force[step] < fThreshold and force[step + 1] >= fThreshold:
             ric.append(step)
     return ric
 
@@ -27,7 +27,7 @@ def findLandings(force, fThreshold):
 def findTakeoffs(force, fThreshold):
     rto = []
     for step in range(len(force)-1):
-        if force[step] >= fThreshold and force[step + 1] == 0:
+        if force[step] >= fThreshold and force[step + 1] < fThreshold:
             rto.append(step + 1)
     return rto
 
@@ -49,29 +49,35 @@ def trimForce(inputDFCol, threshForce):
 
 # Read in files
 # only read .asc files for this work
-fPath = 'C:\\Users\\daniel.feeney\\Boa Technology Inc\\PFL - General\\Cycling2021\\DH_PressureTest_Sept2021\\Novel\\'
-fPath = 'C:\\Users\\daniel.feeney\\Boa Technology Inc\\PFL - General\\Cycling2021\\EH_CyclingPilot_2021\\Pressures\\'
-fileExt = r".mva"
+#fPath = 'C:\\Users\\daniel.feeney\\Boa Technology Inc\\PFL - General\\Cycling2021\\DH_PressureTest_Sept2021\\Novel\\'
+fPath = 'C:/Users/kate.harrison/Boa Technology Inc/PFL - Documents/General/Cycling Performance Tests/CyclingDD_Jan2022/XSENSOR Data/TestData/'
+fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
-sub = []
-config = []
-condition = []
-trial = []
-initialPct = []
-peakPct = []
-endPct = []
+steadySub = []
+steadyConfig = []
+steadyTrial = []
+steadyInitialSTDV = []
+steadyPeakSTDV = []
+steadyEndSTDV = []
 
-for file in entries:
+sprintSub = []
+sprintConfig = []
+sprintTrial = []
+sprintInitialSTDV = []
+sprintPeakSTDV = []
+sprintEndSTDV = []
+
+for fName in entries:
         try:
-            fName = file #Load one file at a time
+            #fName = entries[1] #Load one file at a time
             dat = pd.read_csv(fPath+fName, sep=',', skiprows = 1, header = 'infer')
             
             
-            dat.columns = ['Frame',	'Time',	'Units', 'Threshold', 'Sensor',	'Rows',	'Columns',	
+            dat.columns = ['Frame', 'Date',	'Time',	'Units', 'Threshold', 'SensorLF',	'Rows',	'Columns',	
                            'Average Pressure',	'Minimum Pressure',	'Peak Pressure', 'Contact Area (cm²)',	
-                           'Total Area (cm²)',	'Contact %', 'Est. Load (lbf)',	'Std Dev.',	'Sensor', '	Rows',	
+                           'Total Area (cm²)',	'Contact %', 'EstLoadLF',	'StdDevLF',	'SensorRF', '	Rows',	
                            'Columns', 'Average Pressure', 'Minimum Pressure',	'Peak Pressure', 'Contact Area (cm²)',	
-                           'Total Area (cm²)',	'Contact %',	'Est. Load (lbf)',	'Std Dev.',	 
+                           'Total Area (cm²)',	'Contact %',	'EstLoadRF', 'StdDevRF',	 
                            
                            'L_Heel', 'L_Heel_Average',	'L_Heel_MIN','L_Heel_MAX', 'L_Heel_ContactArea',
                            'L_Heel_TotalArea', 'L_Heel_Contact',	'L_Heel_EstLoad',	'L_Heel_StdDev',	
@@ -89,53 +95,105 @@ for file in entries:
                            'L_Metatarsal_ContactArea',	'L_Metatarsal_TotalArea', 'L_Metatarsal_Contact',	
                            'L_Metatarsal_EstLoad',	'L_Metatarsal_StdDev',	
                            
-                           'R_Metatarsal',	'R_Metatarsal_Average',	'R_Metatarsal_MIN',	'R_Metatarsal_MAX',	'R_Metatarsal_ContactArea',	
+                           'R_Metatarsal',	'R_Metatarsal_Average',	'R_Metatarsal_MIN',	'R_Metatarsal_MAX','R_Metatarsal_ContactArea',	
                            'R_Metatarsal_TotalArea',	'R_Metatarsal_Contact',	'R_Metatarsal_EstLoad',	'R_Metatarsal_StdDev',	
                            
-                           'L_Toe',	'L_Toe_Average', 'L_Toe_MIN', 'L_Toe_MAX', 'L_Toe_ContactArea',	'L_Toe_TotalArea',	
+                           'L_Toe',	'L_Toe_Average', 'L_Toe_MIN', 'L_Toe_MAX', 'L_Toe_ContactArea', 'L_Toe_TotalArea',	
                            'L_Toe_L_Toe_Contact',	'L_Toe_EstLoad', 'L_Toe_StdDev',
 
-                           'R_Toe', 'R_Toe_Average', 'R_Toe_MIN',	'R_Toe_MAX',	'R_Toe_Contact Area',	'R_Toe_TotalArea',	
+                           'R_Toe', 'R_Toe_Average', 'R_Toe_MIN',	'R_Toe_MAX',	'R_Toe_Contact Area','R_Toe_TotalArea',	
                            'R_Toe_Contact',	'R_Toe_EstLoad', 'R_Toe_StdDev',
                            
                             ]
+            # Est. Load (lbf) conversion to N = 1lbf * 4.44822N 
+             
+            RForce = np.array(dat.EstLoadRF)
             
-            forceCol = dat.RForce
-            newForce = trimForce(forceCol, fThresh)
+            plt.figure()
+            plt.plot(RForce) 
+    
+            print('click the start of as many steady state periods are recorded in the file. Press enter when done')
+            steadyStart = plt.ginput(-1)
+            steadyStart = steadyStart[0]
+            steadyStart= round(steadyStart[0])
             
-            landings = findLandings(newForce, fThresh)
-            takeoffs = findTakeoffs(newForce, fThresh)
+            print('click the start of as many sprints are recorded in the file. Press enter when done')
+            sprintStart = plt.ginput(-1) 
+            sprintStart = sprintStart[0]
+            sprintStart = round(sprintStart[0])
+            plt.close()
             
-            trimmedTakeoffs = trimTakeoffs(landings, takeoffs)
-            trimmedLandings = trimLandings(landings, trimmedTakeoffs)
             
-            for countVar, landing in enumerate(trimmedLandings):
+          
+            
+            
+            steadyLandings = findLandings(RForce[steadyStart:steadyStart+freq*30], fThresh)
+            steadyTakeoffs = findTakeoffs(RForce[steadyStart:steadyStart+freq*30], fThresh)
+            sprintLandings = findLandings(RForce[sprintStart:sprintStart+freq*10], fThresh)
+            sprintTakeoffs = findTakeoffs(RForce[sprintStart:sprintStart+freq*10], fThresh)
+            
+            steadyTakeoffs = trimTakeoffs(steadyLandings, steadyTakeoffs)
+            steadyLandings = trimLandings(steadyLandings, steadyTakeoffs)
+            
+            sprintTakeoffs = trimTakeoffs(sprintLandings, sprintTakeoffs)
+            sprintLandings = trimLandings(sprintLandings, sprintTakeoffs)
+            
+            for i in range(len(steadyLandings)):
                 
-                tmpForce = dat.RForce[landing : landing + fwdLook]
+                #i = 0
+                tmpForce = RForce[steadyLandings[i] : steadyTakeoffs[i]]
                 tmpPk = max(tmpForce)
                 timePk = list(tmpForce).index(tmpPk) #indx of max force applied during that pedal stroke
                 
-                initialPct.append( dat.RPctMean[landing+1] / dat.RForce[landing+1] )
-                peakPct.append( dat.RPctMean[landing + timePk] / dat.RForce[landing+timePk] )
+                steadyInitialSTDV.append( dat.StdDevRF[steadyLandings[i]+1] / RForce[steadyLandings[i]+1] )
+                steadyPeakSTDV.append( dat.StdDevRF[steadyLandings[i] + timePk] / RForce[steadyLandings[i]+timePk] )
+                
+                          
                 try:
-                    endPct.append( dat.RPctMean[trimmedTakeoffs[countVar]-1] /dat.RForce[trimmedTakeoffs[countVar]-1]  )
+                    steadyEndSTDV.append( dat.StdDevRF[steadyTakeoffs[i]-1] / RForce[steadyTakeoffs[i]-1]  )
                 except:
-                    endPct.append(0)
+                    steadyEndSTDV.append(0)
             
-                sub.append( fName.split('_')[0] )
-                config.append( fName.split('_')[1].split('.')[0] )
-                condition.append( fName.split('_')[2] )
-                trial.append( fName.split('_')[3].split('.')[0] )
+                steadySub.append( fName.split('_')[0] )
+                steadyConfig.append( fName.split('_')[1])
+                steadyTrial.append( fName.split('_')[2])
+                
+            for i in range(len(sprintLandings)):
+                
+                #i = 0
+                tmpForce = RForce[sprintLandings[i] : sprintTakeoffs[i]]
+                tmpPk = max(tmpForce)
+                timePk = list(tmpForce).index(tmpPk) #indx of max force applied during that pedal stroke
+                
+                sprintInitialSTDV.append( dat.StdDevRF[sprintLandings[i]+1] / RForce[sprintLandings[i]+1] )
+                sprintPeakSTDV.append( dat.StdDevRF[sprintLandings[i] + timePk] / RForce[sprintLandings[i]+timePk] )
+                
+                          
+                try:
+                    sprintEndSTDV.append( dat.StdDevRF[sprintTakeoffs[i]-1] / RForce[sprintTakeoffs[i]-1]  )
+                except:
+                    sprintEndSTDV.append(0)
+            
+                sprintSub.append( fName.split('_')[0] )
+                sprintConfig.append( fName.split('_')[1])
+                sprintTrial.append( fName.split('_')[2])
+            
+            
+            
                 
         except:
-            print(file)
+            print(fName) 
+            
+             
+            
+            
         
-        
-outcomes = pd.DataFrame({ 'Subject':list(sub),'config':list(config), 'condition': list(condition), 'trial': list(trial),
-                   'initialPct': list(initialPct), 'peakPct': list(peakPct),'endPct': list(endPct) })
+steadyOutcomes = pd.DataFrame({ 'Subject':list(steadySub),'config':list(steadyConfig), 'Trial': list(steadyTrial),
+                   'InitialSTDV': list(steadyInitialSTDV), 'peakSTDV': list(steadyPeakSTDV),'endSTDV': list(steadyEndSTDV) })  
+steadyFileName = fPath + 'SteadyPressureData.csv'
+steadyOutcomes.to_csv(steadyFileName, header = True)
 
-#outcomes = pd.DataFrame({ 'Subject':list(sub),'config':list(config),
-#                'initialPct': list(initialPct), 'peakPct': list(peakPct),'endPct': list(endPct) })
-        
-        
-outcomes.to_csv('C:\\Users\\daniel.feeney\\Boa Technology Inc\\PFL - General\\Cycling2021\\EH_CyclingPilot_2021\\mvaResults.csv')
+sprintOutcomes = pd.DataFrame({ 'Subject':list(sprintSub),'config':list(sprintConfig), 'Trial': list(sprintTrial),
+                   'InitialSTDV': list(sprintInitialSTDV), 'peakSTDV': list(sprintPeakSTDV),'endSTDV': list(sprintEndSTDV) })  
+sprintFileName = fPath + 'SprintPressureData.csv'
+sprintOutcomes.to_csv(sprintFileName, header = True)
