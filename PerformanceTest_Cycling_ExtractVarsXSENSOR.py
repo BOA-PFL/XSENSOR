@@ -57,27 +57,35 @@ steadySub = []
 steadyConfig = []
 steadyTrial = []
 steadyInitialSTDV = []
+steadyInitialPkP = []
 steadyPeakSTDV = []
+steadyPeakPkP = []
 steadyEndSTDV = []
+steadyEndPkP = []
+steadyOverallHeelSTDV = []
+steadyOverallPeak = []
 
 sprintSub = []
 sprintConfig = []
 sprintTrial = []
 sprintInitialSTDV = []
+sprintInitialPkP = []
 sprintPeakSTDV = []
+sprintPeakPkP = []
 sprintEndSTDV = []
+sprintEndPkP = []
+sprintOverallHeelSTDV = []
+sprintOverallPeak = []
 
 for fName in entries:
         try:
-            #fName = entries[1] #Load one file at a time
+            #fName = entries[0] #Load one file at a time
             dat = pd.read_csv(fPath+fName, sep=',', skiprows = 1, header = 'infer')
             
             
-            dat.columns = ['Frame', 'Date',	'Time',	'Units', 'Threshold', 'SensorLF',	'Rows',	'Columns',	
-                           'Average Pressure',	'Minimum Pressure',	'Peak Pressure', 'Contact Area (cm²)',	
-                           'Total Area (cm²)',	'Contact %', 'EstLoadLF',	'StdDevLF',	'SensorRF', '	Rows',	
-                           'Columns', 'Average Pressure', 'Minimum Pressure',	'Peak Pressure', 'Contact Area (cm²)',	
-                           'Total Area (cm²)',	'Contact %',	'EstLoadRF', 'StdDevRF',	 
+            dat.columns = ['Frame', 'Date',	'Time',	'Units', 'Threshold', 
+                           'SensorLF',	'RowsLF',	'ColumnsLF', 'AverageP_LF',	'MinP_LF',	'PeakP_LF', 'ContactArea_LF', 'TotalArea_LF', 'ContactPct_LF', 'EstLoadLF',	'StdDevLF',	
+                           'SensorRF', 'RowsRF', 'ColumnsRF', 'AverageP_RF', 'MinP_RF',	'PeakP_RF', 'ContactArea_RF', 'TotalArea_RF',	'ContactPct_RF', 'EstLoadRF', 'StdDevRF',	 
                            
                            'L_Heel', 'L_Heel_Average',	'L_Heel_MIN','L_Heel_MAX', 'L_Heel_ContactArea',
                            'L_Heel_TotalArea', 'L_Heel_Contact',	'L_Heel_EstLoad',	'L_Heel_StdDev',	
@@ -138,42 +146,45 @@ for fName in entries:
             sprintTakeoffs = trimTakeoffs(sprintLandings, sprintTakeoffs)
             sprintLandings = trimLandings(sprintLandings, sprintTakeoffs)
             
-            for i in range(len(steadyLandings)):
+            for i in range(len(steadyLandings)-1):
                 
                 #i = 0
-                tmpForce = RForce[steadyLandings[i] : steadyTakeoffs[i]]
+                tmpForce = RForce[steadyStart+steadyLandings[i] : steadyStart+steadyTakeoffs[i]]
                 tmpPk = max(tmpForce)
                 timePk = list(tmpForce).index(tmpPk) #indx of max force applied during that pedal stroke
                 
-                steadyInitialSTDV.append( dat.StdDevRF[steadyLandings[i]+1] / RForce[steadyLandings[i]+1] )
-                steadyPeakSTDV.append( dat.StdDevRF[steadyLandings[i] + timePk] / RForce[steadyLandings[i]+timePk] )
+                steadyInitialSTDV.append( dat.StdDevRF[steadyStart+steadyLandings[i]+1])# / RForce[steadyStart+steadyLandings[i]+1] )
+                steadyInitialPkP.append( dat.PeakP_RF[steadyStart+steadyLandings[i] + 1])
+                steadyPeakSTDV.append( dat.StdDevRF[steadyStart+steadyLandings[i] + timePk])# / RForce[steadyStart+steadyLandings[i]+timePk] )
+                steadyPeakPkP.append( dat.PeakP_RF[steadyStart+steadyLandings[i] + timePk])
+                steadyEndSTDV.append( dat.StdDevRF[steadyStart+steadyTakeoffs[i]-1])# / RForce[steadyTakeoffs[i]-1]  )
+                steadyEndPkP.append( dat.PeakP_RF[steadyStart+steadyTakeoffs[i] -1])
                 
-                          
-                try:
-                    steadyEndSTDV.append( dat.StdDevRF[steadyTakeoffs[i]-1] / RForce[steadyTakeoffs[i]-1]  )
-                except:
-                    steadyEndSTDV.append(0)
-            
+                steadyOverallHeelSTDV.append(np.std(dat.R_Heel_EstLoad[steadyStart+steadyLandings[i]:steadyStart+steadyLandings[i+1]]))
+                steadyOverallPeak.append(np.nanmax(dat.PeakP_RF[steadyStart+steadyLandings[i]:steadyStart+steadyLandings[i+1]]))
+                
                 steadySub.append( fName.split('_')[0] )
                 steadyConfig.append( fName.split('_')[1])
                 steadyTrial.append( fName.split('_')[2])
                 
-            for i in range(len(sprintLandings)):
+            for i in range(len(sprintLandings)-1):
                 
                 #i = 0
-                tmpForce = RForce[sprintLandings[i] : sprintTakeoffs[i]]
+                tmpForce = RForce[sprintStart+sprintLandings[i] : sprintStart+sprintTakeoffs[i]]
                 tmpPk = max(tmpForce)
                 timePk = list(tmpForce).index(tmpPk) #indx of max force applied during that pedal stroke
                 
-                sprintInitialSTDV.append( dat.StdDevRF[sprintLandings[i]+1] / RForce[sprintLandings[i]+1] )
-                sprintPeakSTDV.append( dat.StdDevRF[sprintLandings[i] + timePk] / RForce[sprintLandings[i]+timePk] )
+                sprintInitialSTDV.append( dat.StdDevRF[sprintStart+sprintLandings[i]+1])# / RForce[steadyStart+steadyLandings[i]+1] )
+                sprintInitialPkP.append( dat.PeakP_RF[sprintStart+sprintLandings[i] + 1])
+                sprintPeakSTDV.append( dat.StdDevRF[sprintStart+sprintLandings[i] + timePk])# / RForce[steadyStart+steadyLandings[i]+timePk] )
+                sprintPeakPkP.append( dat.PeakP_RF[sprintStart+sprintLandings[i] + timePk])
+                sprintEndSTDV.append( dat.StdDevRF[sprintStart+sprintTakeoffs[i]-1])# / RForce[steadyTakeoffs[i]-1]  )
+                sprintEndPkP.append( dat.PeakP_RF[sprintStart+sprintTakeoffs[i] -1])
                 
-                          
-                try:
-                    sprintEndSTDV.append( dat.StdDevRF[sprintTakeoffs[i]-1] / RForce[sprintTakeoffs[i]-1]  )
-                except:
-                    sprintEndSTDV.append(0)
-            
+                sprintOverallHeelSTDV.append(np.std(dat.R_Heel_EstLoad[sprintStart+sprintLandings[i]:sprintStart+sprintLandings[i+1]]))
+                sprintOverallPeak.append(np.nanmax(dat.PeakP_RF[sprintStart+sprintLandings[i]:sprintStart+sprintLandings[i+1]]))
+                
+                            
                 sprintSub.append( fName.split('_')[0] )
                 sprintConfig.append( fName.split('_')[1])
                 sprintTrial.append( fName.split('_')[2])
@@ -188,12 +199,16 @@ for fName in entries:
             
             
         
-steadyOutcomes = pd.DataFrame({ 'Subject':list(steadySub),'config':list(steadyConfig), 'Trial': list(steadyTrial),
-                   'InitialSTDV': list(steadyInitialSTDV), 'peakSTDV': list(steadyPeakSTDV),'endSTDV': list(steadyEndSTDV) })  
+steadyOutcomes = pd.DataFrame({ 'Subject':list(steadySub),'Config':list(steadyConfig), 'Trial': list(steadyTrial),
+                   'InitialSTDV': list(steadyInitialSTDV), 'InitialPeak':list(steadyInitialPkP), 'peakSTDV': list(steadyPeakSTDV),'peakPk':list(steadyPeakPkP), 'endSTDV': list(steadyEndSTDV), 'endPk': list(steadyEndPkP),
+                   'overallHeelVar':list(steadyOverallHeelSTDV), 'overallPeakP':list(steadyOverallPeak)})  
+
 steadyFileName = fPath + 'SteadyPressureData.csv'
 steadyOutcomes.to_csv(steadyFileName, header = True)
 
-sprintOutcomes = pd.DataFrame({ 'Subject':list(sprintSub),'config':list(sprintConfig), 'Trial': list(sprintTrial),
-                   'InitialSTDV': list(sprintInitialSTDV), 'peakSTDV': list(sprintPeakSTDV),'endSTDV': list(sprintEndSTDV) })  
+sprintOutcomes = pd.DataFrame({ 'Subject':list(sprintSub),'Config':list(sprintConfig), 'Trial': list(sprintTrial),
+                   'InitialSTDV': list(sprintInitialSTDV), 'InitialPeak':list(sprintInitialPkP), 'peakSTDV': list(sprintPeakSTDV),'peakPk':list(sprintPeakPkP), 'endSTDV': list(sprintEndSTDV), 'endPk': list(sprintEndPkP),
+                   'overallHeelVar':list(sprintOverallHeelSTDV), 'overallPeakP':list(sprintOverallPeak)})  
+ 
 sprintFileName = fPath + 'SprintPressureData.csv'
 sprintOutcomes.to_csv(sprintFileName, header = True)
