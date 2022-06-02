@@ -9,7 +9,12 @@ Script to process MVA files from cycling pilot test
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import os
+import os 
+import pandas as pd
+import scipy.signal as sig
+import seaborn as sns 
+
+
 
 fwdLook = 30
 fThresh = 40
@@ -53,6 +58,12 @@ def trimForce(inputDFCol, threshForce):
 fPath = 'C:/Users/bethany.kilpatrick/Boa Technology Inc/PFL - General/Testing Segments/Cycling Performance Tests/CyclingHL_May2022/Xsensor/'
 fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
+
+HeelConArea_Sprint = []
+HeelConArea_Steady = []
+HeelTotConArea = []
+Upstroke =[]
+
 steadySub = []
 steadyConfig = []
 steadyTrial = []
@@ -77,9 +88,11 @@ sprintEndPkP = []
 sprintOverallHeelSTDV = []
 sprintOverallPeak = []
 
+
+
 for fName in entries:
         try:
-            fName = entries[0] #Load one file at a time
+            #fName = entries[41] #Load one file at a time
             dat = pd.read_csv(fPath+fName, sep=',', skiprows = 1, header = 'infer')
             
             
@@ -132,8 +145,7 @@ for fName in entries:
             plt.close()
             
             
-          
-            
+         
             
             steadyLandings = findLandings(RForce[steadyStart:steadyStart+freq*30], fThresh)
             steadyTakeoffs = findTakeoffs(RForce[steadyStart:steadyStart+freq*30], fThresh)
@@ -184,10 +196,19 @@ for fName in entries:
                 sprintOverallHeelSTDV.append(np.std(dat.R_Heel_EstLoad[sprintStart+sprintLandings[i]:sprintStart+sprintLandings[i+1]]))
                 sprintOverallPeak.append(np.nanmax(dat.PeakP_RF[sprintStart+sprintLandings[i]:sprintStart+sprintLandings[i+1]]))
                 
+                
+               
+                
+               #Heel Contact 
+               # 'R_Heel_TotalArea', 'R_Heel_Contact'
+                
+                HeelConArea_Sprint.append(np.mean(dat.R_Heel_ContactArea[sprintTakeoffs[i] : sprintLandings[i+1]]))  
+                HeelConArea_Steady.append(np.mean(dat.R_Heel_ContactArea[steadyTakeoffs[i] : steadyLandings[i+1]]))
                             
                 sprintSub.append( fName.split('_')[0] )
                 sprintConfig.append( fName.split('_')[1])
                 sprintTrial.append( fName.split('_')[2])
+            
             
             
             
@@ -201,14 +222,14 @@ for fName in entries:
         
 steadyOutcomes = pd.DataFrame({ 'Subject':list(steadySub),'Config':list(steadyConfig), 'Trial': list(steadyTrial),
                    'InitialSTDV': list(steadyInitialSTDV), 'InitialPeak':list(steadyInitialPkP), 'peakSTDV': list(steadyPeakSTDV),'peakPk':list(steadyPeakPkP), 'endSTDV': list(steadyEndSTDV), 'endPk': list(steadyEndPkP),
-                   'overallHeelVar':list(steadyOverallHeelSTDV), 'overallPeakP':list(steadyOverallPeak)})  
+                   'overallHeelVar':list(steadyOverallHeelSTDV), 'overallPeakP':list(steadyOverallPeak), 'Steady_HeelContactArea' : list(HeelConArea_Steady)})  
 
 steadyFileName = fPath + 'SteadyPressureData.csv'
 steadyOutcomes.to_csv(steadyFileName, header = True)
 
 sprintOutcomes = pd.DataFrame({ 'Subject':list(sprintSub),'Config':list(sprintConfig), 'Trial': list(sprintTrial),
                    'InitialSTDV': list(sprintInitialSTDV), 'InitialPeak':list(sprintInitialPkP), 'peakSTDV': list(sprintPeakSTDV),'peakPk':list(sprintPeakPkP), 'endSTDV': list(sprintEndSTDV), 'endPk': list(sprintEndPkP),
-                   'overallHeelVar':list(sprintOverallHeelSTDV), 'overallPeakP':list(sprintOverallPeak)})  
+                   'overallHeelVar':list(sprintOverallHeelSTDV), 'overallPeakP':list(sprintOverallPeak), 'Sprint_HeelContactArea' : list(HeelConArea_Sprint),})  
  
 sprintFileName = fPath + 'SprintPressureData.csv'
 sprintOutcomes.to_csv(sprintFileName, header = True)
