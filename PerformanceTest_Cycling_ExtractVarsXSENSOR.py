@@ -54,7 +54,7 @@ def trimForce(inputDFCol, threshForce):
 
 # Read in files
 # only read .asc files for this work
-#fPath = 'C:\\Users\\daniel.feeney\\Boa Technology Inc\\PFL - General\\Cycling2021\\DH_PressureTest_Sept2021\\Novel\\'
+
 fPath = 'C:/Users/bethany.kilpatrick/Boa Technology Inc/PFL - General/Testing Segments/Cycling Performance Tests/CyclingHL_May2022/Xsensor/'
 fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
@@ -92,7 +92,7 @@ sprintOverallPeak = []
 
 for fName in entries:
         try:
-            #fName = entries[41] #Load one file at a time
+           # fName = entries[] #Load one file at a time
             dat = pd.read_csv(fPath+fName, sep=',', skiprows = 1, header = 'infer')
             
             
@@ -175,6 +175,8 @@ for fName in entries:
                 steadyOverallHeelSTDV.append(np.std(dat.R_Heel_EstLoad[steadyStart+steadyLandings[i]:steadyStart+steadyLandings[i+1]]))
                 steadyOverallPeak.append(np.nanmax(dat.PeakP_RF[steadyStart+steadyLandings[i]:steadyStart+steadyLandings[i+1]]))
                 
+                HeelConArea_Steady.append(np.mean(dat.R_Heel_ContactArea[steadyTakeoffs[i] : steadyLandings[i+1]]))
+                
                 steadySub.append( fName.split('_')[0] )
                 steadyConfig.append( fName.split('_')[1])
                 steadyTrial.append( fName.split('_')[2])
@@ -203,7 +205,7 @@ for fName in entries:
                # 'R_Heel_TotalArea', 'R_Heel_Contact'
                 
                 HeelConArea_Sprint.append(np.mean(dat.R_Heel_ContactArea[sprintTakeoffs[i] : sprintLandings[i+1]]))  
-                HeelConArea_Steady.append(np.mean(dat.R_Heel_ContactArea[steadyTakeoffs[i] : steadyLandings[i+1]]))
+               
                             
                 sprintSub.append( fName.split('_')[0] )
                 sprintConfig.append( fName.split('_')[1])
@@ -224,12 +226,12 @@ steadyOutcomes = pd.DataFrame({ 'Subject':list(steadySub),'Config':list(steadyCo
                    'InitialSTDV': list(steadyInitialSTDV), 'InitialPeak':list(steadyInitialPkP), 'peakSTDV': list(steadyPeakSTDV),'peakPk':list(steadyPeakPkP), 'endSTDV': list(steadyEndSTDV), 'endPk': list(steadyEndPkP),
                    'overallHeelVar':list(steadyOverallHeelSTDV), 'overallPeakP':list(steadyOverallPeak), 'Steady_HeelContactArea' : list(HeelConArea_Steady)})  
 
-steadyFileName = fPath + 'SteadyPressureData.csv'
+steadyFileName = fPath + 'SteadyPressureData_PFHL_2.csv'
 steadyOutcomes.to_csv(steadyFileName, header = True)
 
 sprintOutcomes = pd.DataFrame({ 'Subject':list(sprintSub),'Config':list(sprintConfig), 'Trial': list(sprintTrial),
                    'InitialSTDV': list(sprintInitialSTDV), 'InitialPeak':list(sprintInitialPkP), 'peakSTDV': list(sprintPeakSTDV),'peakPk':list(sprintPeakPkP), 'endSTDV': list(sprintEndSTDV), 'endPk': list(sprintEndPkP),
                    'overallHeelVar':list(sprintOverallHeelSTDV), 'overallPeakP':list(sprintOverallPeak), 'Sprint_HeelContactArea' : list(HeelConArea_Sprint),})  
  
-sprintFileName = fPath + 'SprintPressureData.csv'
+sprintFileName = fPath + 'SprintPressureData_PFHL_1.csv'
 sprintOutcomes.to_csv(sprintFileName, header = True)
