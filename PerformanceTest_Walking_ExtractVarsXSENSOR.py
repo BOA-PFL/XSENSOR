@@ -49,7 +49,7 @@ def trimForce(inputDFCol, threshForce):
 
 # Read in files
 # only read .asc files for this work
-fPath = 'C:/Users/kate.harrison/Boa Technology Inc/PFL - Documents/General/Testing Segments/AgilityPerformanceData/CPDMech_PanelLength_June2022/Xsensor/'
+fPath = 'C:\\Users\\bethany.kilpatrick\\Boa Technology Inc\\PFL - General\\Testing Segments\\AgilityPerformanceData\\CPD_PanelUThroat_June2022\\Xsensor\\'
 fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
 
@@ -71,14 +71,14 @@ Side = []
 
 for fName in entries:
         try:
-            #fName = entries[9] #Load one file at a time
+            # fName = entries[3] #Load one file at a time
             dat = pd.read_csv(fPath+fName, sep=',', skiprows = 1, header = 'infer')
             subName = fName.split(sep = "_")[0]
             ConfigTmp = fName.split(sep="_")[1]
             moveTmp = fName.split(sep = "_")[2]
             
-            
-            if moveTmp == 'run' or moveTmp == 'Run' or moveTmp == 'running' or moveTmp == 'Running' or moveTmp == 'walk' or moveTmp == 'Walk' or moveTmp == 'walking' or moveTmp == ' Walking':
+            # Make sure the files are named FirstLast_Config_Movement_Trial# - The "if" statement won't work if there isn't a trial number next to the movement
+            if (moveTmp == 'run') or (moveTmp == 'Run') or (moveTmp == 'running') or (moveTmp == 'Running') or (moveTmp == 'walk') or (moveTmp == 'Walk') or (moveTmp == 'walking') or (moveTmp == ' Walking'):
                 dat.columns = ['Frame', 'Date',	'Time',	'Units', 'Threshold', 
                            'SensorLF', 'SideLF', 'RowsLF',	'ColumnsLF', 'AverageP_LF',	'MinP_LF',	'PeakP_LF', 'ContactArea_LF', 'TotalArea_LF', 'ContactPct_LF', 'EstLoadLF',	'StdDevLF',	
                            'SensorRF', 'SideRF', 'RowsRF', 'ColumnsRF', 'AverageP_RF', 'MinP_RF',	'PeakP_RF', 'ContactArea_RF', 'TotalArea_RF',	'ContactPct_RF', 'EstLoadRF', 'StdDevRF',	 
@@ -237,16 +237,3 @@ outFileName = fPath + 'CompiledPressureDataHeelArea.csv'
 outcomes.to_csv(outFileName, index = False)          
             
         
-# steadyOutcomes = pd.DataFrame({ 'Subject':list(steadySub),'Config':list(steadyConfig), 'Trial': list(steadyTrial),
-#                    'InitialSTDV': list(steadyInitialSTDV), 'InitialPeak':list(steadyInitialPkP), 'peakSTDV': list(steadyPeakSTDV),'peakPk':list(steadyPeakPkP), 'endSTDV': list(steadyEndSTDV), 'endPk': list(steadyEndPkP),
-#                    'overallHeelVar':list(steadyOverallHeelSTDV), 'overallPeakP':list(steadyOverallPeak)})  
-
-# steadyFileName = fPath + 'SteadyPressureData.csv'
-# steadyOutcomes.to_csv(steadyFileName, header = True)
-
-# sprintOutcomes = pd.DataFrame({ 'Subject':list(sprintSub),'Config':list(sprintConfig), 'Trial': list(sprintTrial),
-#                    'InitialSTDV': list(sprintInitialSTDV), 'InitialPeak':list(sprintInitialPkP), 'peakSTDV': list(sprintPeakSTDV),'peakPk':list(sprintPeakPkP), 'endSTDV': list(sprintEndSTDV), 'endPk': list(sprintEndPkP),
-#                    'overallHeelVar':list(sprintOverallHeelSTDV), 'overallPeakP':list(sprintOverallPeak)})  
- 
-# sprintFileName = fPath + 'SprintPressureData.csv'
-# sprintOutcomes.to_csv(sprintFileName, header = True)
