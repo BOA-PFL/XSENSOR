@@ -49,13 +49,14 @@ def trimForce(inputDFCol, threshForce):
 
 # Read in files
 # only read .asc files for this work
-fPath = 'C:\\Users\\bethany.kilpatrick\\Boa Technology Inc\\PFL - General\\Testing Segments\\AgilityPerformanceData\\CPD_PanelUThroat_June2022\\Xsensor\\'
+fPath = 'C:/Users/Kate.Harrison/Boa Technology Inc/PFL Team - General/Testing Segments/Hike/ZonalFit_Midcut_Aug2022/Xsensor/'
 fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
 
 # Initialize Variables
 sdHeel = []
 meanToes = []
+meanFf = []
 maxmeanHeel = []
 maxmaxHeel = []
 maxmeanToes = []
@@ -64,6 +65,8 @@ maxmaxMid = []
 maxmaxToes = []
 cvHeel = []
 heelArea = []
+ffAreaEarly = []
+ffAreaIC = []
 meanTotalP = []
 Subject = []
 Config = []
@@ -74,11 +77,11 @@ for fName in entries:
             # fName = entries[3] #Load one file at a time
             dat = pd.read_csv(fPath+fName, sep=',', skiprows = 1, header = 'infer')
             subName = fName.split(sep = "_")[0]
-            ConfigTmp = fName.split(sep="_")[1]
-            moveTmp = fName.split(sep = "_")[2]
+            ConfigTmp = fName.split(sep="_")[2]
+            moveTmp = fName.split(sep = "_")[1]
             
             # Make sure the files are named FirstLast_Config_Movement_Trial# - The "if" statement won't work if there isn't a trial number next to the movement
-            if (moveTmp == 'run') or (moveTmp == 'Run') or (moveTmp == 'running') or (moveTmp == 'Running') or (moveTmp == 'walk') or (moveTmp == 'Walk') or (moveTmp == 'walking') or (moveTmp == ' Walking'):
+            if (moveTmp == 'run') or (moveTmp == 'Run') or (moveTmp == 'running') or (moveTmp == 'Running') or (moveTmp == 'walk') or (moveTmp == 'Walk') or (moveTmp == 'walking') or (moveTmp == 'Walking') or (moveTmp == 'Trail'):
                 dat.columns = ['Frame', 'Date',	'Time',	'Units', 'Threshold', 
                            'SensorLF', 'SideLF', 'RowsLF',	'ColumnsLF', 'AverageP_LF',	'MinP_LF',	'PeakP_LF', 'ContactArea_LF', 'TotalArea_LF', 'ContactPct_LF', 'EstLoadLF',	'StdDevLF',	
                            'SensorRF', 'SideRF', 'RowsRF', 'ColumnsRF', 'AverageP_RF', 'MinP_RF',	'PeakP_RF', 'ContactArea_RF', 'TotalArea_RF',	'ContactPct_RF', 'EstLoadRF', 'StdDevRF',	 
@@ -130,6 +133,8 @@ for fName in entries:
                         
                         peakFidx = np.argmax(dat.EstLoadRF[landings[i]:takeoffs[i]])
                         heelAreaLate = np.mean(dat.R_Heel_ContactArea[landings[i]+peakFidx:takeoffs[i]])
+                        ffAreaEarly.append(np.mean(dat.R_Metatarsal_ContactArea[landings[i]:landings[i]+peakFidx]))
+                        ffAreaIC.append(dat.R_Metatarsal_ContactArea[landings[i]])
                         meanHeel = np.mean(dat.R_Heel_Average[landings[i]:takeoffs[i]])*6.89476
                         meanMidfoot = np.mean(dat.R_Midfoot_Average[landings[i]:takeoffs[i]])*6.89476    
                         meanForefoot = np.mean(dat.R_Metatarsal_Average[landings[i]:takeoffs[i]])*6.89476 
@@ -147,7 +152,7 @@ for fName in entries:
                         meanTotalP.append(meanFoot)
                         sdHeel.append(stdevHeel)
                         meanToes.append(meanToe/meanFoot)
-                        
+                        meanFf.append(meanForefoot)
                         maxmeanHeel.append(maximummeanHeel)
                         maxmaxHeel.append(maximummaxHeel)
                         cvHeel.append(stdevHeel/meanFoot)
@@ -184,6 +189,8 @@ for fName in entries:
                         # Note: converting psi to kpa with 1psi=6.89476kpa
                         peakFidx = np.argmax(dat.EstLoadLF[landings[i]:takeoffs[i]])
                         heelAreaLate = np.mean(dat.L_Heel_ContactArea[landings[i]+peakFidx:takeoffs[i]])
+                        ffAreaEarly.append(np.mean(dat.L_Metatarsal_ContactArea[landings[i]:landings[i]+[peakFidx]]))
+                        ffAreaIC.append(dat.L_Metatarsal_ContactArea[landings[i]])
                         meanHeel = np.mean(dat.L_Heel_Average[landings[i]:takeoffs[i]])*6.89476
                         meanMidfoot = np.mean(dat.L_Midfoot_Average[landings[i]:takeoffs[i]])*6.89476    
                         meanForefoot = np.mean(dat.L_Metatarsal_Average[landings[i]:takeoffs[i]])*6.89476 
@@ -201,6 +208,7 @@ for fName in entries:
                         meanTotalP.append(meanFoot)
                         sdHeel.append(stdevHeel)
                         meanToes.append(meanToe/meanFoot)
+                        meanFf.append(meanForefoot)
                     
                         maxmaxMid.append(maximummaxMid)
                         maxmaxMet.append(maximummaxMet)
@@ -226,14 +234,14 @@ for fName in entries:
             
              
 outcomes = pd.DataFrame({'Subject':list(Subject),'Config':list(Config),'Side':list(Side), 'meanTotalP':list(meanTotalP),
-                         'sdHeel': list(sdHeel),'cvHeel':list(cvHeel), 'heelArea':list(heelArea),
-                         'meanToes':list(meanToes), 
+                         'sdHeel': list(sdHeel),'cvHeel':list(cvHeel), 'heelArea':list(heelArea), 'ffAreaEarly':list(ffAreaEarly), 'ffAreaIC':list(ffAreaIC),
+                         'meanToes':list(meanToes), 'meanFf':list(meanFf),
                          'maxmeanHeel':list(maxmeanHeel), 'maxmeanToes':list(maxmeanToes),
                          'maxmaxHeel':list(maxmaxHeel), 'maxmaxToes':list(maxmaxToes),
                          'maxmaxMid':list(maxmaxMid), 'maxmaxMet':list(maxmaxMet)
                          })  
 
-outFileName = fPath + 'CompiledPressureDataHeelArea.csv'
+outFileName = fPath + 'CompiledPressureData.csv'
 outcomes.to_csv(outFileName, index = False)          
             
         
