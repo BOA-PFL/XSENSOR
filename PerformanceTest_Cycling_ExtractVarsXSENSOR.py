@@ -55,7 +55,7 @@ def trimForce(inputDFCol, threshForce):
 # Read in files
 # only read .asc files for this work
 
-fPath = 'C:/Users/bethany.kilpatrick/Boa Technology Inc/PFL - General/Testing Segments/Cycling Performance Tests/CyclingHL_May2022/Xsensor/'
+fPath = 'C:\\Users\\daniel.feeney\\Boa Technology Inc\\PFL Team - General\\Testing Segments\\Cycling Performance Tests\\CyclingHL_May2022\Xsensor\\'
 fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
 
@@ -158,61 +158,55 @@ for fName in entries:
             sprintTakeoffs = trimTakeoffs(sprintLandings, sprintTakeoffs)
             sprintLandings = trimLandings(sprintLandings, sprintTakeoffs)
             
-            for i in range(len(steadyLandings)-1):
-                
+            #for i in range(len(steadyLandings)-1):
+            for i, steadyLand in enumerate(steadyLandings):    
                 #i = 0
-                tmpForce = RForce[steadyStart+steadyLandings[i] : steadyStart+steadyTakeoffs[i]]
+                tmpForce = RForce[steadyStart+steadyLand : steadyStart+steadyTakeoffs[i]]
                 tmpPk = max(tmpForce)
                 timePk = list(tmpForce).index(tmpPk) #indx of max force applied during that pedal stroke
+                try:
+                    steadyOverallHeelSTDV.append(np.std(dat.R_Heel_EstLoad[steadyStart+steadyLand:steadyStart+steadyLandings[i+1]]))
+                    steadyOverallPeak.append(np.nanmax(dat.PeakP_RF[steadyStart+steadyLand:steadyStart+steadyLandings[i+1]]))
+                    
+                    HeelConArea_Steady.append(np.mean(dat.R_Heel_ContactArea[steadyTakeoffs[i] : steadyLandings[i+1]]))
+                    steadyInitialSTDV.append( dat.StdDevRF[steadyStart+steadyLand+1])# / RForce[steadyStart+steadyLandings[i]+1] )
+                    steadyInitialPkP.append( dat.PeakP_RF[steadyStart+steadyLand + 1])
+                    steadyPeakSTDV.append( dat.StdDevRF[steadyStart+steadyLand + timePk])# / RForce[steadyStart+steadyLandings[i]+timePk] )
+                    steadyPeakPkP.append( dat.PeakP_RF[steadyStart+steadyLand + timePk])
+                    steadyEndSTDV.append( dat.StdDevRF[steadyStart+steadyLand-1])# / RForce[steadyTakeoffs[i]-1]  )
+                    steadyEndPkP.append( dat.PeakP_RF[steadyStart+steadyLand -1])
+                                
+                    steadySub.append( fName.split('_')[0] )
+                    steadyConfig.append( fName.split('_')[1])
+                    steadyTrial.append( fName.split('_')[2])
+                except:
+                    print("reached end of landings")
                 
-                steadyInitialSTDV.append( dat.StdDevRF[steadyStart+steadyLandings[i]+1])# / RForce[steadyStart+steadyLandings[i]+1] )
-                steadyInitialPkP.append( dat.PeakP_RF[steadyStart+steadyLandings[i] + 1])
-                steadyPeakSTDV.append( dat.StdDevRF[steadyStart+steadyLandings[i] + timePk])# / RForce[steadyStart+steadyLandings[i]+timePk] )
-                steadyPeakPkP.append( dat.PeakP_RF[steadyStart+steadyLandings[i] + timePk])
-                steadyEndSTDV.append( dat.StdDevRF[steadyStart+steadyTakeoffs[i]-1])# / RForce[steadyTakeoffs[i]-1]  )
-                steadyEndPkP.append( dat.PeakP_RF[steadyStart+steadyTakeoffs[i] -1])
-                
-                steadyOverallHeelSTDV.append(np.std(dat.R_Heel_EstLoad[steadyStart+steadyLandings[i]:steadyStart+steadyLandings[i+1]]))
-                steadyOverallPeak.append(np.nanmax(dat.PeakP_RF[steadyStart+steadyLandings[i]:steadyStart+steadyLandings[i+1]]))
-                
-                HeelConArea_Steady.append(np.mean(dat.R_Heel_ContactArea[steadyTakeoffs[i] : steadyLandings[i+1]]))
-                
-                steadySub.append( fName.split('_')[0] )
-                steadyConfig.append( fName.split('_')[1])
-                steadyTrial.append( fName.split('_')[2])
-                
-            for i in range(len(sprintLandings)-1):
+            for i, sprintLand in enumerate(sprintLandings):
                 
                 #i = 0
-                tmpForce = RForce[sprintStart+sprintLandings[i] : sprintStart+sprintTakeoffs[i]]
+                tmpForce = RForce[sprintStart+sprintLand : sprintStart+sprintTakeoffs[i]]
                 tmpPk = max(tmpForce)
                 timePk = list(tmpForce).index(tmpPk) #indx of max force applied during that pedal stroke
-                
-                sprintInitialSTDV.append( dat.StdDevRF[sprintStart+sprintLandings[i]+1])# / RForce[steadyStart+steadyLandings[i]+1] )
-                sprintInitialPkP.append( dat.PeakP_RF[sprintStart+sprintLandings[i] + 1])
-                sprintPeakSTDV.append( dat.StdDevRF[sprintStart+sprintLandings[i] + timePk])# / RForce[steadyStart+steadyLandings[i]+timePk] )
-                sprintPeakPkP.append( dat.PeakP_RF[sprintStart+sprintLandings[i] + timePk])
-                sprintEndSTDV.append( dat.StdDevRF[sprintStart+sprintTakeoffs[i]-1])# / RForce[steadyTakeoffs[i]-1]  )
-                sprintEndPkP.append( dat.PeakP_RF[sprintStart+sprintTakeoffs[i] -1])
-                
-                sprintOverallHeelSTDV.append(np.std(dat.R_Heel_EstLoad[sprintStart+sprintLandings[i]:sprintStart+sprintLandings[i+1]]))
-                sprintOverallPeak.append(np.nanmax(dat.PeakP_RF[sprintStart+sprintLandings[i]:sprintStart+sprintLandings[i+1]]))
-                
-                
-               
-                
+                try:
+                    sprintOverallHeelSTDV.append(np.std(dat.R_Heel_EstLoad[sprintStart+sprintLand:sprintStart+sprintLandings[i+1]]))
+                    sprintOverallPeak.append(np.nanmax(dat.PeakP_RF[sprintStart+sprintLand:sprintStart+sprintLandings[i+1]]))
+                                    
                #Heel Contact 
                # 'R_Heel_TotalArea', 'R_Heel_Contact'
+                    HeelConArea_Sprint.append(np.mean(dat.R_Heel_ContactArea[sprintTakeoffs[i] : sprintLandings[i+1]]))  
+                    sprintSub.append( fName.split('_')[0] )
+                    sprintConfig.append( fName.split('_')[1])
+                    sprintTrial.append( fName.split('_')[2])
+                    sprintInitialSTDV.append( dat.StdDevRF[sprintStart+sprintLand+1])# / RForce[steadyStart+steadyLandings[i]+1] )
+                    sprintInitialPkP.append( dat.PeakP_RF[sprintStart+sprintLand + 1])
+                    sprintPeakSTDV.append( dat.StdDevRF[sprintStart+sprintLand + timePk])# / RForce[steadyStart+steadyLandings[i]+timePk] )
+                    sprintPeakPkP.append( dat.PeakP_RF[sprintStart+sprintLand + timePk])
+                    sprintEndSTDV.append( dat.StdDevRF[sprintStart+sprintLand-1])# / RForce[steadyTakeoffs[i]-1]  )
+                    sprintEndPkP.append( dat.PeakP_RF[sprintStart+sprintLand -1])
+                except:
+                    print("reached end of sprint landings")
                 
-                HeelConArea_Sprint.append(np.mean(dat.R_Heel_ContactArea[sprintTakeoffs[i] : sprintLandings[i+1]]))  
-               
-                            
-                sprintSub.append( fName.split('_')[0] )
-                sprintConfig.append( fName.split('_')[1])
-                sprintTrial.append( fName.split('_')[2])
-            
-            
-            
             
                 
         except:
