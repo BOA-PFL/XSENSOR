@@ -1,12 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Jun  2 13:00:39 2022
-
-@author: Milena.Singletary
-"""
-
-# -*- coding: utf-8 -*-
-"""
 Created on Mon Aug 30 13:28:44 2021
 Script to process MVA files from cycling pilot test
 
@@ -61,8 +54,8 @@ def trimForce(inputDFCol, threshForce):
 
 # Read in files
 # only read .asc files for this work
-#fPath = 'C:\\Users\\daniel.feeney\\Boa Technology Inc\\PFL - General\\Cycling2021\\DH_PressureTest_Sept2021\\Novel\\'
-fPath = 'C:/Users/bethany.kilpatrick/Boa Technology Inc/PFL - General/Testing Segments/Cycling Performance Tests/CyclingHL_May2022/Xsensor/'
+fPath = 'C:\\Users\\daniel.feeney\\Boa Technology Inc\\PFL Team - General\\Testing Segments\\Cycling Performance Tests\\Cycling_4guideSD_Feb2022\\XSENSOR Data\\'
+#fPath = 'C:/Users/bethany.kilpatrick/Boa Technology Inc/PFL - General/Testing Segments/Cycling Performance Tests/CyclingHL_May2022/Xsensor/'
 fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
 
