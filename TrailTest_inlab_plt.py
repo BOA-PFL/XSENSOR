@@ -18,7 +18,7 @@ import scipy.signal as sig
 fwdLook = 30
 fThresh = 50
 freq = 100
-save_on = 0
+save_on = 1
 # list of functions 
 # finding landings on the force plate once the filtered force exceeds the force threshold
 def findLandings(force, fThreshold):
@@ -264,7 +264,7 @@ def threehopstart(HS,TO,freq):
     return(HS,TO)
     
 # Define the path: This is the way
-fPath = 'C:\\Users\eric.honert\\Boa Technology Inc\\PFL Team - General\\Testing Segments\\EndurancePerformance\\TrailRun_2022\\InLabData\\Pressure\\'
+fPath = 'C:\\Users\eric.honert\\Boa Technology Inc\\PFL Team - General\\Testing Segments\\EndurancePerformance\\TrailRun_2022\\InLabData\\PressureData\\'
 fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
 
@@ -274,11 +274,18 @@ oConfig = []
 oSpeed = []
 oLabel = []
 oSesh = []
+setting = []
 
 
 heel_con = []
 heel_con_1 = [] # 1st half of stance
 heel_con_2 = [] # 2nd half of stance
+
+tot_force1 = []
+tot_force2 = []
+tot_force3 = []
+tot_force4 = []
+tot_force5 = []
 
 m_heel_ratio = []
 m_mid_ratio = []
@@ -292,7 +299,7 @@ m_toePP_lat = []
 
 avg_toe_force = []
 
-for ii in range(120,len(entries)):
+for ii in range(0,len(entries)):
     print(entries[ii])
     dat = pd.read_csv(fPath+entries[ii], sep=',',skiprows = 1, header = 'infer')
     Subject = entries[ii].split(sep = "_")[0]
@@ -308,8 +315,6 @@ for ii in range(120,len(entries)):
     elif Slope == 'n6':
         Label = '3'
     
-    # As the insoles currently have a temporal shift, analyze the last 40 sec of data
-    dat = dat.iloc[len(dat)-4000:,:]
     
     # Convert the force into newtons, pressures into kPa
     L_tot_force = np.array(dat.iloc[:,15])*4.44822
@@ -322,39 +327,68 @@ for ii in range(120,len(entries)):
     RHS = np.array(findLandings(R_tot_force, 50))
     RTO = np.array(findTakeoffs(R_tot_force, 50))
     
-    [LHS,LTO] = trimgaitevents(LHS,LTO)
-    [RHS,RTO] = trimgaitevents(RHS,RTO)
+        
     
-    # # Attempt to find the jumps: 
-    # jump_found = 0
-    # start_LHS = []; start_RHS = []
-    # for jj in range(15):
-    #     jump_check = np.where(np.abs(LHS[jj] - np.array(RHS[0:15])) < 10)
-    #     if jump_check[0].size > 0:
-    #         print('Jump Found')
-    #         Llastjumpi = jj
-    #         Rlastjumpi = np.argmin(np.abs(LHS[jj] - np.array(RHS[0:15])))
-    #         jump_found = 1
+    # This file was started late - after the 3 hops
+    if entries[ii] == 'ISO3_lace_ps_n6_1.csv':
+        idx = (LHS > 10*freq)*(LHS < 55*freq)
+        LHS = LHS[idx]
+        idx = (LTO > 10*freq)*(LTO < 55*freq)
+        LTO = LTO[idx]
+        [LHS,LTO] = trimgaitevents(LHS,LTO)
+        
+        idx = (RHS > 10*freq)*(RHS < 55*freq)
+        RHS = RHS[idx]
+        idx = (RTO > 10*freq)*(RTO < 55*freq)
+        RTO = RTO[idx]
+        
+        [RHS,RTO] = trimgaitevents(RHS,RTO)
+        print('Custom Cropped Trial')
+        
+    elif entries[ii] == 'ISO4_lace_ps_n6_2.csv':
+        idx = (LHS > 4400)*(LHS < 45*freq+4400)
+        LHS = LHS[idx]
+        idx = (LTO > 4400)*(LTO < 45*freq+4400)
+        LTO = LTO[idx]
+        [LHS,LTO] = trimgaitevents(LHS,LTO)
+        
+        idx = (RHS > 4400)*(RHS < 45*freq+4400)
+        RHS = RHS[idx]
+        idx = (RTO > 4400)*(RTO < 45*freq+4400)
+        RTO = RTO[idx]
+        
+        [RHS,RTO] = trimgaitevents(RHS,RTO)
+        print('Custom Cropped Trial')
+    else:
+        jump_found = 0
+        start_LHS = []; start_RHS = []
+        for jj in range(15):
+            jump_check = np.where(np.abs(LHS[jj] - np.array(RHS[0:15])) < 10)
+            if jump_check[0].size > 0:
+                print('Jump Found')
+                Llastjumpi = jj
+                Rlastjumpi = np.argmin(np.abs(LHS[jj] - np.array(RHS[0:15])))
+                jump_found = 1
+                
+        if jump_found == 1:
+            idx1 = (LHS > LHS[Llastjumpi] + 10*freq)*(LHS < LHS[Llastjumpi] + 55*freq)
+            idx2 = (LTO > LHS[Llastjumpi] + 10*freq)*(LTO < LHS[Llastjumpi] + 55*freq)
+            LHS = LHS[idx1]
+            LTO = LTO[idx2]
+            [LHS,LTO] = trimgaitevents(LHS,LTO)
             
-    # if jump_found == 1:
-    #     idx1 = (LHS > LHS[Llastjumpi] + 10*freq)*(LHS < LHS[Llastjumpi] + 55*freq)
-    #     idx2 = (LTO > LHS[Llastjumpi] + 10*freq)*(LTO < LHS[Llastjumpi] + 55*freq)
-    #     LHS = LHS[idx1]
-    #     LTO = LTO[idx2]
-    #     [LHS,LTO] = trimgaitevents(LHS,LTO)
+            idx1 = (RHS > RHS[Rlastjumpi] + 10*freq)*(RHS < RHS[Rlastjumpi] + 55*freq)
+            idx2 = (RTO > RHS[Rlastjumpi] + 10*freq)*(RTO < RHS[Rlastjumpi] + 55*freq)
+            RHS = RHS[idx1]
+            RTO = RTO[idx2]
+            
+            [RHS,RTO] = trimgaitevents(RHS,RTO)
+            
         
-    #     idx1 = (RHS > RHS[Rlastjumpi] + 10*freq)*(RHS < RHS[Rlastjumpi] + 55*freq)
-    #     idx2 = (RTO > RHS[Rlastjumpi] + 10*freq)*(RTO < RHS[Rlastjumpi] + 55*freq)
-    #     RHS = RHS[idx1]
-    #     RTO = RTO[idx2]
-        
-    #     [RHS,RTO] = trimgaitevents(RHS,RTO)
-        
-    
-    # if jump_found == 0:
-    #     print('Temporal Shift may have occured')
-    #     [LHS,LTO] = threehopstart(LHS,LTO,freq)
-    #     [RHS,RTO] = threehopstart(RHS,RTO,freq)
+        if jump_found == 0:
+            print('Temporal Shift may have occured')
+            [LHS,LTO] = threehopstart(LHS,LTO,freq)
+            [RHS,RTO] = threehopstart(RHS,RTO,freq)
     
         
     L_heel_con = np.array((dat.iloc[:,36]+dat.iloc[:,60])/(dat.iloc[:,37]+dat.iloc[:,61])*100)
@@ -400,6 +434,32 @@ for ii in range(120,len(entries)):
         m_midPP_lat.append(np.max(L_midPP_lat[LHS[jj]:LTO[jj]]))
         m_metPP_lat.append(np.max(L_metPP_lat[LHS[jj]:LTO[jj]]))
         m_toePP_lat.append(np.max(L_toePP_lat[LHS[jj]:LTO[jj]]))
+        
+        if Subject == 'ISO1' and Speed == 'ps' and Slope == 'p2': 
+            dum = L_tot_force[LHS[jj]:LTO[jj]+1]
+            f = scipy.interpolate.interp1d(np.arange(0,len(dum)),dum)                
+            tot_force1.append(f(np.linspace(0,len(dum)-1,101)))
+        
+        if Subject == 'ISO2' and Speed == 'ps' and Slope == 'p2': 
+            dum = L_tot_force[LHS[jj]:LTO[jj]+1]
+            f = scipy.interpolate.interp1d(np.arange(0,len(dum)),dum)                
+            tot_force2.append(f(np.linspace(0,len(dum)-1,101)))
+        
+        if Subject == 'ISO3' and Speed == 'ps' and Slope == 'p2': 
+            dum = L_tot_force[LHS[jj]:LTO[jj]+1]
+            f = scipy.interpolate.interp1d(np.arange(0,len(dum)),dum)                
+            tot_force3.append(f(np.linspace(0,len(dum)-1,101)))
+        
+        if Subject == 'ISO4' and Speed == 'ps' and Slope == 'p2': 
+            dum = L_tot_force[LHS[jj]:LTO[jj]+1]
+            f = scipy.interpolate.interp1d(np.arange(0,len(dum)),dum)                
+            tot_force4.append(f(np.linspace(0,len(dum)-1,101)))
+        
+        if Subject == 'ISO5' and Speed == 'ps' and Slope == 'p2': 
+            dum = L_tot_force[LHS[jj]:LTO[jj]+1]
+            f = scipy.interpolate.interp1d(np.arange(0,len(dum)),dum)                
+            tot_force5.append(f(np.linspace(0,len(dum)-1,101)))
+        
     
     for jj in RGS:
         heel_con.append(np.mean(R_heel_con[RHS[jj]:RTO[jj]]))
@@ -421,6 +481,7 @@ for ii in range(120,len(entries)):
     oSpeed = oSpeed + [Speed]*len(LGS) + [Speed]*len(RGS)
     oSesh = oSesh + [Sesh]*len(LGS) + [Sesh]*len(RGS)
     oLabel = oLabel + [Label]*len(LGS) + [Label]*len(RGS)
+    setting = setting + [0]*len(LGS) + [0]*len(RGS)
     
     # plt.figure(ii)
     # plt.subplot(2,1,1)
@@ -445,15 +506,38 @@ for ii in range(120,len(entries)):
     # plt.ylabel('Insole Force [N]')
     1
 
+tot_force1 = np.array(tot_force1)
+tot_force2 = np.array(tot_force2)
+tot_force3 = np.array(tot_force3)
+tot_force4 = np.array(tot_force4)
+tot_force5 = np.array(tot_force5)
+
+fig, ax = plt.subplots()
+ax.plot(np.array(range(101)),np.mean(tot_force5,axis=0),'r')
+ax.fill_between(np.array(range(101)),np.mean(tot_force5,axis=0)-np.std(tot_force5,axis=0),np.mean(tot_force5,axis=0)+np.std(tot_force5,axis=0),alpha=0.25)
+plt.xlim([0,100])
+plt.ylim([0,1250])
 
 
-outcomes = pd.DataFrame({'Subject':list(oSubject), 'Config': list(oConfig),'Speed': list(oSpeed),'Sesh': list(oSesh),
-                          'Label':list(oLabel), 'HeelCon':list(heel_con),'HeelCon1':list(heel_con_1), 'HeelCon2':list(heel_con_2),
+plt.figure(2)
+plt.plot(np.array(range(101)),np.std(tot_force1,axis=0),'r')
+plt.plot(np.array(range(101)),np.std(tot_force2,axis=0),'r')
+plt.plot(np.array(range(101)),np.std(tot_force3,axis=0),'r')
+plt.plot(np.array(range(101)),np.std(tot_force4,axis=0),'r')
+plt.plot(np.array(range(101)),np.std(tot_force5,axis=0),'r')
+plt.xlim([0,100])
+plt.ylim([0,300])
+
+
+
+
+outcomes = pd.DataFrame({'Subject':list(oSubject), 'Config': list(oConfig),'Setting': list(setting),'Sesh': list(oSesh),
+                          'Label':list(oLabel), 'SetSpeed': list(oSpeed),'HeelCon':list(heel_con),'HeelCon1':list(heel_con_1), 'HeelCon2':list(heel_con_2),
                           'm_heelPP_lat':list(m_heelPP_lat),'m_midPP_lat':list(m_midPP_lat),'m_metPP_lat':list(m_metPP_lat),'m_toePP_lat':list(m_toePP_lat)})
 
 if save_on == 1:
-    outcomes.to_csv('C:\\Users\eric.honert\\Boa Technology Inc\\PFL Team - General\\Testing Segments\\EndurancePerformance\\TrailRun_2022\\InLabData\\InLabPressureOutcomes.csv',header=True)
-elif save_on == 2: 
-    outcomes.to_csv('C:\\Users\eric.honert\\Boa Technology Inc\\PFL Team - General\\Testing Segments\\EndurancePerformance\\TrailRun_2022\\InLabData\\InLabPressureOutcomes.csv',mode = 'a', header=False)
+    outcomes.to_csv('C:\\Users\eric.honert\\Boa Technology Inc\\PFL Team - General\\Testing Segments\\EndurancePerformance\\TrailRun_2022\\CompPressureOutcomes.csv',mode = 'a', header=False)
+# elif save_on == 2: 
+#     outcomes.to_csv('C:\\Users\eric.honert\\Boa Technology Inc\\PFL Team - General\\Testing Segments\\EndurancePerformance\\TrailRun_2022\\InLabPressureOutcomes.csv',mode = 'a', header=False)
 
 

@@ -17,8 +17,8 @@ import scipy.signal as sig
 
 fwdLook = 30
 fThresh = 50
-freq = 100
-save_on = 0
+freq = 100 # sampling frequency (intending to change to 150 after this study)
+save_on = 1
 # list of functions 
 # finding landings on the force plate once the filtered force exceeds the force threshold
 def findLandings(force, fThreshold):
@@ -36,13 +36,15 @@ def findTakeoffs(force, fThreshold):
             rto.append(step + 1)
     return rto
 
-def trimgaitevents(HS,TO):
-    if HS[0] > TO[0]:
-        TO = TO[1:]
-        
-    if HS[-1] > TO[-1]:
-        HS = HS[0:-1]
-    return(HS,TO)
+def trimTakeoffs(landings, takeoffs):
+    if takeoffs[0] < landings[0]:
+        del(takeoffs[0])
+    return(takeoffs)
+
+def trimLandings(landings, trimmedTakeoffs):
+    if landings[len(landings)-1] > trimmedTakeoffs[len(trimmedTakeoffs)-1]:
+        del(landings[-1])
+    return(landings)
 
 def trimForce(inputDFCol, threshForce):
     forceTot = inputDFCol
@@ -96,7 +98,7 @@ def zeroInsoleForce(vForce,freq):
     
 def findGaitEvents(vForce,freq):
     # Quasi-constants
-    zcoeff = 1.6
+    zcoeff = 0.9
     
     windowSize = round(0.8*freq)
     
@@ -223,217 +225,185 @@ def filt_press_sig(in_sig,cut):
     
     return(sig_filt)
 
-def ZeroPressSig(signal,HS,TO):
-    
-    swingsig = []
-    
-    for ii in range(len(HS)-1):
-        swingsig.extend(signal[TO[ii]:HS[ii+1]])
-    
-    signal_up = signal-np.median(swingsig)
-    
-    return signal_up
-
-def threehopstart(HS,TO,freq):
-    # Identify the start of the trial
-    # Counters
-    jc = 0  # jump counter
-    stc = 0 # start trial counter
-    approx_CT = np.diff(HS)
-    
-    for jj in range(0,10):
-        if approx_CT[jj] < 75:
-            jc = jc+1
-        if jc >= 2 and approx_CT[jj] > 150:
-            lasthop = HS[jj]
-            idx = (HS > lasthop + 10*freq)*(HS < lasthop + 55*freq)
-            HS = HS[idx]
-            idx = (TO > lasthop + 10*freq)*(TO < lasthop + 55*freq)
-            TO = TO[idx] 
-            stc = 1
-    
-    if stc == 0:
-        print('Warning: 3 hops not found')
-        
-    if HS[0] > TO[0]:
-        TO = TO[1:]
-        
-    if HS[-1] > TO[-1]:
-        HS = HS[0:-1]
-    
-    return(HS,TO)
-    
+# Grab the GPS data for the timing of segments
+GPStiming = pd.read_csv('C:\\Users\eric.honert\\Boa Technology Inc\\PFL Team - General\\Testing Segments\\EndurancePerformance\\TrailRun_2022\\CombinedGPS.csv')
 # Define the path: This is the way
-fPath = 'C:\\Users\eric.honert\\Boa Technology Inc\\PFL Team - General\\Testing Segments\\EndurancePerformance\\TrailRun_2022\\InLabData\\Pressure\\'
+fPath = 'C:\\Users\eric.honert\\Boa Technology Inc\\PFL Team - General\\Testing Segments\\EndurancePerformance\\TrailRun_2022\\PressureData\\'
 fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
 
 # Preallocate
 oSubject = []
 oConfig = []
-oSpeed = []
-oLabel = []
+oLabel = np.array([])
 oSesh = []
 
 
+heel_var = []
 heel_con = []
 heel_con_1 = [] # 1st half of stance
 heel_con_2 = [] # 2nd half of stance
 
-m_heel_ratio = []
-m_mid_ratio = []
-m_met_ratio = []
-m_toe_ratio = []
+toe_ppress = []
 
-m_heelPP_lat = []
-m_midPP_lat = []
-m_metPP_lat = []
-m_toePP_lat = []
+toe_con = []
+toe_con_1 = [] # 1st half of stance
+toe_con_2 = [] # 2nd half of stance
 
-avg_toe_force = []
+poorR = ['S15','S16','S17','S19','S20','S23']
 
-for ii in range(120,len(entries)):
+for ii in range(0,len(entries)):
     print(entries[ii])
-    dat = pd.read_csv(fPath+entries[ii], sep=',',skiprows = 1, header = 'infer')
+    dat = pd.read_csv(fPath+entries[ii], sep=',', header = 'infer')
     Subject = entries[ii].split(sep = "_")[0]
     Config = entries[ii].split(sep="_")[1]
-    Speed = entries[ii].split(sep="_")[2]
-    Slope = entries[ii].split(sep="_")[3]
-    Sesh = entries[ii].split(sep="_")[4][0]
+    Sesh = int(entries[ii].split(sep = "_")[2][0])
     
-    if Slope == 'p4':
-        Label = '1'
-    elif Slope == 'p2':
-        Label = '2'
-    elif Slope == 'n6':
-        Label = '3'
+    # Find the correct GPS trial
+    GPStrial = np.array(GPStiming.Subject == Subject) * np.array(GPStiming.Config == Config) * np.array(GPStiming.Sesh == Sesh)
     
-    # As the insoles currently have a temporal shift, analyze the last 40 sec of data
-    dat = dat.iloc[len(dat)-4000:,:]
+    # Total left force: 16
+    # Total right force: 28
+    # left heel force: 40
+    # right heel force: 52
+    # left midfoot force: 64
+    # right midfoot force: 76
+    # left met force: 88
+    # right met force: 100
+    # left toe force: 112
+    # right toe force: 124
     
     # Convert the force into newtons, pressures into kPa
-    L_tot_force = np.array(dat.iloc[:,15])*4.44822
+    L_tot_force = np.array(dat.iloc[:,16])*4.44822
     L_tot_force = zeroInsoleForce(L_tot_force,100)
-    LHS = np.array(findLandings(L_tot_force, 50))
-    LTO = np.array(findTakeoffs(L_tot_force, 50))
+    [LHS,LTO] = findGaitEvents(L_tot_force,100)
     
-    R_tot_force = np.array(dat.iloc[:,27])*4.44822
+    R_tot_force = np.array(dat.iloc[:,28])*4.44822
     R_tot_force = zeroInsoleForce(R_tot_force,100)
-    RHS = np.array(findLandings(R_tot_force, 50))
-    RTO = np.array(findTakeoffs(R_tot_force, 50))
+    [RHS,RTO] = findGaitEvents(R_tot_force,100)
+
+    L_heel_force = np.array(dat.iloc[:,40])*4.44822
+    R_heel_force = np.array(dat.iloc[:,52])*4.44822
     
-    [LHS,LTO] = trimgaitevents(LHS,LTO)
-    [RHS,RTO] = trimgaitevents(RHS,RTO)
+    # L_toe_force = np.array(dat.iloc[:,112])*4.44822
+    L_toe_ppress = np.array(dat.iloc[:,108])*6.89476
+    R_toe_ppress = np.array(dat.iloc[:,120])*6.89476
     
-    # # Attempt to find the jumps: 
-    # jump_found = 0
-    # start_LHS = []; start_RHS = []
-    # for jj in range(15):
-    #     jump_check = np.where(np.abs(LHS[jj] - np.array(RHS[0:15])) < 10)
-    #     if jump_check[0].size > 0:
-    #         print('Jump Found')
-    #         Llastjumpi = jj
-    #         Rlastjumpi = np.argmin(np.abs(LHS[jj] - np.array(RHS[0:15])))
-    #         jump_found = 1
-            
-    # if jump_found == 1:
-    #     idx1 = (LHS > LHS[Llastjumpi] + 10*freq)*(LHS < LHS[Llastjumpi] + 55*freq)
-    #     idx2 = (LTO > LHS[Llastjumpi] + 10*freq)*(LTO < LHS[Llastjumpi] + 55*freq)
-    #     LHS = LHS[idx1]
-    #     LTO = LTO[idx2]
-    #     [LHS,LTO] = trimgaitevents(LHS,LTO)
+    # L_met_ppress = np.array(dat.iloc[:,84])*6.89476
+    
+    L_heel_con = np.array(dat.iloc[:,39])
+    R_heel_con = np.array(dat.iloc[:,51])
+    
+    L_toe_con = np.array(dat.iloc[:,111])
+    R_toe_con = np.array(dat.iloc[:,123])
+
+    # Zero based on min force/pressure
+    L_tot_force = L_tot_force-np.min(L_tot_force)
+    R_tot_force = R_tot_force-np.min(R_tot_force)    
+    L_heel_force = L_heel_force-np.min(L_heel_force)
+    R_heel_force = R_heel_force-np.min(R_heel_force)
+    # L_toe_force = L_toe_force-np.min(L_toe_force)
+    L_toe_ppress = L_toe_ppress-np.min(L_toe_ppress)
+    R_toe_ppress = R_toe_ppress-np.min(R_toe_ppress)
+    # L_met_ppress = L_met_ppress-np.min(L_met_ppress)
+    
+    
+    # There should HS that are close to one another: from the 3 hops.
+    # This indicates the start of the trial
+    # Let's look at the first n HS to see if there are similarities
+    
+    for jj in range(15):
+        jump_check = np.where(np.abs(LHS[jj] - np.array(RHS[0:15])) < 10)
+        if jump_check[0].size > 0:
+            print('Jump Found')
+            start_LHS = jj+1
+            start_RHS = np.argmin(np.abs(LHS[jj] - np.array(RHS[0:15])))+1
         
-    #     idx1 = (RHS > RHS[Rlastjumpi] + 10*freq)*(RHS < RHS[Rlastjumpi] + 55*freq)
-    #     idx2 = (RTO > RHS[Rlastjumpi] + 10*freq)*(RTO < RHS[Rlastjumpi] + 55*freq)
-    #     RHS = RHS[idx1]
-    #     RTO = RTO[idx2]
-        
-    #     [RHS,RTO] = trimgaitevents(RHS,RTO)
-        
     
-    # if jump_found == 0:
-    #     print('Temporal Shift may have occured')
-    #     [LHS,LTO] = threehopstart(LHS,LTO,freq)
-    #     [RHS,RTO] = threehopstart(RHS,RTO,freq)
-    
-        
-    L_heel_con = np.array((dat.iloc[:,36]+dat.iloc[:,60])/(dat.iloc[:,37]+dat.iloc[:,61])*100)
-    R_heel_con = np.array((dat.iloc[:,48]+dat.iloc[:,72])/(dat.iloc[:,49]+dat.iloc[:,73])*100)
-    
-    L_heelPP_lat = np.array(dat.iloc[:,35]-np.min(dat.iloc[:,35]))*6.89476
-    R_heelPP_lat = np.array(dat.iloc[:,47]-np.min(dat.iloc[:,47]))*6.89476
-    
-    L_midPP_lat = np.array(dat['Peak Pressure.6']-np.min(dat['Peak Pressure.6']))*6.89476
-    R_midPP_lat = np.array(dat['Peak Pressure.7']-np.min(dat['Peak Pressure.7']))*6.89476
-    
-    L_metPP_lat = np.array(dat['Peak Pressure.10']-np.min(dat['Peak Pressure.10']))*6.89476
-    R_metPP_lat = np.array(dat['Peak Pressure.11']-np.min(dat['Peak Pressure.11']))*6.89476
-    
-    L_toePP_lat = np.array(dat['Peak Pressure.14']-np.min(dat['Peak Pressure.14']))*6.89476
-    R_toePP_lat = np.array(dat['Peak Pressure.15']-np.min(dat['Peak Pressure.15']))*6.89476
-          
+    LHS = LHS[start_LHS:]
+    LTO = LTO[start_LHS:]
+    RHS = RHS[start_RHS:]
+    RTO = RTO[start_RHS:]
+       
     # Remove strides that have a peak GRF below 1000 N
     # Remove strides that are below 0.5 and above 1.5 seconds
     LGS = []    
     # May need to exclude poor toe-off dectections here as well
     for jj in range(len(LHS)-1):
-        if np.max(L_tot_force[LHS[jj]:LTO[jj]]) > 800:
+        if np.max(L_tot_force[LHS[jj]:LTO[jj]]) > 1000:
             if (LHS[jj+1] - LHS[jj]) > 0.5*freq and LHS[jj+1] - LHS[jj] < 1.5*freq:
                 LGS.append(jj)
     
     RGS = []
     for jj in range(len(RHS)-1):
-        if np.max(R_tot_force[RHS[jj]:RTO[jj]]) > 800:
-            if (RTO[jj] - RHS[jj]) > 0.15*freq and RHS[jj+1] - RHS[jj] < 1.5*freq:
+        if np.max(R_tot_force[RHS[jj]:RTO[jj]]) > 1000:
+            if (RHS[jj+1] - RHS[jj]) > 0.5*freq and RHS[jj+1] - RHS[jj] < 1.5*freq:
                 RGS.append(jj)
     
         
     # Compute metrics of interest
     for jj in LGS:
+        heel_var.append(np.std(L_heel_force[LHS[jj]:LTO[jj]])/np.mean(L_heel_force[LHS[jj]:LTO[jj]]))
+        toe_ppress.append(np.max(L_toe_ppress[LHS[jj]:LTO[jj]]))
         heel_con.append(np.mean(L_heel_con[LHS[jj]:LTO[jj]]))
         # Estimate for 1st and 2nd half of stance
         heel_con_1.append(np.mean(L_heel_con[LHS[jj]:LHS[jj]+int(.5*(LTO[jj]-LHS[jj]))]))
         heel_con_2.append(np.mean(L_heel_con[LHS[jj]+int(.5*(LTO[jj]-LHS[jj])):LTO[jj]]))
         
-        # Examine the maximum lateral pressures
-        m_heelPP_lat.append(np.max(L_heelPP_lat[LHS[jj]:LTO[jj]]))
-        m_midPP_lat.append(np.max(L_midPP_lat[LHS[jj]:LTO[jj]]))
-        m_metPP_lat.append(np.max(L_metPP_lat[LHS[jj]:LTO[jj]]))
-        m_toePP_lat.append(np.max(L_toePP_lat[LHS[jj]:LTO[jj]]))
-    
-    for jj in RGS:
-        heel_con.append(np.mean(R_heel_con[RHS[jj]:RTO[jj]]))
+        toe_con.append(np.mean(L_toe_con[LHS[jj]:LTO[jj]]))
         # Estimate for 1st and 2nd half of stance
-        heel_con_1.append(np.mean(R_heel_con[RHS[jj]:RHS[jj]+int(.5*(RTO[jj]-RHS[jj]))]))
-        heel_con_2.append(np.mean(R_heel_con[RHS[jj]+int(.5*(RTO[jj]-RHS[jj])):RTO[jj]]))
-        
-        # Examine the maximum lateral pressures
-        m_heelPP_lat.append(np.max(R_heelPP_lat[RHS[jj]:RTO[jj]]))
-        m_midPP_lat.append(np.max(R_midPP_lat[RHS[jj]:RTO[jj]]))
-        m_metPP_lat.append(np.max(R_metPP_lat[RHS[jj]:RTO[jj]]))
-        m_toePP_lat.append(np.max(R_toePP_lat[RHS[jj]:RTO[jj]]))
-        
-        
+        toe_con_1.append(np.mean(L_toe_con[LHS[jj]:LHS[jj]+int(.5*(LTO[jj]-LHS[jj]))]))
+        toe_con_2.append(np.mean(L_toe_con[LHS[jj]+int(.5*(LTO[jj]-LHS[jj])):LTO[jj]]))
+    
+    if Subject not in poorR:
+        for jj in RGS:
+            heel_var.append(np.std(R_heel_force[RHS[jj]:RTO[jj]])/np.mean(R_heel_force[RHS[jj]:RTO[jj]]))
+            toe_ppress.append(np.max(R_toe_ppress[RHS[jj]:RTO[jj]]))
+            heel_con.append(np.mean(R_heel_con[RHS[jj]:RTO[jj]]))
+            # Estimate for 1st and 2nd half of stance
+            heel_con_1.append(np.mean(R_heel_con[RHS[jj]:RHS[jj]+int(.5*(RTO[jj]-RHS[jj]))]))
+            heel_con_2.append(np.mean(R_heel_con[RHS[jj]+int(.5*(RTO[jj]-RHS[jj])):RTO[jj]]))
             
-
-    oSubject = oSubject + [Subject]*len(LGS) + [Subject]*len(RGS)
-    oConfig = oConfig + [Config]*len(LGS) + [Config]*len(RGS)
-    oSpeed = oSpeed + [Speed]*len(LGS) + [Speed]*len(RGS)
-    oSesh = oSesh + [Sesh]*len(LGS) + [Sesh]*len(RGS)
-    oLabel = oLabel + [Label]*len(LGS) + [Label]*len(RGS)
+            toe_con.append(np.mean(R_toe_con[RHS[jj]:RTO[jj]]))
+            # Estimate for 1st and 2nd half of stance
+            toe_con_1.append(np.mean(R_toe_con[RHS[jj]:RHS[jj]+int(.5*(RTO[jj]-RHS[jj]))]))
+            toe_con_2.append(np.mean(R_toe_con[RHS[jj]+int(.5*(RTO[jj]-RHS[jj])):RTO[jj]]))
     
-    # plt.figure(ii)
-    # plt.subplot(2,1,1)
-    # plt.plot(L_tot_force)
-    # plt.plot(LHS[LGS],L_tot_force[LHS[LGS]],'ro')
-    # plt.plot(LTO[LGS],L_tot_force[LTO[LGS]],'ko')
-    # plt.ylabel('Left Insole Force [N]')
     
-    # plt.subplot(2,1,2)
-    # plt.plot(R_tot_force)
-    # plt.plot(RHS[RGS],R_tot_force[RHS[RGS]],'ro')
-    # plt.plot(RTO[RGS],R_tot_force[RTO[RGS]],'ko')
-    # plt.ylabel('Right Insole Force [N]')
+    
+    # Create Labels
+    Llabel = np.zeros([len(LGS),1])
+    # Uphill label
+    idx = LHS[LGS]/freq < float(GPStiming.EndS1[GPStrial])
+    Llabel[idx] = 1
+    # Top label
+    idx = (LHS[LGS]/freq > float(GPStiming.StartS2[GPStrial]))*(LHS[LGS]/freq < float(GPStiming.EndS2[GPStrial]))
+    Llabel[idx] = 2
+    # Bottom label
+    idx = LHS[LGS]/freq > float(GPStiming.StartS3[GPStrial])
+    Llabel[idx] = 3
+    
+    Rlabel = np.zeros([len(RGS),1])
+    # Uphill label
+    idx = RHS[RGS]/freq < float(GPStiming.EndS1[GPStrial])
+    Rlabel[idx] = 1
+    # Top label
+    idx = (RHS[RGS]/freq > float(GPStiming.StartS2[GPStrial]))*(RHS[RGS]/freq < float(GPStiming.EndS2[GPStrial]))
+    Rlabel[idx] = 2
+    # Bottom label
+    idx = RHS[RGS]/freq > float(GPStiming.StartS3[GPStrial])
+    Rlabel[idx] = 3
+    
+    if Subject in poorR:
+        oSubject = oSubject + [Subject]*len(LGS)
+        oConfig = oConfig + [Config]*len(LGS)
+        oSesh = oSesh + [Sesh]*len(LGS)
+        oLabel = np.concatenate((oLabel,Llabel),axis = None)
+    else:
+        oSubject = oSubject + [Subject]*len(LGS) + [Subject]*len(RGS)
+        oConfig = oConfig + [Config]*len(LGS) + [Config]*len(RGS)
+        oSesh = oSesh + [Sesh]*len(LGS) + [Sesh]*len(RGS)
+        oLabel = np.concatenate((oLabel,Llabel,Rlabel),axis = None)
     
     # plt.figure(ii)
     # plt.subplot(2,1,1)
@@ -447,13 +417,38 @@ for ii in range(120,len(entries)):
 
 
 
-outcomes = pd.DataFrame({'Subject':list(oSubject), 'Config': list(oConfig),'Speed': list(oSpeed),'Sesh': list(oSesh),
-                          'Label':list(oLabel), 'HeelCon':list(heel_con),'HeelCon1':list(heel_con_1), 'HeelCon2':list(heel_con_2),
-                          'm_heelPP_lat':list(m_heelPP_lat),'m_midPP_lat':list(m_midPP_lat),'m_metPP_lat':list(m_metPP_lat),'m_toePP_lat':list(m_toePP_lat)})
+outcomes = pd.DataFrame({'Subject':list(oSubject), 'Config': list(oConfig),'Sesh': list(oSesh),
+                         'Label':list(oLabel), 'HeelVar':list(heel_var),'ToePeak':list(toe_ppress),
+                         'HeelCon':list(heel_con),'HeelCon1':list(heel_con_1), 'HeelCon2':list(heel_con_2),
+                         'ToeCon':list(toe_con),'ToeCon1':list(toe_con_1), 'ToeCon2':list(toe_con_2)})
 
 if save_on == 1:
-    outcomes.to_csv('C:\\Users\eric.honert\\Boa Technology Inc\\PFL Team - General\\Testing Segments\\EndurancePerformance\\TrailRun_2022\\InLabData\\InLabPressureOutcomes.csv',header=True)
+    outcomes.to_csv('C:\\Users\eric.honert\\Boa Technology Inc\\PFL Team - General\\Testing Segments\\EndurancePerformance\\TrailRun_2022\\PressureOutcomes.csv',header=True)
 elif save_on == 2: 
-    outcomes.to_csv('C:\\Users\eric.honert\\Boa Technology Inc\\PFL Team - General\\Testing Segments\\EndurancePerformance\\TrailRun_2022\\InLabData\\InLabPressureOutcomes.csv',mode = 'a', header=False)
+    outcomes.to_csv('C:\\Users\eric.honert\\Boa Technology Inc\\PFL Team - General\\Testing Segments\\EndurancePerformance\\TrailRun_2022\\PressureOutcomes.csv',mode = 'a', header=False)
 
 
+# c = ['r','r','g','g']
+# fig, ax = plt.subplots()
+# ax.bar(np.array(range(1,len(L_heel_var_avg)+1)),L_heel_var_avg,yerr=L_heel_var_std,color=c)
+# ax.set_ylabel('Heel Variation')
+# ax.set_xticks(np.array(range(1,len(L_heel_var_avg)+1)))
+# ax.set_xticklabels(Config)
+    
+# fig, ax = plt.subplots()
+# ax.bar(np.array(range(1,len(L_toe_max_avg[4:])+1)),L_toe_max_avg[4:],yerr=L_toe_max_std[4:],color=c)
+# ax.set_ylabel('Maximum Toe Pressure [Psi]')
+# ax.set_xticks(np.array(range(1,len(L_toe_max_avg[4:])+1)))
+# ax.set_xticklabels(Config[4:])
+
+# # fig, ax = plt.subplots()
+# # ax.bar(np.array(range(1,len(L_toe_max_avg[4:])+1)),L_heel_con_avg[4:],yerr=L_heel_con_std[4:],color=c)
+# # ax.set_ylabel('Average Heel Contact [%]')
+# # ax.set_xticks(np.array(range(1,len(L_toe_max_avg[4:])+1)))
+# # ax.set_xticklabels(Config[4:])
+
+# fig, ax = plt.subplots()
+# ax.bar(np.array(range(1,len(L_toe_max_avg[4:])+1)),L_met_max_avg[4:],yerr=L_met_max_std[4:],color=c)
+# ax.set_ylabel('Maximum Metatarsal Pressure [Psi]')
+# ax.set_xticks(np.array(range(1,len(L_met_max_avg[4:])+1)))
+# ax.set_xticklabels(Config[4:])
