@@ -18,7 +18,7 @@ import seaborn as sns
 
 fwdLook = 30
 fThresh = 40
-freq = 75 # sampling frequency (intending to change to 150 after this study)
+freq = 100 # sampling frequency (intending to change to 150 after this study)
 # list of functions 
 # finding landings on the force plate once the filtered force exceeds the force threshold
 def findLandings(force, fThreshold):
@@ -178,7 +178,7 @@ for fName in entries:
                                 
                     steadySub.append( fName.split('_')[0] )
                     steadyConfig.append( fName.split('_')[1])
-                    steadyTrial.append( fName.split('_')[2])
+                    steadyTrial.append( fName.split('_')[2][0])
                 except:
                     print("reached end of landings")
                 
@@ -197,7 +197,7 @@ for fName in entries:
                     HeelConArea_Sprint.append(np.mean(dat.R_Heel_ContactArea[sprintTakeoffs[i] : sprintLandings[i+1]]))  
                     sprintSub.append( fName.split('_')[0] )
                     sprintConfig.append( fName.split('_')[1])
-                    sprintTrial.append( fName.split('_')[2])
+                    sprintTrial.append( fName.split('_')[2][0])
                     sprintInitialSTDV.append( dat.StdDevRF[sprintStart+sprintLand+1])# / RForce[steadyStart+steadyLandings[i]+1] )
                     sprintInitialPkP.append( dat.PeakP_RF[sprintStart+sprintLand + 1])
                     sprintPeakSTDV.append( dat.StdDevRF[sprintStart+sprintLand + timePk])# / RForce[steadyStart+steadyLandings[i]+timePk] )
