@@ -10,6 +10,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+from tkinter import messagebox
 
 fwdLook = 30
 fThresh = 50
@@ -47,9 +48,16 @@ def trimForce(inputDFCol, threshForce):
     forceTot = np.array(forceTot)
     return(forceTot)
 
+def makeVizPlot(inputForce, inputLandings, inputTakeoffs):
+    plt.plot(inputForce)
+    plt.vlines(x = inputLandings, ymin = 0, ymax = np.max(RForce),
+           color = 'red', label = 'Landings')
+    plt.vlines(x = inputTakeoffs, ymin = 0, ymax = np.max(RForce),
+           color = 'green', label = 'Takeoffs')
+
 # Read in files
 # only read .asc files for this work
-fPath = 'C:/Users/Kate.Harrison/Boa Technology Inc/PFL Team - General/Testing Segments/Hike/ZonalFit_Midcut_Aug2022/Xsensor/'
+fPath = 'C:/Users/daniel.feeney/Boa Technology Inc/PFL Team - General/Testing Segments/Hike/ZonalFit_Midcut_Aug2022/Xsensor/'
 fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
 
@@ -72,6 +80,8 @@ Subject = []
 Config = []
 Side = []
 
+badFileList = []
+
 for fName in entries:
         try:
             # fName = entries[3] #Load one file at a time
@@ -81,7 +91,7 @@ for fName in entries:
             moveTmp = fName.split(sep = "_")[1]
             
             # Make sure the files are named FirstLast_Config_Movement_Trial# - The "if" statement won't work if there isn't a trial number next to the movement
-            if (moveTmp == 'run') or (moveTmp == 'Run') or (moveTmp == 'running') or (moveTmp == 'Running') or (moveTmp == 'walk') or (moveTmp == 'Walk') or (moveTmp == 'walking') or (moveTmp == 'Walking') or (moveTmp == 'Trail'):
+            if (moveTmp == 'run') or (moveTmp == 'Run') or (moveTmp == 'running') or (moveTmp == 'Running') or (moveTmp == 'walk') or (moveTmp == 'Walk') or (moveTmp == 'walking') or (moveTmp == 'Walking') or (moveTmp == 'Trail') or (moveTmp == 'Uphill'):
                 dat.columns = ['Frame', 'Date',	'Time',	'Units', 'Threshold', 
                            'SensorLF', 'SideLF', 'RowsLF',	'ColumnsLF', 'AverageP_LF',	'MinP_LF',	'PeakP_LF', 'ContactArea_LF', 'TotalArea_LF', 'ContactPct_LF', 'EstLoadLF',	'StdDevLF',	
                            'SensorRF', 'SideRF', 'RowsRF', 'ColumnsRF', 'AverageP_RF', 'MinP_RF',	'PeakP_RF', 'ContactArea_RF', 'TotalArea_RF',	'ContactPct_RF', 'EstLoadRF', 'StdDevRF',	 
@@ -125,110 +135,122 @@ for fName in entries:
 
                 landings[:] = [x for x in landings if x < takeoffs[-1]]
                 takeoffs[:] = [x for x in takeoffs if x > landings[0]]
+                
+                makeVizPlot(RForce, landings, takeoffs)
+                answer = messagebox.askyesno("Question","Is data clean?")
+                
+                if answer == False:
+                    plt.close('all')
+                    print('Adding file to bad file list')
+                    badFileList.append(fName)
+                
+                if answer == True:
+                    plt.close('all')
+                    print('Estimating point estimates')
             
-                for i in range(len(landings)):
-                    try:
-                        # Note: converting psi to kpa with 1psi=6.89476kpa
-                        #i = 0
+                    for i in range(len(landings)):
+                        try:
+                            # Note: converting psi to kpa with 1psi=6.89476kpa
+                            #i = 0
+                            
+                            peakFidx = np.argmax(dat.EstLoadRF[landings[i]:takeoffs[i]])
+                            heelAreaLate = np.mean(dat.R_Heel_ContactArea[landings[i]+peakFidx:takeoffs[i]])
+                            ffAreaEarly.append(np.mean(dat.R_Metatarsal_ContactArea[landings[i]:landings[i]+peakFidx]))
+                            ffAreaIC.append(dat.R_Metatarsal_ContactArea[landings[i]])
+                            meanHeel = np.mean(dat.R_Heel_Average[landings[i]:takeoffs[i]])*6.89476
+                            meanMidfoot = np.mean(dat.R_Midfoot_Average[landings[i]:takeoffs[i]])*6.89476    
+                            meanForefoot = np.mean(dat.R_Metatarsal_Average[landings[i]:takeoffs[i]])*6.89476 
+                            meanToe = np.mean(dat.R_Toe_Average[landings[i]:takeoffs[i]])*6.89476   
+                            
+                            stdevHeel = np.std(dat.R_Heel_Average[landings[i]:takeoffs[i]])*6.89476
+                            maximummeanHeel = np.max(dat.R_Heel_Average[landings[i]:takeoffs[i]])*6.89476
+                            maximummaxHeel = np.max(dat.R_Heel_MAX[landings[i]:takeoffs[i]])*6.89476
+                            maximummaxMet = np.max(dat.R_Metatarsal_MAX[landings[i]:takeoffs[i]])*6.89476
+                            maximummaxMid = np.max(dat.R_Midfoot_MAX[landings[i]:takeoffs[i]])*6.89476
+                            maximummeanToe = np.max(dat.R_Toe_Average[landings[i]:takeoffs[i]])*6.89476
+                            maximummaxToe = np.max(dat.R_Toe_MAX[landings[i]:takeoffs[i]])*6.89476
+                            meanFoot = (meanHeel + meanMidfoot + meanForefoot + meanToe)/4
+                            
+                            meanTotalP.append(meanFoot)
+                            sdHeel.append(stdevHeel)
+                            meanToes.append(meanToe/meanFoot)
+                            meanFf.append(meanForefoot)
+                            maxmeanHeel.append(maximummeanHeel)
+                            maxmaxHeel.append(maximummaxHeel)
+                            cvHeel.append(stdevHeel/meanFoot)
+                            heelArea.append(heelAreaLate)
                         
-                        peakFidx = np.argmax(dat.EstLoadRF[landings[i]:takeoffs[i]])
-                        heelAreaLate = np.mean(dat.R_Heel_ContactArea[landings[i]+peakFidx:takeoffs[i]])
-                        ffAreaEarly.append(np.mean(dat.R_Metatarsal_ContactArea[landings[i]:landings[i]+peakFidx]))
-                        ffAreaIC.append(dat.R_Metatarsal_ContactArea[landings[i]])
-                        meanHeel = np.mean(dat.R_Heel_Average[landings[i]:takeoffs[i]])*6.89476
-                        meanMidfoot = np.mean(dat.R_Midfoot_Average[landings[i]:takeoffs[i]])*6.89476    
-                        meanForefoot = np.mean(dat.R_Metatarsal_Average[landings[i]:takeoffs[i]])*6.89476 
-                        meanToe = np.mean(dat.R_Toe_Average[landings[i]:takeoffs[i]])*6.89476   
+                            maxmaxMid.append(maximummaxMid)
+                            maxmaxMet.append(maximummaxMet)
+                            
+                            maxmeanToes.append(maximummeanToe)
+                            maxmaxToes.append(maximummaxToe)
                         
-                        stdevHeel = np.std(dat.R_Heel_Average[landings[i]:takeoffs[i]])*6.89476
-                        maximummeanHeel = np.max(dat.R_Heel_Average[landings[i]:takeoffs[i]])*6.89476
-                        maximummaxHeel = np.max(dat.R_Heel_MAX[landings[i]:takeoffs[i]])*6.89476
-                        maximummaxMet = np.max(dat.R_Metatarsal_MAX[landings[i]:takeoffs[i]])*6.89476
-                        maximummaxMid = np.max(dat.R_Midfoot_MAX[landings[i]:takeoffs[i]])*6.89476
-                        maximummeanToe = np.max(dat.R_Toe_Average[landings[i]:takeoffs[i]])*6.89476
-                        maximummaxToe = np.max(dat.R_Toe_MAX[landings[i]:takeoffs[i]])*6.89476
-                        meanFoot = (meanHeel + meanMidfoot + meanForefoot + meanToe)/4
+                            Subject.append(subName)
+                            Config.append(ConfigTmp)
+                            Side.append('Right')
+                        except:
+                            print(fName, landings[i])
+                
+                    #__________________________________________________________________
+                    # Left foot:
+                    # Est. Load (lbf) conversion to N = 1lbf * 4.44822N 
+                    # Convert the output load to Newtons from lbf
+                    LForce = np.array(dat.EstLoadLF)*4.44822
+                    LForce = LForce-np.min(LForce)
+                
+                    # Compute landings and takeoffs
+                    landings = findLandings(LForce, fThresh)
+                    takeoffs = findTakeoffs(LForce, fThresh)
+    
+                    landings[:] = [x for x in landings if x < takeoffs[-1]]
+                    takeoffs[:] = [x for x in takeoffs if x > landings[0]]
+                
+                    for i in range(len(landings)):
+                        try:
+                            # Note: converting psi to kpa with 1psi=6.89476kpa
+                            peakFidx = np.argmax(dat.EstLoadLF[landings[i]:takeoffs[i]])
+                            heelAreaLate = np.mean(dat.L_Heel_ContactArea[landings[i]+peakFidx:takeoffs[i]])
+                            ffAreaEarly.append(np.mean(dat.L_Metatarsal_ContactArea[landings[i]:landings[i]+[peakFidx]]))
+                            ffAreaIC.append(dat.L_Metatarsal_ContactArea[landings[i]])
+                            meanHeel = np.mean(dat.L_Heel_Average[landings[i]:takeoffs[i]])*6.89476
+                            meanMidfoot = np.mean(dat.L_Midfoot_Average[landings[i]:takeoffs[i]])*6.89476    
+                            meanForefoot = np.mean(dat.L_Metatarsal_Average[landings[i]:takeoffs[i]])*6.89476 
+                            meanToe = np.mean(dat.L_Toe_Average[landings[i]:takeoffs[i]])*6.89476   
+                            
+                            stdevHeel = np.std(dat.L_Heel_Average[landings[i]:takeoffs[i]])*6.89476
+                            maximummeanHeel = np.max(dat.L_Heel_Average[landings[i]:takeoffs[i]])*6.89476
+                            maximummaxHeel = np.max(dat.L_Heel_MAX[landings[i]:takeoffs[i]])*6.89476
+                            maximummaxMet = np.max(dat.L_Metatarsal_MAX[landings[i]:takeoffs[i]])*6.89476
+                            maximummaxMid = np.max(dat.L_Midfoot_MAX[landings[i]:takeoffs[i]])*6.89476
+                            maximummeanToe = np.max(dat.L_Toe_Average[landings[i]:takeoffs[i]])*6.89476
+                            maximummaxToe = np.max(dat.L_Toe_MAX[landings[i]:takeoffs[i]])*6.89476
+                            meanFoot = (meanHeel + meanMidfoot + meanForefoot + meanToe)/4
+                            
+                            meanTotalP.append(meanFoot)
+                            sdHeel.append(stdevHeel)
+                            meanToes.append(meanToe/meanFoot)
+                            meanFf.append(meanForefoot)
                         
-                        meanTotalP.append(meanFoot)
-                        sdHeel.append(stdevHeel)
-                        meanToes.append(meanToe/meanFoot)
-                        meanFf.append(meanForefoot)
-                        maxmeanHeel.append(maximummeanHeel)
-                        maxmaxHeel.append(maximummaxHeel)
-                        cvHeel.append(stdevHeel/meanFoot)
-                        heelArea.append(heelAreaLate)
-                    
-                        maxmaxMid.append(maximummaxMid)
-                        maxmaxMet.append(maximummaxMet)
+                            maxmaxMid.append(maximummaxMid)
+                            maxmaxMet.append(maximummaxMet)
+                            
+                            maxmeanHeel.append(maximummeanHeel)
+                            maxmaxHeel.append(maximummaxHeel)
+                            cvHeel.append(stdevHeel/meanFoot)
+                            heelArea.append(heelAreaLate)
+                            
+                            maxmeanToes.append(maximummeanToe)
+                            maxmaxToes.append(maximummaxToe)
                         
-                        maxmeanToes.append(maximummeanToe)
-                        maxmaxToes.append(maximummaxToe)
-                    
-                        Subject.append(subName)
-                        Config.append(ConfigTmp)
-                        Side.append('Right')
-                    except:
-                        print(fName, landings[i])
-            
-                #__________________________________________________________________
-                # Left foot:
-                # Est. Load (lbf) conversion to N = 1lbf * 4.44822N 
-                # Convert the output load to Newtons from lbf
-                LForce = np.array(dat.EstLoadLF)*4.44822
-                LForce = LForce-np.min(LForce)
-            
-                # Compute landings and takeoffs
-                landings = findLandings(LForce, fThresh)
-                takeoffs = findTakeoffs(LForce, fThresh)
-
-                landings[:] = [x for x in landings if x < takeoffs[-1]]
-                takeoffs[:] = [x for x in takeoffs if x > landings[0]]
-            
-                for i in range(len(landings)):
-                    try:
-                        # Note: converting psi to kpa with 1psi=6.89476kpa
-                        peakFidx = np.argmax(dat.EstLoadLF[landings[i]:takeoffs[i]])
-                        heelAreaLate = np.mean(dat.L_Heel_ContactArea[landings[i]+peakFidx:takeoffs[i]])
-                        ffAreaEarly.append(np.mean(dat.L_Metatarsal_ContactArea[landings[i]:landings[i]+[peakFidx]]))
-                        ffAreaIC.append(dat.L_Metatarsal_ContactArea[landings[i]])
-                        meanHeel = np.mean(dat.L_Heel_Average[landings[i]:takeoffs[i]])*6.89476
-                        meanMidfoot = np.mean(dat.L_Midfoot_Average[landings[i]:takeoffs[i]])*6.89476    
-                        meanForefoot = np.mean(dat.L_Metatarsal_Average[landings[i]:takeoffs[i]])*6.89476 
-                        meanToe = np.mean(dat.L_Toe_Average[landings[i]:takeoffs[i]])*6.89476   
-                        
-                        stdevHeel = np.std(dat.L_Heel_Average[landings[i]:takeoffs[i]])*6.89476
-                        maximummeanHeel = np.max(dat.L_Heel_Average[landings[i]:takeoffs[i]])*6.89476
-                        maximummaxHeel = np.max(dat.L_Heel_MAX[landings[i]:takeoffs[i]])*6.89476
-                        maximummaxMet = np.max(dat.L_Metatarsal_MAX[landings[i]:takeoffs[i]])*6.89476
-                        maximummaxMid = np.max(dat.L_Midfoot_MAX[landings[i]:takeoffs[i]])*6.89476
-                        maximummeanToe = np.max(dat.L_Toe_Average[landings[i]:takeoffs[i]])*6.89476
-                        maximummaxToe = np.max(dat.L_Toe_MAX[landings[i]:takeoffs[i]])*6.89476
-                        meanFoot = (meanHeel + meanMidfoot + meanForefoot + meanToe)/4
-                        
-                        meanTotalP.append(meanFoot)
-                        sdHeel.append(stdevHeel)
-                        meanToes.append(meanToe/meanFoot)
-                        meanFf.append(meanForefoot)
-                    
-                        maxmaxMid.append(maximummaxMid)
-                        maxmaxMet.append(maximummaxMet)
-                        
-                        maxmeanHeel.append(maximummeanHeel)
-                        maxmaxHeel.append(maximummaxHeel)
-                        cvHeel.append(stdevHeel/meanFoot)
-                        heelArea.append(heelAreaLate)
-                        
-                        maxmeanToes.append(maximummeanToe)
-                        maxmaxToes.append(maximummaxToe)
-                    
-                        Subject.append(subName)
-                        Config.append(ConfigTmp)
-                        Side.append('Left')
-                    except:
-                        print(fName, landings[i])
-            
-            else:
-                    print('Only anlayzing running')
+                            Subject.append(subName)
+                            Config.append(ConfigTmp)
+                            Side.append('Left')
+                        except:
+                            print(fName, landings[i])
+                
+                else:
+                        print('Only anlayzing running')
         except:
             print(fName) 
             
