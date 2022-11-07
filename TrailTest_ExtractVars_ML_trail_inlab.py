@@ -18,7 +18,6 @@ import scipy.signal as sig
 fwdLook = 30
 fThresh = 50
 freq = 100
-save_on = 0
 # list of functions 
 # finding landings on the force plate once the filtered force exceeds the force threshold
 def findLandings(force, fThreshold):
@@ -268,12 +267,16 @@ fPath = 'C:\\Users\eric.honert\\Boa Technology Inc\\PFL Team - General\\Testing 
 fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
 
+save_on = 0
+debug = 1
+
 # Preallocate
 oSubject = []
 oConfig = []
 oSpeed = []
 oLabel = []
 oSesh = []
+oSide = []
 
 
 heel_con = []
@@ -292,7 +295,9 @@ m_toePP_lat = []
 
 avg_toe_force = []
 
-for ii in range(120,len(entries)):
+poorL = ['S07']
+
+for ii in range(203,len(entries)):
     print(entries[ii])
     dat = pd.read_csv(fPath+entries[ii], sep=',',skiprows = 1, header = 'infer')
     Subject = entries[ii].split(sep = "_")[0]
@@ -372,34 +377,42 @@ for ii in range(120,len(entries)):
     L_toePP_lat = np.array(dat['Peak Pressure.14']-np.min(dat['Peak Pressure.14']))*6.89476
     R_toePP_lat = np.array(dat['Peak Pressure.15']-np.min(dat['Peak Pressure.15']))*6.89476
           
-    # Remove strides that have a peak GRF below 1000 N
-    # Remove strides that are below 0.5 and above 1.5 seconds
-    LGS = []    
-    # May need to exclude poor toe-off dectections here as well
-    for jj in range(len(LHS)-1):
-        if np.max(L_tot_force[LHS[jj]:LTO[jj]]) > 800:
-            if (LHS[jj+1] - LHS[jj]) > 0.5*freq and LHS[jj+1] - LHS[jj] < 1.5*freq:
-                LGS.append(jj)
+       
+    if Subject not in poorL:
+        # Remove strides that have a peak GRF below 1000 N
+        # Remove strides that are below 0.5 and above 1.5 seconds
+        LGS = []    
+        # May need to exclude poor toe-off dectections here as well
+        for jj in range(len(LHS)-1):
+            if np.max(L_tot_force[LHS[jj]:LTO[jj]]) > 800:
+                if (LHS[jj+1] - LHS[jj]) > 0.5*freq and LHS[jj+1] - LHS[jj] < 1.5*freq:
+                    LGS.append(jj)
+                    
+        # Compute metrics of interest
+        for jj in LGS:
+            heel_con.append(np.mean(L_heel_con[LHS[jj]:LTO[jj]]))
+            # Estimate for 1st and 2nd half of stance
+            heel_con_1.append(np.mean(L_heel_con[LHS[jj]:LHS[jj]+int(.5*(LTO[jj]-LHS[jj]))]))
+            heel_con_2.append(np.mean(L_heel_con[LHS[jj]+int(.5*(LTO[jj]-LHS[jj])):LTO[jj]]))
+            
+            # Examine the maximum lateral pressures
+            m_heelPP_lat.append(np.max(L_heelPP_lat[LHS[jj]:LTO[jj]]))
+            m_midPP_lat.append(np.max(L_midPP_lat[LHS[jj]:LTO[jj]]))
+            m_metPP_lat.append(np.max(L_metPP_lat[LHS[jj]:LTO[jj]]))
+            m_toePP_lat.append(np.max(L_toePP_lat[LHS[jj]:LTO[jj]]))
+        
+        oSubject = oSubject + [Subject]*len(LGS)
+        oConfig = oConfig + [Config]*len(LGS)
+        oSpeed = oSpeed + [Speed]*len(LGS)
+        oSesh = oSesh + [Sesh]*len(LGS)
+        oLabel = oLabel + [Label]*len(LGS)
+        oSide = oSide + ['L']*len(LGS)
     
     RGS = []
     for jj in range(len(RHS)-1):
         if np.max(R_tot_force[RHS[jj]:RTO[jj]]) > 800:
             if (RTO[jj] - RHS[jj]) > 0.15*freq and RHS[jj+1] - RHS[jj] < 1.5*freq:
                 RGS.append(jj)
-    
-        
-    # Compute metrics of interest
-    for jj in LGS:
-        heel_con.append(np.mean(L_heel_con[LHS[jj]:LTO[jj]]))
-        # Estimate for 1st and 2nd half of stance
-        heel_con_1.append(np.mean(L_heel_con[LHS[jj]:LHS[jj]+int(.5*(LTO[jj]-LHS[jj]))]))
-        heel_con_2.append(np.mean(L_heel_con[LHS[jj]+int(.5*(LTO[jj]-LHS[jj])):LTO[jj]]))
-        
-        # Examine the maximum lateral pressures
-        m_heelPP_lat.append(np.max(L_heelPP_lat[LHS[jj]:LTO[jj]]))
-        m_midPP_lat.append(np.max(L_midPP_lat[LHS[jj]:LTO[jj]]))
-        m_metPP_lat.append(np.max(L_metPP_lat[LHS[jj]:LTO[jj]]))
-        m_toePP_lat.append(np.max(L_toePP_lat[LHS[jj]:LTO[jj]]))
     
     for jj in RGS:
         heel_con.append(np.mean(R_heel_con[RHS[jj]:RTO[jj]]))
@@ -413,37 +426,35 @@ for ii in range(120,len(entries)):
         m_metPP_lat.append(np.max(R_metPP_lat[RHS[jj]:RTO[jj]]))
         m_toePP_lat.append(np.max(R_toePP_lat[RHS[jj]:RTO[jj]]))
         
+    oSubject = oSubject + [Subject]*len(RGS)
+    oConfig = oConfig + [Config]*len(RGS)
+    oSpeed = oSpeed + [Speed]*len(RGS)
+    oSesh = oSesh + [Sesh]*len(RGS)
+    oLabel = oLabel + [Label]*len(RGS)
+    oSide = oSide + ['R']*len(RGS)
+    
+    if debug == 1:
+        plt.figure(ii)
+        # plt.subplot(2,2,1)
+        # plt.plot(L_tot_force)
+        # plt.plot(LHS[LGS],L_tot_force[LHS[LGS]],'ro')
+        # plt.plot(LTO[LGS],L_tot_force[LTO[LGS]],'ko')
+        # plt.ylabel('Left Insole Force [N]')
         
-            
-
-    oSubject = oSubject + [Subject]*len(LGS) + [Subject]*len(RGS)
-    oConfig = oConfig + [Config]*len(LGS) + [Config]*len(RGS)
-    oSpeed = oSpeed + [Speed]*len(LGS) + [Speed]*len(RGS)
-    oSesh = oSesh + [Sesh]*len(LGS) + [Sesh]*len(RGS)
-    oLabel = oLabel + [Label]*len(LGS) + [Label]*len(RGS)
-    
-    # plt.figure(ii)
-    # plt.subplot(2,1,1)
-    # plt.plot(L_tot_force)
-    # plt.plot(LHS[LGS],L_tot_force[LHS[LGS]],'ro')
-    # plt.plot(LTO[LGS],L_tot_force[LTO[LGS]],'ko')
-    # plt.ylabel('Left Insole Force [N]')
-    
-    # plt.subplot(2,1,2)
-    # plt.plot(R_tot_force)
-    # plt.plot(RHS[RGS],R_tot_force[RHS[RGS]],'ro')
-    # plt.plot(RTO[RGS],R_tot_force[RTO[RGS]],'ko')
-    # plt.ylabel('Right Insole Force [N]')
-    
-    # plt.figure(ii)
-    # plt.subplot(2,1,1)
-    # plt.plot(intp_strides(L_tot_force,LHS,LTO,LGS))
-    # plt.ylabel('Insole Force [N]')
-    
-    # plt.subplot(2,1,2)
-    # plt.plot(intp_strides(R_tot_force,RHS,RTO,RGS))
-    # plt.ylabel('Insole Force [N]')
-    1
+        plt.subplot(2,2,2)
+        plt.plot(R_tot_force)
+        plt.plot(RHS[RGS],R_tot_force[RHS[RGS]],'ro')
+        plt.plot(RTO[RGS],R_tot_force[RTO[RGS]],'ko')
+        plt.ylabel('Right Insole Force [N]')
+        
+        # plt.subplot(2,2,3)
+        # plt.plot(intp_strides(L_tot_force,LHS,LTO,LGS))
+        # plt.ylabel('Insole Force [N]')
+        
+        plt.subplot(2,2,4)
+        plt.plot(intp_strides(R_tot_force,RHS,RTO,RGS))
+        plt.ylabel('Insole Force [N]')
+        plt.close()
 
 
 
