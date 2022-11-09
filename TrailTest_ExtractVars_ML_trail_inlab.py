@@ -267,8 +267,8 @@ fPath = 'C:\\Users\eric.honert\\Boa Technology Inc\\PFL Team - General\\Testing 
 fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
 
-save_on = 0
-debug = 1
+save_on = 1
+debug = 0
 
 # Preallocate
 oSubject = []
@@ -297,7 +297,7 @@ avg_toe_force = []
 
 poorL = ['S07']
 
-for ii in range(203,len(entries)):
+for ii in range(0,len(entries)):
     print(entries[ii])
     dat = pd.read_csv(fPath+entries[ii], sep=',',skiprows = 1, header = 'infer')
     Subject = entries[ii].split(sep = "_")[0]
@@ -435,11 +435,11 @@ for ii in range(203,len(entries)):
     
     if debug == 1:
         plt.figure(ii)
-        # plt.subplot(2,2,1)
-        # plt.plot(L_tot_force)
-        # plt.plot(LHS[LGS],L_tot_force[LHS[LGS]],'ro')
-        # plt.plot(LTO[LGS],L_tot_force[LTO[LGS]],'ko')
-        # plt.ylabel('Left Insole Force [N]')
+        plt.subplot(2,2,1)
+        plt.plot(L_tot_force)
+        plt.plot(LHS[LGS],L_tot_force[LHS[LGS]],'ro')
+        plt.plot(LTO[LGS],L_tot_force[LTO[LGS]],'ko')
+        plt.ylabel('Left Insole Force [N]')
         
         plt.subplot(2,2,2)
         plt.plot(R_tot_force)
@@ -447,9 +447,9 @@ for ii in range(203,len(entries)):
         plt.plot(RTO[RGS],R_tot_force[RTO[RGS]],'ko')
         plt.ylabel('Right Insole Force [N]')
         
-        # plt.subplot(2,2,3)
-        # plt.plot(intp_strides(L_tot_force,LHS,LTO,LGS))
-        # plt.ylabel('Insole Force [N]')
+        plt.subplot(2,2,3)
+        plt.plot(intp_strides(L_tot_force,LHS,LTO,LGS))
+        plt.ylabel('Insole Force [N]')
         
         plt.subplot(2,2,4)
         plt.plot(intp_strides(R_tot_force,RHS,RTO,RGS))
@@ -459,7 +459,7 @@ for ii in range(203,len(entries)):
 
 
 outcomes = pd.DataFrame({'Subject':list(oSubject), 'Config': list(oConfig),'Speed': list(oSpeed),'Sesh': list(oSesh),
-                          'Label':list(oLabel), 'HeelCon':list(heel_con),'HeelCon1':list(heel_con_1), 'HeelCon2':list(heel_con_2),
+                          'Label':list(oLabel), 'Side':list(oSide), 'HeelCon':list(heel_con),'HeelCon1':list(heel_con_1), 'HeelCon2':list(heel_con_2),
                           'm_heelPP_lat':list(m_heelPP_lat),'m_midPP_lat':list(m_midPP_lat),'m_metPP_lat':list(m_metPP_lat),'m_toePP_lat':list(m_toePP_lat)})
 
 if save_on == 1:
