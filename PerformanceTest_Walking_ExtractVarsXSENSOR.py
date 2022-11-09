@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 """
 Created on Mon Aug 30 13:28:44 2021
-Script to process MVA files from cycling pilot test
+Script to process XSENSOR pressures during gait.
+Updates to accomidate gradient decent event detection along with dialog boxes
+for verifying data quality.
 
-@author: Daniel.Feeney
+@author: Eric.Honert
 """
 
 import pandas as pd
@@ -13,13 +15,32 @@ import scipy
 import scipy.signal as sig
 from scipy import interpolate
 import os
+from tkinter import messagebox
 
 fwdLook = 30
 fThresh = 50
-freq = 100 # sampling frequency (intending to change to 150 after this study)
+freq = 100 # sampling frequency
 # list of functions 
 # finding landings on the force plate once the filtered force exceeds the force threshold
 def findLandings(force, fThreshold):
+    """
+    The purpose of this function is to determine the landings (foot contacts)
+    events when the vertical force exceeds the force threshold
+    
+    Parameters
+    ----------
+    force : list
+        vertical ground reaction force. 
+    
+    fThreshold : float
+        threshold to detect landings
+    
+    Returns
+    -------
+    ric : list
+        indices of the landings (foot contacts)
+
+    """
     ric = []
     for step in range(len(force)-1):
         if force[step] < fThreshold and force[step + 1] >= fThreshold:
@@ -28,6 +49,24 @@ def findLandings(force, fThreshold):
 
 #Find takeoff from FP when force goes from above thresh to 0
 def findTakeoffs(force, fThreshold):
+    """
+    The purpose of this function is to determine the take-off
+    events when the vertical force exceeds the force threshold
+
+    Parameters
+    ----------
+    force : list
+        vertical ground reaction force. 
+    
+    fThreshold : float
+        threshold to detect landings
+    
+    Returns
+    -------
+    ric : list
+        indices of the landings (foot contacts)
+
+    """
     rto = []
     for step in range(len(force)-1):
         if force[step] >= fThreshold and force[step + 1] < fThreshold:
@@ -35,22 +74,68 @@ def findTakeoffs(force, fThreshold):
     return rto
 
 def trimTakeoffs(landings, takeoffs):
+    """
+    Function to ensure that the first take-off index is greater than the first 
+    landing index
+
+    Parameters
+    ----------
+    landings : list
+        indices of the landings
+    takeoffs : list
+        indices of the take-offs
+
+    Returns
+    -------
+    takeoff
+
+    """
     if takeoffs[0] < landings[0]:
         del(takeoffs[0])
     return(takeoffs)
 
 def trimLandings(landings, trimmedTakeoffs):
+    """
+    Function to ensure that the first landing index is greater than the first 
+    take-off index
+
+    Parameters
+    ----------
+    landings : list
+        indices of the landings
+    takeoffs : list
+        indices of the take-offs
+
+    Returns
+    -------
+    landings: list
+        updated indices of the landings
+
+    """
     if landings[len(landings)-1] > trimmedTakeoffs[len(trimmedTakeoffs)-1]:
         del(landings[-1])
     return(landings)
 
-def trimForce(inputDFCol, threshForce):
-    forceTot = inputDFCol
-    forceTot[forceTot<threshForce] = 0
-    forceTot = np.array(forceTot)
-    return(forceTot)
-
 def zeroInsoleForce(vForce,freq):
+    """
+    Function to detect "foot-off" pressure to zero the insole force during swing
+    This is expecially handy when residual pressue on the foot "drops out" 
+    during swing
+
+    Parameters
+    ----------
+    vForce : list
+        Vertical force (or approximate vertical force)
+    freq : int
+        Data collection frequency
+
+    Returns
+    -------
+    newForce : list
+        Updated vertical force
+        
+
+    """
     newForce = vForce
     # Quasi-constants
     zcoeff = 0.7
@@ -95,6 +180,25 @@ def zeroInsoleForce(vForce,freq):
     return(newForce)
     
 def findGaitEvents(vForce,freq):
+    """
+    Function to determine foot contacts (here HS or heel strikes) and toe-off (TO)
+    events using a gradient decent formula
+
+    Parameters
+    ----------
+    vForce : list
+        Vertical force (or approximate vertical force)
+    freq : int
+        Data collection frequency
+
+    Returns
+    -------
+    HS : numpy array
+        Heel strike (or foot contact) indicies
+    TO : numpy array
+        Toe-off indicies
+
+    """
     # Quasi-constants
     zcoeff = 0.9
     
@@ -134,9 +238,12 @@ def findGaitEvents(vForce,freq):
             if vForce[ii] == 0 or vForce[ii] < vForce[ii-n] or ii == idx-windowSize+1:
                 HS.append(ii)
                 break
-    # Eliminate detections above 100 N
+    
+    # Only utilize unique event detections
     HS = np.unique(HS)
     HS = np.array(HS)
+    # Used to eliminate dections that could be due to the local minima in the 
+    # middle of a walking step 
     HS = HS[vForce[HS]<200]
     
     # Only search for toe-offs that correspond to heel-strikes
@@ -153,32 +260,9 @@ def findGaitEvents(vForce,freq):
             np.delete(HS,ii)
             
             
-            
-            
-    #     1
-    
-    
-    # for idx in nearTO:       
-    #     for ii in range(idx,idx+windowSize):
-    #         if vForce[ii] == 0 or vForce[ii] < vForce[ii+n] or ii == idx+windowSize-1:
-    #             TO.append(ii)
-    #             break
-    # # Eliminate detections above 100 N
-    # TO = np.array(TO)
-    # TO = TO[vForce[TO]<200]
-    
-    # # Only take unique events
-    
-    # TO = np.unique(TO)
-      
-    # # Remove extra HS/TO
-    # if TO[0] < HS[0]:
-    #     TO = TO[1:]
-    # if HS[-1] > TO[-1]:
-    #     HS = HS[0:-1]
     return(HS,TO)
 
-def intp_strides(var,landings,takeoffs,GS):
+def intp_steps(var,landings,takeoffs,GS):
     """
     Function to interpolate the variable of interest across a stride
     (from foot contact to subsiquent foot contact) in order to plot the 
@@ -216,7 +300,8 @@ fPath = 'C:/Users/eric.honert/Boa Technology Inc/PFL Team - General/Testing Segm
 fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
 
-save_on = 1
+debug = 1
+save_on = 0
 
 # Initialize Variables
 sdHeel = []
@@ -238,6 +323,7 @@ Subject = []
 Config = []
 Side = []
 Movement = []
+badFileList = []
 
 for fName in entries:
         try:
@@ -280,74 +366,23 @@ for fName in entries:
                             'R_Toe_Contact',	'R_Toe_EstLoad', 'R_Toe_StdDev'
                            
                              ]
-                # #__________________________________________________________________
-                # # Right foot:
-                # # Est. Load (lbf) conversion to N = 1lbf * 4.44822N 
-                # # Convert the output load to Newtons from lbf
-                # RForce = np.array(dat.EstLoadRF)*4.44822
-                # RForce = RForce-np.min(RForce)
-            
-                # # Compute landings and takeoffs
-                # landings = findLandings(RForce, fThresh)
-                # takeoffs = findTakeoffs(RForce, fThresh)
-
-                # landings[:] = [x for x in landings if x < takeoffs[-1]]
-                # takeoffs[:] = [x for x in takeoffs if x > landings[0]]
+                #__________________________________________________________________
+                # Right foot:
+                # Est. Load (lbf) conversion to N = 1lbf * 4.44822N 
+                # Convert the output load to Newtons from lbf
+                RForce = np.array(dat.EstLoadRF)*4.44822
+                RForce = zeroInsoleForce(RForce,freq)
+                [RHS,RTO] = findGaitEvents(RForce,freq)
+                                
+                # Remove strides that have a peak GRF below 1000 N
+                # Remove strides that are below 0.5 and above 1.5 seconds
+                RGS = []    
+                # May need to exclude poor toe-off dectections here as well
+                for jj in range(len(RHS)-1):
+                    if np.max(RForce[RHS[jj]:RTO[jj]]) > 500 and RHS[jj] > 2000:
+                        if (RHS[jj+1] - RHS[jj]) > 0.5*freq and RHS[jj+1] - RHS[jj] < 1.5*freq:
+                            RGS.append(jj)
                 
-                # landings = np.array(landings)
-                # takeoffs = np.array(takeoffs)
-                
-                # plt.plot(intp_strides(RForce,landings,takeoffs,np.array(range(len(landings)))))
-                # plt.close()
-            
-                # for i in range(len(landings)):
-                #     try:
-                #         # Note: converting psi to kpa with 1psi=6.89476kpa
-                #         #i = 0
-                        
-                #         peakFidx = np.argmax(dat.EstLoadRF[landings[i]:takeoffs[i]])
-                #         heelAreaLate = np.mean(dat.R_Heel_ContactArea[landings[i]+peakFidx:takeoffs[i]])
-                #         heelPAreaLate = np.mean(dat.R_Heel_Contact[landings[i]+peakFidx:takeoffs[i]]) ######
-                #         heelPAreaLate = np.mean(dat.R_Heel_Contact[landings[i]+peakFidx:takeoffs[i]]) ######
-                #         ffAreaEarly.append(np.mean(dat.R_Metatarsal_ContactArea[landings[i]:landings[i]+peakFidx]))
-                #         ffAreaIC.append(dat.R_Metatarsal_ContactArea[landings[i]])
-                #         meanHeel = np.mean(dat.R_Heel_Average[landings[i]:takeoffs[i]])*6.89476
-                #         meanMidfoot = np.mean(dat.R_Midfoot_Average[landings[i]:takeoffs[i]])*6.89476    
-                #         meanForefoot = np.mean(dat.R_Metatarsal_Average[landings[i]:takeoffs[i]])*6.89476 
-                #         meanToe = np.mean(dat.R_Toe_Average[landings[i]:takeoffs[i]])*6.89476   
-                        
-                #         stdevHeel = np.std(dat.R_Heel_Average[landings[i]:takeoffs[i]])*6.89476
-                #         maximummeanHeel = np.max(dat.R_Heel_Average[landings[i]:takeoffs[i]])*6.89476
-                #         maximummaxHeel = np.max(dat.R_Heel_MAX[landings[i]:takeoffs[i]])*6.89476
-                #         maximummaxMet = np.max(dat.R_Metatarsal_MAX[landings[i]:takeoffs[i]])*6.89476
-                #         maximummaxMid = np.max(dat.R_Midfoot_MAX[landings[i]:takeoffs[i]])*6.89476
-                #         maximummeanToe = np.max(dat.R_Toe_Average[landings[i]:takeoffs[i]])*6.89476
-                #         maximummaxToe = np.max(dat.R_Toe_MAX[landings[i]:takeoffs[i]])*6.89476
-                #         meanFoot = (meanHeel + meanMidfoot + meanForefoot + meanToe)/4
-                        
-                #         meanTotalP.append(meanFoot)
-                #         sdHeel.append(stdevHeel)
-                #         meanToes.append(meanToe/meanFoot)
-                #         meanFf.append(meanForefoot)
-                #         maxmeanHeel.append(maximummeanHeel)
-                #         maxmaxHeel.append(maximummaxHeel)
-                #         cvHeel.append(stdevHeel/meanFoot)
-                #         heelArea.append(heelAreaLate)
-                #         heelAreaP.append(heelPAreaLate)
-                    
-                #         maxmaxMid.append(maximummaxMid)
-                #         maxmaxMet.append(maximummaxMet)
-                        
-                #         maxmeanToes.append(maximummeanToe)
-                #         maxmaxToes.append(maximummaxToe)
-                    
-                #         Subject.append(subName)
-                #         Config.append(ConfigTmp)
-                #         Side.append('Right')
-                #         Movement.append(moveTmp)
-                #     except:
-                #         print(fName, landings[i])
-            
                 #__________________________________________________________________
                 # Left foot:
                 # Est. Load (lbf) conversion to N = 1lbf * 4.44822N 
@@ -365,58 +400,127 @@ for fName in entries:
                         if (LHS[jj+1] - LHS[jj]) > 0.5*freq and LHS[jj+1] - LHS[jj] < 1.5*freq:
                             LGS.append(jj)
                 
-                plt.figure
-                plt.plot(intp_strides(LForce,LHS,LTO,LGS))
-                plt.ylabel('Insole Force [N]')
-                plt.close()
-                        
-            
-                for i in LGS:
-                    # try:
-                        # Note: converting psi to kpa with 1psi=6.89476kpa
-                        # Updating to 50% of stance
-                        peakFidx = round((LTO[i] - LHS[i])/2)
-                        heelAreaLate = np.mean(dat.L_Heel_ContactArea[LHS[i]+peakFidx:LTO[i]])
-                        heelPAreaLate = np.mean(dat.L_Heel_Contact[LHS[i]+peakFidx:LTO[i]])
-                        ffAreaEarly.append(np.mean(dat.L_Metatarsal_ContactArea[LHS[i]:LHS[i]+peakFidx]))
-                        ffAreaIC.append(dat.L_Metatarsal_ContactArea[LHS[i]])
-                        meanHeel = np.mean(dat.L_Heel_Average[LHS[i]:LTO[i]])*6.89476
-                        meanMidfoot = np.mean(dat.L_Midfoot_Average[LHS[i]:LTO[i]])*6.89476    
-                        meanForefoot = np.mean(dat.L_Metatarsal_Average[LHS[i]:LTO[i]])*6.89476 
-                        meanToe = np.mean(dat.L_Toe_Average[LHS[i]:LTO[i]])*6.89476   
-                        
-                        stdevHeel = np.std(dat.L_Heel_Average[LHS[i]:LTO[i]])*6.89476
-                        maximummeanHeel = np.max(dat.L_Heel_Average[LHS[i]:LTO[i]])*6.89476
-                        maximummaxHeel = np.max(dat.L_Heel_MAX[LHS[i]:LTO[i]])*6.89476
-                        maximummaxMet = np.max(dat.L_Metatarsal_MAX[LHS[i]:LTO[i]])*6.89476
-                        maximummaxMid = np.max(dat.L_Midfoot_MAX[LHS[i]:LTO[i]])*6.89476
-                        maximummeanToe = np.max(dat.L_Toe_Average[LHS[i]:LTO[i]])*6.89476
-                        maximummaxToe = np.max(dat.L_Toe_MAX[LHS[i]:LTO[i]])*6.89476
-                        meanFoot = (meanHeel + meanMidfoot + meanForefoot + meanToe)/4
-                        
-                        meanTotalP.append(meanFoot)
-                        sdHeel.append(stdevHeel)
-                        meanToes.append(meanToe/meanFoot)
-                        meanFf.append(meanForefoot)
+                #______________________________________________________________
+                # Debugging: Creation of dialog box for looking where foot contact are accurate
+                answer = True # Defaulting to true: In case "debug" is not used
+                if debug == 1:
+                
+                    plt.figure
+                    plt.subplot(1,2,1)
+                    plt.plot(intp_steps(LForce,LHS,LTO,LGS))
+                    plt.ylabel('Insole Force [N]')
+                    plt.xlabel('% Step')
+                    plt.title('Left Interpolated Steps')
                     
-                        maxmaxMid.append(maximummaxMid)
-                        maxmaxMet.append(maximummaxMet)
-                        
-                        maxmeanHeel.append(maximummeanHeel)
-                        maxmaxHeel.append(maximummaxHeel)
-                        cvHeel.append(stdevHeel/meanFoot)
-                        heelArea.append(heelAreaLate)
-                        heelAreaP.append(heelPAreaLate)
-                        
-                        maxmeanToes.append(maximummeanToe)
-                        maxmaxToes.append(maximummaxToe)
+                    plt.subplot(1,2,2)
+                    plt.plot(intp_steps(RForce,RHS,RTO,RGS))
+                    plt.xlabel('% Step')
+                    plt.title('Right Interpolated Steps')
+                    answer = messagebox.askyesno("Question","Is data clean?")
+                    plt.close()                
                     
-                        Subject.append(subName)
-                        Config.append(ConfigTmp)
-                        Side.append('Left')
-                        Movement.append(moveTmp)
-                    # except:
-                    #     print(fName, landings[i])
+                    if answer == False:
+                        plt.close('all')
+                        print('Adding file to bad file list')
+                        badFileList.append(fName)
+                
+                if answer == True:
+                    print('Estimating point estimates')
+                    #__________________________________________________________
+                    # Right Side Metrics
+                    for i in RGS:
+                        try:
+                            # Note: converting psi to kpa with 1psi=6.89476kpa                            
+                            peakFidx = round((RTO[i] - RHS[i])/2)
+                            
+                            heelAreaLate = np.mean(dat.R_Heel_ContactArea[RHS[i]+peakFidx:RTO[i]])
+                            heelPAreaLate = np.mean(dat.R_Heel_Contact[RHS[i]+peakFidx:RTO[i]])
+                            ffAreaEarly.append(np.mean(dat.R_Metatarsal_ContactArea[RHS[i]:RHS[i]+peakFidx]))
+                            ffAreaIC.append(dat.R_Metatarsal_ContactArea[RHS[i]])
+                            meanHeel = np.mean(dat.R_Heel_Average[RHS[i]:RTO[i]])*6.89476
+                            meanMidfoot = np.mean(dat.R_Midfoot_Average[RHS[i]:RTO[i]])*6.89476    
+                            meanForefoot = np.mean(dat.R_Metatarsal_Average[RHS[i]:RTO[i]])*6.89476 
+                            meanToe = np.mean(dat.R_Toe_Average[RHS[i]:RTO[i]])*6.89476   
+                            
+                            stdevHeel = np.std(dat.R_Heel_Average[RHS[i]:RTO[i]])*6.89476
+                            maximummeanHeel = np.max(dat.R_Heel_Average[RHS[i]:RTO[i]])*6.89476
+                            maximummaxHeel = np.max(dat.R_Heel_MAX[RHS[i]:RTO[i]])*6.89476
+                            maximummaxMet = np.max(dat.R_Metatarsal_MAX[RHS[i]:RTO[i]])*6.89476
+                            maximummaxMid = np.max(dat.R_Midfoot_MAX[RHS[i]:RTO[i]])*6.89476
+                            maximummeanToe = np.max(dat.R_Toe_Average[RHS[i]:RTO[i]])*6.89476
+                            maximummaxToe = np.max(dat.R_Toe_MAX[RHS[i]:RTO[i]])*6.89476
+                            meanFoot = (meanHeel + meanMidfoot + meanForefoot + meanToe)/4
+                            
+                            meanTotalP.append(meanFoot)
+                            sdHeel.append(stdevHeel)
+                            meanToes.append(meanToe/meanFoot)
+                            meanFf.append(meanForefoot)
+                            maxmeanHeel.append(maximummeanHeel)
+                            maxmaxHeel.append(maximummaxHeel)
+                            cvHeel.append(stdevHeel/meanFoot)
+                            heelArea.append(heelAreaLate)
+                            heelAreaP.append(heelPAreaLate)
+                        
+                            maxmaxMid.append(maximummaxMid)
+                            maxmaxMet.append(maximummaxMet)
+                            
+                            maxmeanToes.append(maximummeanToe)
+                            maxmaxToes.append(maximummaxToe)
+                        
+                            Subject.append(subName)
+                            Config.append(ConfigTmp)
+                            Side.append('Right')
+                            Movement.append(moveTmp)
+                        except:
+                            print(fName, RHS[i])
+                    #__________________________________________________________
+                    # Left Side Metrics
+                    for i in LGS:
+                        try:
+                            # Note: converting psi to kpa with 1psi=6.89476kpa
+                            # Updating to 50% of stance
+                            peakFidx = round((LTO[i] - LHS[i])/2)
+                            heelAreaLate = np.mean(dat.L_Heel_ContactArea[LHS[i]+peakFidx:LTO[i]])
+                            heelPAreaLate = np.mean(dat.L_Heel_Contact[LHS[i]+peakFidx:LTO[i]])
+                            ffAreaEarly.append(np.mean(dat.L_Metatarsal_ContactArea[LHS[i]:LHS[i]+peakFidx]))
+                            ffAreaIC.append(dat.L_Metatarsal_ContactArea[LHS[i]])
+                            meanHeel = np.mean(dat.L_Heel_Average[LHS[i]:LTO[i]])*6.89476
+                            meanMidfoot = np.mean(dat.L_Midfoot_Average[LHS[i]:LTO[i]])*6.89476    
+                            meanForefoot = np.mean(dat.L_Metatarsal_Average[LHS[i]:LTO[i]])*6.89476 
+                            meanToe = np.mean(dat.L_Toe_Average[LHS[i]:LTO[i]])*6.89476   
+                            
+                            stdevHeel = np.std(dat.L_Heel_Average[LHS[i]:LTO[i]])*6.89476
+                            maximummeanHeel = np.max(dat.L_Heel_Average[LHS[i]:LTO[i]])*6.89476
+                            maximummaxHeel = np.max(dat.L_Heel_MAX[LHS[i]:LTO[i]])*6.89476
+                            maximummaxMet = np.max(dat.L_Metatarsal_MAX[LHS[i]:LTO[i]])*6.89476
+                            maximummaxMid = np.max(dat.L_Midfoot_MAX[LHS[i]:LTO[i]])*6.89476
+                            maximummeanToe = np.max(dat.L_Toe_Average[LHS[i]:LTO[i]])*6.89476
+                            maximummaxToe = np.max(dat.L_Toe_MAX[LHS[i]:LTO[i]])*6.89476
+                            meanFoot = (meanHeel + meanMidfoot + meanForefoot + meanToe)/4
+                            
+                            meanTotalP.append(meanFoot)
+                            sdHeel.append(stdevHeel)
+                            meanToes.append(meanToe/meanFoot)
+                            meanFf.append(meanForefoot)
+                        
+                            maxmaxMid.append(maximummaxMid)
+                            maxmaxMet.append(maximummaxMet)
+                            
+                            maxmeanHeel.append(maximummeanHeel)
+                            maxmaxHeel.append(maximummaxHeel)
+                            cvHeel.append(stdevHeel/meanFoot)
+                            heelArea.append(heelAreaLate)
+                            heelAreaP.append(heelPAreaLate)
+                            
+                            maxmeanToes.append(maximummeanToe)
+                            maxmaxToes.append(maximummaxToe)
+                        
+                            Subject.append(subName)
+                            Config.append(ConfigTmp)
+                            Side.append('Left')
+                            Movement.append(moveTmp)
+                        except:
+                            print(fName, LHS[i])
             
             else:
                     print('Only anlayzing running')
