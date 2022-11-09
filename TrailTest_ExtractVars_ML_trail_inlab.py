@@ -263,6 +263,14 @@ def threehopstart(HS,TO,freq):
     
     return(HS,TO)
     
+def makeVizPlot(inputForce, inputLandings, inputTakeoffs):
+    plt.plot(inputForce)
+    plt.vlines(x = inputLandings, ymin = 0, ymax = np.max(RForce),
+           color = 'red', label = 'Landings')
+    plt.vlines(x = inputTakeoffs, ymin = 0, ymax = np.max(RForce),
+           color = 'green', label = 'Takeoffs')
+
+
 # Define the path: This is the way
 fPath = 'C:\\Users\eric.honert\\Boa Technology Inc\\PFL Team - General\\Testing Segments\\EndurancePerformance\\TrailRun_2022\\InLabData\\PressureData\\'
 fileExt = r".csv"
