@@ -14,7 +14,12 @@ from tkinter import messagebox
 
 fwdLook = 30
 fThresh = 50
+<<<<<<< Updated upstream
 freq = 75 # sampling frequency (intending to change to 150 after this study)
+=======
+freq = 100 # sampling frequency
+
+>>>>>>> Stashed changes
 # list of functions 
 # finding landings on the force plate once the filtered force exceeds the force threshold
 def findLandings(force, fThreshold):
