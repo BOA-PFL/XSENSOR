@@ -327,15 +327,14 @@ badFileList = []
 
 for fName in entries:
         try:
-            #fName = entries[3] #Load one file at a time
-            dat = pd.read_csv(fPath+fName, sep=',', skiprows = 1, header = 'infer')
             subName = fName.split(sep = "_")[0]
             ConfigTmp = fName.split(sep="_")[1]
             moveTmp = fName.split(sep = "_")[2].split(sep = '.')[0]
             
             # Make sure the files are named FirstLast_Config_Movement_Trial# - The "if" statement won't work if there isn't a trial number next to the movement
             if (moveTmp == 'run') or (moveTmp == 'Run') or (moveTmp == 'running') or (moveTmp == 'Running') or (moveTmp == 'walk') or (moveTmp == 'Walk') or (moveTmp == 'walking') or (moveTmp == 'Walking') or (moveTmp == 'Trail') or (moveTmp == 'UH') or (moveTmp == 'DH'):
-                print(fName)
+                dat = pd.read_csv(fPath+fName, sep=',', skiprows = 1, header = 'infer')
+                print('Processing:' + fName)
                 dat.columns = ['Frame', 'Date',	'Time',	'Units', 'Threshold', 
                            'SensorLF', 'SideLF', 'RowsLF',	'ColumnsLF', 'AverageP_LF',	'MinP_LF',	'PeakP_LF', 'ContactArea_LF', 'TotalArea_LF', 'ContactPct_LF', 'EstLoadLF',	'StdDevLF',	
                            'SensorRF', 'SideRF', 'RowsRF', 'ColumnsRF', 'AverageP_RF', 'MinP_RF',	'PeakP_RF', 'ContactArea_RF', 'TotalArea_RF',	'ContactPct_RF', 'EstLoadRF', 'StdDevRF',	 
