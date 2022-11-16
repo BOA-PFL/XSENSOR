@@ -282,6 +282,7 @@ oSide = []
 heel_con = []
 heel_con_1 = [] # 1st half of stance
 heel_con_2 = [] # 2nd half of stance
+toe_con = []
 
 m_heel_ratio = []
 m_mid_ratio = []
@@ -289,9 +290,11 @@ m_met_ratio = []
 m_toe_ratio = []
 
 m_heelPP_lat = []
+m_heelPP = []
 m_midPP_lat = []
 m_metPP_lat = []
 m_toePP_lat = []
+m_toePP = []
 
 avg_toe_force = []
 
@@ -365,8 +368,16 @@ for ii in range(0,len(entries)):
     L_heel_con = np.array((dat.iloc[:,36]+dat.iloc[:,60])/(dat.iloc[:,37]+dat.iloc[:,61])*100)
     R_heel_con = np.array((dat.iloc[:,48]+dat.iloc[:,72])/(dat.iloc[:,49]+dat.iloc[:,73])*100)
     
-    L_heelPP_lat = np.array(dat.iloc[:,35]-np.min(dat.iloc[:,35]))*6.89476
+    L_toe_con = np.array((dat.iloc[:,180]+dat.iloc[:,204])/(dat.iloc[:,181]+dat.iloc[:,205])*100)
+    R_toe_con = np.array((dat.iloc[:,192]+dat.iloc[:,216])/(dat.iloc[:,193]+dat.iloc[:,217])*100)
+        
+    L_heelPP_lat = np.array(dat.iloc[:,37]-np.min(dat.iloc[:,37]))*6.89476
+    L_heelPP_med = np.array(dat.iloc[:,59]-np.min(dat.iloc[:,59]))*6.89476
+    L_heelPP = np.maximum(L_heelPP_lat,L_heelPP_med)
+    
     R_heelPP_lat = np.array(dat.iloc[:,47]-np.min(dat.iloc[:,47]))*6.89476
+    R_heelPP_med = np.array(dat.iloc[:,71]-np.min(dat.iloc[:,71]))*6.89476
+    R_heelPP = np.maximum(R_heelPP_lat,R_heelPP_med)
     
     L_midPP_lat = np.array(dat['Peak Pressure.6']-np.min(dat['Peak Pressure.6']))*6.89476
     R_midPP_lat = np.array(dat['Peak Pressure.7']-np.min(dat['Peak Pressure.7']))*6.89476
@@ -376,6 +387,14 @@ for ii in range(0,len(entries)):
     
     L_toePP_lat = np.array(dat['Peak Pressure.14']-np.min(dat['Peak Pressure.14']))*6.89476
     R_toePP_lat = np.array(dat['Peak Pressure.15']-np.min(dat['Peak Pressure.15']))*6.89476
+    
+    L_toePP_lat = np.array(dat['Peak Pressure.14']-np.min(dat['Peak Pressure.14']))*6.89476
+    L_toePP_med = np.array(dat['Peak Pressure.16']-np.min(dat['Peak Pressure.16']))*6.89476
+    L_toePP = np.maximum(L_toePP_lat,L_toePP_med)
+    
+    R_toePP_lat = np.array(dat['Peak Pressure.15']-np.min(dat['Peak Pressure.15']))*6.89476
+    R_toePP_med = np.array(dat['Peak Pressure.17']-np.min(dat['Peak Pressure.17']))*6.89476
+    R_toePP = np.maximum(R_toePP_lat,R_toePP_med)
           
        
     if Subject not in poorL:
@@ -395,11 +414,15 @@ for ii in range(0,len(entries)):
             heel_con_1.append(np.mean(L_heel_con[LHS[jj]:LHS[jj]+int(.5*(LTO[jj]-LHS[jj]))]))
             heel_con_2.append(np.mean(L_heel_con[LHS[jj]+int(.5*(LTO[jj]-LHS[jj])):LTO[jj]]))
             
+            toe_con.append(np.mean(L_toe_con[LHS[jj]:LTO[jj]]))
+            
             # Examine the maximum lateral pressures
             m_heelPP_lat.append(np.max(L_heelPP_lat[LHS[jj]:LTO[jj]]))
+            m_heelPP.append(np.max(L_heelPP[LHS[jj]:LTO[jj]]))
             m_midPP_lat.append(np.max(L_midPP_lat[LHS[jj]:LTO[jj]]))
             m_metPP_lat.append(np.max(L_metPP_lat[LHS[jj]:LTO[jj]]))
             m_toePP_lat.append(np.max(L_toePP_lat[LHS[jj]:LTO[jj]]))
+            m_toePP.append(np.max(L_toePP[LHS[jj]:LTO[jj]]))
         
         oSubject = oSubject + [Subject]*len(LGS)
         oConfig = oConfig + [Config]*len(LGS)
@@ -420,11 +443,15 @@ for ii in range(0,len(entries)):
         heel_con_1.append(np.mean(R_heel_con[RHS[jj]:RHS[jj]+int(.5*(RTO[jj]-RHS[jj]))]))
         heel_con_2.append(np.mean(R_heel_con[RHS[jj]+int(.5*(RTO[jj]-RHS[jj])):RTO[jj]]))
         
+        toe_con.append(np.mean(R_toe_con[RHS[jj]:RTO[jj]]))
+        
         # Examine the maximum lateral pressures
         m_heelPP_lat.append(np.max(R_heelPP_lat[RHS[jj]:RTO[jj]]))
+        m_heelPP.append(np.max(R_heelPP[RHS[jj]:RTO[jj]]))
         m_midPP_lat.append(np.max(R_midPP_lat[RHS[jj]:RTO[jj]]))
         m_metPP_lat.append(np.max(R_metPP_lat[RHS[jj]:RTO[jj]]))
         m_toePP_lat.append(np.max(R_toePP_lat[RHS[jj]:RTO[jj]]))
+        m_toePP.append(np.max(R_toePP[RHS[jj]:RTO[jj]]))
         
     oSubject = oSubject + [Subject]*len(RGS)
     oConfig = oConfig + [Config]*len(RGS)
@@ -460,7 +487,7 @@ for ii in range(0,len(entries)):
 
 outcomes = pd.DataFrame({'Subject':list(oSubject), 'Config': list(oConfig),'Speed': list(oSpeed),'Sesh': list(oSesh),
                           'Label':list(oLabel), 'Side':list(oSide), 'HeelCon':list(heel_con),'HeelCon1':list(heel_con_1), 'HeelCon2':list(heel_con_2),
-                          'm_heelPP_lat':list(m_heelPP_lat),'m_midPP_lat':list(m_midPP_lat),'m_metPP_lat':list(m_metPP_lat),'m_toePP_lat':list(m_toePP_lat)})
+                          'ToeCon':list(toe_con),'m_heelPP':list(m_heelPP),'m_toePP':list(m_toePP)})
 
 if save_on == 1:
     outcomes.to_csv('C:\\Users\eric.honert\\Boa Technology Inc\\PFL Team - General\\Testing Segments\\EndurancePerformance\\TrailRun_2022\\InLabData\\InLabPressureOutcomes.csv',header=True)
