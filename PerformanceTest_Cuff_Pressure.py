@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import os
 import seaborn as sns
 from dataclasses import dataclass
+from tkinter import messagebox
 
 
 evalPlotting = 0 #if set to 1, will load test dataset to ensure reshape in correct order
@@ -28,6 +29,14 @@ class avgData:
     avgBySensel: np.array
     config: str
     subject: str
+    # below is a method of the dataclass
+    def plotAvg(self):
+        fig, ax1 = plt.subplots(1,1)
+        ax1 = sns.heatmap(self.avgBySensel, cmap="mako", vmin = 0, vmax = np.max(self.avgBySensel) * 2)
+        ax1.set(xticklabels=[])
+        ax1.set_title(self.config) 
+        return fig    
+
 
 def createAvgMat(inputName):
     """ 
@@ -40,6 +49,7 @@ def createAvgMat(inputName):
     sensel = dat.iloc[:,17:]
    
     avgMat = np.array(np.mean(sensel, axis = 0)).reshape((18,10))
+    
     result = avgData(avgMat, config, subj)
     
     return(result)
@@ -54,12 +64,24 @@ subject = []
 for entry in entries:
     
     tmpAvgMat = createAvgMat(entry)
-    config.append(tmpAvgMat.config)
-    subject.append(tmpAvgMat.subject)
-    meanPressure.append(np.mean(tmpAvgMat.avgBySensel))
-    maxPressure.append(np.max(tmpAvgMat.avgBySensel))
-    sdPressure.append(np.std(tmpAvgMat.avgBySensel))
-    totalPressure.append(np.sum(tmpAvgMat.avgBySensel))
+    tmpAvgMat.plotAvg()
+    answer = messagebox.askyesno("Question","Is data clean?")
+    
+    if answer == False:
+        plt.close('all')
+        print('Adding file to bad file list')
+        #badFileList.append(fName)
+    
+    if answer == True:
+        plt.close('all')
+        print('Estimating point estimates')
+        config.append(tmpAvgMat.config)
+        subject.append(tmpAvgMat.subject)
+        meanPressure.append(np.mean(tmpAvgMat.avgBySensel))
+        maxPressure.append(np.max(tmpAvgMat.avgBySensel))
+        sdPressure.append(np.std(tmpAvgMat.avgBySensel))
+        totalPressure.append(np.sum(tmpAvgMat.avgBySensel))
+    
     
 
 outcomes = pd.DataFrame({'Subject':list(subject),'Config':list(config), 'MeanPressure':list(meanPressure), 
@@ -92,8 +114,9 @@ if evalPlotting == 1:
     loc5 = createAvgMat(entries[4])
     loc6 = createAvgMat(entries[5])
     
+  
     
-    # Plots
+    ##############
     fig, ( (ax6, ax5), (ax4, ax3), (ax2, ax1) ) = plt.subplots(3,2)
     ax1 = sns.heatmap(loc1.avgBySensel, cmap="mako", ax = ax1, vmin = 0, vmax = np.max(loc1.avgBySensel) * 2)
     ax1.set(xticklabels=[])
