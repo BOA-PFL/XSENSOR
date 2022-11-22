@@ -13,7 +13,7 @@ import seaborn as sns
 from dataclasses import dataclass
 from tkinter import messagebox
 
-save_on= 0
+save_on = 0
 
 # Read in files
 # only read .asc files for this work
@@ -27,7 +27,8 @@ class avgData:
     avgPlantar: np.array
     config: str
     subject: str
-    fullDat: pd.DataFrame #entire stored dataframe
+    fullDat: pd.DataFrame #entire stored dataframe. 
+    #this class is useful for plotting and subsequent analysis
     
     # below is a method of the dataclass
     def plotAvgPressure(self):
@@ -42,7 +43,8 @@ class avgData:
     
     def sortDF(self, colName):
         """ 
-        Grabs each individual grouping by location of the dataframe
+        Grabs each individual grouping by location of foot from regions 
+        specified in XSENSOR output
         """
         subsetDat = self.fullDat.iloc[:,self.fullDat.columns.get_loc(colName):self.fullDat.columns.get_loc(colName)+12]
         return(subsetDat)
@@ -61,8 +63,6 @@ class footLocData:
     RMToes: pd.DataFrame
     RLToes: pd.DataFrame
     
-
-#d = dat.iloc[:,dat.columns.get_loc("Group"):dat.columns.get_loc("Group")+12]
 
 def createAvgMat(inputName):
     """ 
@@ -98,10 +98,16 @@ def createAvgMat(inputName):
 
 def subsetMat(inputDF):
     """ 
-    Input entire dataframe and fill in footLocData class
+    Input an instance of class avgData with regions of the foot separated
+    with masks from XSENSOR
+    Outputs an instance of class footLocData with each region separated out 
     """
     
     filter_col = [col for col in inputDF.fullDat if col.startswith('Group')]
+   
+    if len(filter_col) != 8:
+        print('check subsetMat function if correct class names are specified')
+        
     RLH = inputDF.sortDF(filter_col[0])
     RMH = inputDF.sortDF(filter_col[1])
     RMM = inputDF.sortDF(filter_col[2])
@@ -112,8 +118,21 @@ def subsetMat(inputDF):
     RLToes = inputDF.sortDF(filter_col[7])
     
     output = footLocData(RLH, RMH, RMM, RLM, RMMet, RLMet, RMToes, RLToes)
+    
     return(output)
 
+def calcSummaryStats(inputDF):
+    """ 
+    Calculates mean, peak, and contact % from an input DF
+    4,6,and 9 are mean, peak, and contact% from XSENSOR output
+    """
+    colsInterest = list((4,6,9))
+    outVal = []
+    for val in colsInterest:
+        outVal.append( np.mean(inputDF.iloc[:,val]) ) 
+    [avg, peak, avgCon] = outVal
+    
+    return(outVal)
 
 meanDorsalPressure = []
 maxDorsalPressure = [] 
@@ -139,28 +158,41 @@ for entry in entries:
 
         config.append(tmpAvgMat.config)
         subject.append(tmpAvgMat.subject)
-        meanDorsalPressure.append(np.mean(tmpAvgMat.avgDorsal))
-        maxDorsalPressure.append(np.max(tmpAvgMat.avgDorsal))
-        sdDorsalPressure.append(np.std(tmpAvgMat.avgDorsal))
-        totalDorsalPressure.append(np.sum(tmpAvgMat.avgDorsal))
+        meanDorsalPressure = float(np.mean(tmpAvgMat.avgDorsal))
+        maxDorsalPressure = float(np.max(tmpAvgMat.avgDorsal))
+        sdDorsalPressure = float(np.std(tmpAvgMat.avgDorsal))
+        totalDorsalPressure = float(np.sum(tmpAvgMat.avgDorsal))
         
         footLocations = subsetMat(tmpAvgMat)
-        
-    
+        # Calculate average, peak, and contact of masked regions of foot
+        [avgMHeel, pkMHeel, conMHeel] = calcSummaryStats(footLocations.RMHeel)
+        [avgLHeel, pkLHeel, conLHeel] = calcSummaryStats(footLocations.RLHeel)
+        [avgMMid, pkMMid, conMMid] = calcSummaryStats(footLocations.RMMidfoot)
+        [avgLMid, pkLMid, conLMid] = calcSummaryStats(footLocations.RLMidfoot)
+        [avgMMets, pkMMets, conMMets] = calcSummaryStats(footLocations.RMMets)
+        [avgLMets, pkLMets, conLMets] = calcSummaryStats(footLocations.RLMets)
+        [avgMToes, pkMToes, conMToes] = calcSummaryStats(footLocations.RMToes)
+        [avgLToes, pkLToes, conLToes] = calcSummaryStats(footLocations.RLToes)
 
-outcomes = pd.DataFrame({'Subject':list(subject),'Config':list(config), 'MeanPressure':list(meanDorsalPressure), 
-                         'MaxPressure':list(maxDorsalPressure),'SDPressure':list(sdDorsalPressure), 'TotalPressure':list(totalDorsalPressure)})
-         
-  
-outfileName = fPath + 'CompiledResults.csv'
-if save_on == 1:
-    if os.path.exists(outfileName) == False:
         
-        outcomes.to_csv(outfileName, mode='a', header=True, index = False)
-    
-    else:
-        outcomes.to_csv(outfileName, mode='a', header=False, index = False) 
-    
+        outcomes = pd.DataFrame([[subject,config,meanDorsalPressure,maxDorsalPressure,sdDorsalPressure,totalDorsalPressure,
+                                avgMHeel, pkMHeel, conMHeel, avgLHeel, pkLHeel, conLHeel, avgMMid, pkMMid, conMMid,
+                                avgLMid, pkLMid, conLMid, avgMMets, pkMMets, conMMets, avgLMets, pkLMets, conLMets,
+                                avgMToes, pkMToes, conMToes, avgLToes, pkLToes, conLToes]],
+                                columns=['Subject','Config','meanDorsalPressure','maxDorsalPressure','sdDorsalpressure','totalDorsalPressure',
+                                'avgMHeel', 'pkMHeel', 'conMHeel', 'avgLHeel', 'pkLHeel', 'conLHeel', 'avgMMid', 'pkMMid', 'conMmid',
+                                'avgLMid', 'pkLMid', 'conLMid', 'avgMMets', 'pkMMets', 'conMMets', 'avgLMets', 'pkLMets', 'conLMets',
+                                'avgMToes', 'pkMToes', 'conMToes', 'avgLToes', 'pkLToes', 'conLToes'])
+          
+        outfileName = fPath + 'CompiledResults.csv'
+        if save_on == 1:
+            if os.path.exists(outfileName) == False:
+                
+                outcomes.to_csv(outfileName, header=True, index = False)
+            
+            else:
+                outcomes.to_csv(outfileName, mode='a', header=False, index = False) 
+            
     
     
                
