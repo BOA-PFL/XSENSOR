@@ -27,6 +27,7 @@ class avgData:
     avgPlantar: np.array
     config: str
     subject: str
+    fullDat: pd.DataFrame #entire stored dataframe
     
     # below is a method of the dataclass
     def plotAvgPressure(self):
@@ -38,7 +39,30 @@ class avgData:
         ax2.set(xticklabels=[])
         ax2.set_title('Plantar Pressure') 
         return fig  
+    
+    def sortDF(self, colName):
+        """ 
+        Grabs each individual grouping by location of the dataframe
+        """
+        subsetDat = self.fullDat.iloc[:,self.fullDat.columns.get_loc(colName):self.fullDat.columns.get_loc(colName)+12]
+        return(subsetDat)
 
+# dd = test.sortDF('Group')
+# filter_col = [col for col in dat if col.startswith('Group')]
+
+@dataclass
+class footLocData:
+    RLHeel: pd.DataFrame
+    RMHeel: pd.DataFrame
+    RMMidfoot: pd.DataFrame
+    RLMidfoot: pd.DataFrame
+    RMMets: pd.DataFrame
+    RLMets: pd.DataFrame
+    RMToes: pd.DataFrame
+    RLToes: pd.DataFrame
+    
+
+#d = dat.iloc[:,dat.columns.get_loc("Group"):dat.columns.get_loc("Group")+12]
 
 def createAvgMat(inputName):
     """ 
@@ -68,9 +92,27 @@ def createAvgMat(inputName):
     avgDorsalMat = np.array(np.mean(sensel, axis = 0)).reshape((18,10))
     avgPlantarMat = np.array(np.flip(con_press))
     
-    result = avgData(avgDorsalMat, avgPlantarMat, config, subj)
+    result = avgData(avgDorsalMat, avgPlantarMat, config, subj, dat)
     
     return(result)
+
+def subsetMat(inputDF):
+    """ 
+    Input entire dataframe and fill in footLocData class
+    """
+    
+    filter_col = [col for col in inputDF.fullDat if col.startswith('Group')]
+    RLH = inputDF.sortDF(filter_col[0])
+    RMH = inputDF.sortDF(filter_col[1])
+    RMM = inputDF.sortDF(filter_col[2])
+    RLM = inputDF.sortDF(filter_col[3])
+    RMMet = inputDF.sortDF(filter_col[4])
+    RLMet = inputDF.sortDF(filter_col[5])
+    RMToes = inputDF.sortDF(filter_col[6])
+    RLToes = inputDF.sortDF(filter_col[7])
+    
+    output = footLocData(RLH, RMH, RMM, RLM, RMMet, RLMet, RMToes, RLToes)
+    return(output)
 
 
 meanDorsalPressure = []
@@ -84,13 +126,26 @@ for entry in entries:
     
     tmpAvgMat = createAvgMat(entry)
     tmpAvgMat.plotAvgPressure()
+    answer = messagebox.askyesno("Question","Is data clean?")
     
-    config.append(tmpAvgMat.config)
-    subject.append(tmpAvgMat.subject)
-    meanDorsalPressure.append(np.mean(tmpAvgMat.avgDorsal))
-    maxDorsalPressure.append(np.max(tmpAvgMat.avgDorsal))
-    sdDorsalPressure.append(np.std(tmpAvgMat.avgDorsal))
-    totalDorsalPressure.append(np.sum(tmpAvgMat.avgDorsal))
+    if answer == False:
+        plt.close('all')
+        print('Adding file to bad file list')
+        #badFileList.append(fName)
+    
+    if answer == True:
+        plt.close('all')
+        print('Estimating point estimates')
+
+        config.append(tmpAvgMat.config)
+        subject.append(tmpAvgMat.subject)
+        meanDorsalPressure.append(np.mean(tmpAvgMat.avgDorsal))
+        maxDorsalPressure.append(np.max(tmpAvgMat.avgDorsal))
+        sdDorsalPressure.append(np.std(tmpAvgMat.avgDorsal))
+        totalDorsalPressure.append(np.sum(tmpAvgMat.avgDorsal))
+        
+        footLocations = subsetMat(tmpAvgMat)
+        
     
 
 outcomes = pd.DataFrame({'Subject':list(subject),'Config':list(config), 'MeanPressure':list(meanDorsalPressure), 
