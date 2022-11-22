@@ -23,16 +23,22 @@ entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
 
 @dataclass
 class avgData:
-    avgBySensel: np.array
+    avgDorsal: np.array
+    avgPlantar: np.array
     config: str
     subject: str
+    
     # below is a method of the dataclass
-    def plotAvg(self):
-        fig, ax1 = plt.subplots(1,1)
-        ax1 = sns.heatmap(self.avgBySensel, cmap="mako", vmin = 0, vmax = np.max(self.avgBySensel) * 2)
+    def plotAvgPressure(self):
+        fig, (ax1, ax2) = plt.subplots(1,2)
+        ax1 = sns.heatmap(self.avgDorsal, ax = ax1, cmap="mako", vmin = 0, vmax = np.max(self.avgDorsal) * 2)
         ax1.set(xticklabels=[])
-        ax1.set_title(self.config) 
-        return fig    
+        ax1.set_title('Dorsal Pressure') 
+        ax2 = sns.heatmap(self.avgPlantar, ax = ax2, cmap="mako", vmin = 0, vmax = np.max(self.avgPlantar) * 2)
+        ax2.set(xticklabels=[])
+        ax2.set_title('Plantar Pressure') 
+        return fig  
+
 
 def createAvgMat(inputName):
     """ 
@@ -42,34 +48,53 @@ def createAvgMat(inputName):
     dat = pd.read_csv(fPath+inputName, sep=',', skiprows = 1, header = 'infer')
     subj = inputName.split(sep="_")[0]
     config = inputName.split(sep="_")[1].split(sep=".")[0]
-    sensel = dat.iloc[:,17:]
+    sensel = dat.iloc[:,17:197]
+    plantarSensel = dat.iloc[:,214:425]
+    
+    headers = plantarSensel.columns
+    store_r = []
+    store_c = []
+
+    for name in headers:
+        store_r.append(int(name.split(sep = "_")[1])-1)
+        store_c.append(int(name.split(sep = "_")[2].split(sep=".")[0])-1)
+    
+    con_press = np.zeros((np.max(store_r)+1,np.max(store_c)+1))
+    
+    for ii in range(len(headers)-1):
+        con_press[store_r[ii],store_c[ii]] = np.mean(plantarSensel.iloc[:,ii])
+        
    
-    avgMat = np.array(np.mean(sensel, axis = 0)).reshape((18,10))
-    result = avgData(avgMat, config, subj)
+    avgDorsalMat = np.array(np.mean(sensel, axis = 0)).reshape((18,10))
+    avgPlantarMat = np.array(np.flip(con_press))
+    
+    result = avgData(avgDorsalMat, avgPlantarMat, config, subj)
     
     return(result)
 
 
-meanPressure = []
-maxPressure = [] 
-sdPressure = []
-totalPressure = []
+meanDorsalPressure = []
+maxDorsalPressure = [] 
+sdDorsalPressure = []
+totalDorsalPressure = []
 config = []
 subject = []
 
 for entry in entries:
     
     tmpAvgMat = createAvgMat(entry)
+    tmpAvgMat.plotAvgPressure()
+    
     config.append(tmpAvgMat.config)
     subject.append(tmpAvgMat.subject)
-    meanPressure.append(np.mean(tmpAvgMat.avgBySensel))
-    maxPressure.append(np.max(tmpAvgMat.avgBySensel))
-    sdPressure.append(np.std(tmpAvgMat.avgBySensel))
-    totalPressure.append(np.sum(tmpAvgMat.avgBySensel))
+    meanDorsalPressure.append(np.mean(tmpAvgMat.avgDorsal))
+    maxDorsalPressure.append(np.max(tmpAvgMat.avgDorsal))
+    sdDorsalPressure.append(np.std(tmpAvgMat.avgDorsal))
+    totalDorsalPressure.append(np.sum(tmpAvgMat.avgDorsal))
     
 
-outcomes = pd.DataFrame({'Subject':list(subject),'Config':list(config), 'MeanPressure':list(meanPressure), 
-                         'MaxPressure':list(maxPressure),'SDPressure':list(sdPressure), 'TotalPressure':list(totalPressure)})
+outcomes = pd.DataFrame({'Subject':list(subject),'Config':list(config), 'MeanPressure':list(meanDorsalPressure), 
+                         'MaxPressure':list(maxDorsalPressure),'SDPressure':list(sdDorsalPressure), 'TotalPressure':list(totalDorsalPressure)})
          
   
 outfileName = fPath + 'CompiledResults.csv'
