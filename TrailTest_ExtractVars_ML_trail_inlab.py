@@ -267,7 +267,7 @@ fPath = 'C:\\Users\eric.honert\\Boa Technology Inc\\PFL Team - General\\Testing 
 fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
 
-save_on = 1
+save_on = 2
 debug = 0
 
 # Preallocate
@@ -298,9 +298,9 @@ m_toePP = []
 
 avg_toe_force = []
 
-poorL = ['S07']
+poorL = ['S07','S10']
 
-for ii in range(0,len(entries)):
+for ii in range(270,len(entries)):
     print(entries[ii])
     dat = pd.read_csv(fPath+entries[ii], sep=',',skiprows = 1, header = 'infer')
     Subject = entries[ii].split(sep = "_")[0]
