@@ -17,7 +17,7 @@ save_on = 0
 
 # Read in files
 # only read .asc files for this work
-fPath = 'C:\\Users\\daniel.feeney\\Boa Technology Inc\\PFL Team - General\\Testing Segments\\Snow Performance\\SkiValidation_Dec2022\\PrelimData\\'
+fPath = 'C:\\Users\\daniel.feeney\\Boa Technology Inc\\PFL Team - General\\Testing Segments\\Snow Performance\\2022\\AlpinePressureMapping_Dec2022\\Pressure\\'
 fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
 
@@ -35,10 +35,10 @@ class avgData:
         fig, (ax1, ax2) = plt.subplots(1,2)
         ax1 = sns.heatmap(self.avgDorsal, ax = ax1, cmap="mako", vmin = 0, vmax = np.max(self.avgDorsal) * 2)
         ax1.set(xticklabels=[])
-        ax1.set_title('Dorsal Pressure') 
+        ax1.set_title('Posterior Pressure') 
         ax2 = sns.heatmap(self.avgPlantar, ax = ax2, cmap="mako", vmin = 0, vmax = np.max(self.avgPlantar) * 2)
         ax2.set(xticklabels=[])
-        ax2.set_title('Plantar Pressure') 
+        ax2.set_title('Anterior Pressure') 
         return fig  
     
     def sortDF(self, colName):
