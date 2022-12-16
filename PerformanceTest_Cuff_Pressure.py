@@ -15,12 +15,12 @@ from dataclasses import dataclass
 from tkinter import messagebox
 
 
-evalPlotting = 0 #if set to 1, will load test dataset to ensure reshape in correct order
+evalPlotting = 1 #if set to 1, will load test dataset to ensure reshape in correct order
 save_on= 0
 
 # Read in files
 # only read .asc files for this work
-fPath = 'C:\\Users\\daniel.feeney\\Boa Technology Inc\\PFL Team - General\\Testing Segments\\Snow Performance\\CuffPressure_Dec2022\\Prelim\\'
+fPath = 'C:\\Users\\daniel.feeney\\Boa Technology Inc\\PFL Team - General\\Testing Segments\\Snow Performance\\2022\\AlpinePressureMapping_Dec2022\\Pressure\\'
 fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
 
