@@ -13,7 +13,7 @@ import seaborn as sns
 from dataclasses import dataclass
 from tkinter import messagebox
 
-save_on = 0
+save_on = 1
 
 # Read in files
 # only read .asc files for this work
