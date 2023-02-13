@@ -139,7 +139,7 @@ for fName in entries:
                 mfP.append(np.mean(dat.R_Midfoot_Average[t0:t1])*6.89476)
                 mfCA.append(np.mean(dat.R_Midfoot_ContactArea[t0:t1]))
                 heelP.append(np.mean(dat.R_Heel_Average[t0:t1])*6.89476)
-                heelCA.append(np.mean(dat.R_Toe_ContactArea[t0:t1]))
+                heelCA.append(np.mean(dat.R_Heel_ContactArea[t0:t1]))
                 stdP.append(np.mean(dat.StdDevRF[t0:t1])*6.89476)
             
                 Subject.append(subName)
