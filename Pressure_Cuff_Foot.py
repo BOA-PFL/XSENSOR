@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from tkinter import messagebox
 
 save_on = 1
-
+check_data = 0
 # Read in files
 # only read .asc files for this work
 fPath = 'C:\\Users\\daniel.feeney\\Boa Technology Inc\\PFL Team - General\\Testing Segments\\Snow Performance\\SkiValidation_Dec2022\\InLabPressure\\'
@@ -143,13 +143,16 @@ subject = []
 
 for entry in entries:
     
-    if entry == 'CompiledResults.csv':
+    if entry == 'CompiledResults2.csv':
         print('Compiled results csv exists & will be added to')
     
     else:
         tmpAvgMat = createAvgMat(entry)
-        tmpAvgMat.plotAvgPressure()
-        answer = messagebox.askyesno("Question","Is data clean?")
+        if check_data == 0:
+            answer = True
+        else:
+            tmpAvgMat.plotAvgPressure()
+            answer = messagebox.askyesno("Question","Is data clean?")
         
         if answer == False:
             plt.close('all')
@@ -162,6 +165,7 @@ for entry in entries:
     
             config = tmpAvgMat.config
             subject = tmpAvgMat.subject
+            DContact = np.count_nonzero(tmpAvgMat.avgDorsal)
             meanDorsalPressure = float(np.mean(tmpAvgMat.avgDorsal))
             maxDorsalPressure = float(np.max(tmpAvgMat.avgDorsal))
             sdDorsalPressure = float(np.std(tmpAvgMat.avgDorsal))
@@ -179,16 +183,16 @@ for entry in entries:
             [avgLToes, pkLToes, conLToes] = calcSummaryStats(footLocations.RLToes)
     
             
-            outcomes = pd.DataFrame([[subject,config,meanDorsalPressure,maxDorsalPressure,sdDorsalPressure,totalDorsalPressure,
+            outcomes = pd.DataFrame([[subject,config,DContact,meanDorsalPressure,maxDorsalPressure,sdDorsalPressure,totalDorsalPressure,
                                     avgMHeel, pkMHeel, conMHeel, avgLHeel, pkLHeel, conLHeel, avgMMid, pkMMid, conMMid,
                                     avgLMid, pkLMid, conLMid, avgMMets, pkMMets, conMMets, avgLMets, pkLMets, conLMets,
                                     avgMToes, pkMToes, conMToes, avgLToes, pkLToes, conLToes]],
-                                    columns=['Subject','Config','meanDorsalPressure','maxDorsalPressure','sdDorsalpressure','totalDorsalPressure',
+                                    columns=['Subject','Config','DorsalContact','meanDorsalPressure','maxDorsalPressure','sdDorsalpressure','totalDorsalPressure',
                                     'avgMHeel', 'pkMHeel', 'conMHeel', 'avgLHeel', 'pkLHeel', 'conLHeel', 'avgMMid', 'pkMMid', 'conMmid',
                                     'avgLMid', 'pkLMid', 'conLMid', 'avgMMets', 'pkMMets', 'conMMets', 'avgLMets', 'pkLMets', 'conLMets',
                                     'avgMToes', 'pkMToes', 'conMToes', 'avgLToes', 'pkLToes', 'conLToes'])
               
-            outfileName = fPath + 'CompiledResults.csv'
+            outfileName = fPath + 'CompiledResults2.csv'
             if save_on == 1:
                 if os.path.exists(outfileName) == False:
                     
