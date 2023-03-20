@@ -492,14 +492,16 @@ for fName in entries:
             
                 ffAvg = []
                 ffPk = []
+                ffConArea = []
                 ffLatAvg = []
                 ffLatPk = []
                 ffMedAvg = []
                 ffMedPk = []
                 
                 heelArea = []
-                heelP = []
+                heelPres = []
                 
+                # toe 63 ; fft 72 ; heel 45
                 for ii in range(len(land)):
                     toeClawAvg.append(np.mean(tmpDat.plantarToe[land[ii]: land[ii]+100]))
                     toeClawPk.append(np.max(tmpDat.plantarToe[land[ii]: land[ii]+100]))
@@ -510,13 +512,14 @@ for fName in entries:
             
                     ffAvg.append(np.mean(tmpDat.plantarForefoot[land[ii]: land[ii]+100]))
                     ffPk.append(np.max(tmpDat.plantarForefoot[land[ii]: land[ii]+100]))
+                    ffConArea.append(np.count_nonzero(tmpDat.plantarForefoot[land[ii]: land[ii]+100])/72*100)
                     ffLatAvg.append(np.mean(tmpDat.plantarForefootLat[land[ii]: land[ii]+100]))
                     ffLatPk.append(np.max(tmpDat.plantarForefootLat[land[ii]: land[ii]+100]))
                     ffMedAvg.append(np.mean(tmpDat.plantarForefootMed[land[ii]: land[ii]+100]))
                     ffMedPk.append(np.max(tmpDat.plantarForefootMed[land[ii]: land[ii]+100]))
             
-                    heelArea.append(np.mean(tmpDat.plantarHeel[land[ii]: land[ii]+100]))
-                    heelP.append(np.mean(tmpDat.plantarHeel[land[ii]: land[ii]+100]))
+                    heelArea.append(np.count_nonzero(tmpDat.plantarHeel[land[ii]: land[ii]+100])/ 45*100)
+                    heelPres.append(np.mean(tmpDat.plantarHeel[land[ii]: land[ii]+100]))
                     
                     config.append(tmpDat.config)
                     subject.append(tmpDat.subject)
@@ -524,8 +527,9 @@ for fName in entries:
             
                 outcomes = pd.DataFrame({'Subject': list(subject), 'Movement':list(movement), 'Config':list(config),
                                          'ToeClaw': list(toeClawAvg), 'ToeClawPeak': list(toeClawPk), 'ToeLat': list(toeLatAvg), 'ToeLatPeak' : list(toeLatPk),
-                                         'ToeMed' : list(toeMedAvg), 'ToeMedPeak' : list(toeMedPk), 'ForefootAvg' : list(ffAvg), 'ForefootPeak' : list(ffPk),
-                                         'ForefootLat': list(ffLatAvg), 'ForefootLatPk': list(ffLatPk), 'ForefootMed': list(ffMedAvg), 'ForefootMedPk': list(ffMedPk)})
+                                         'ToeMed' : list(toeMedAvg), 'ToeMedPeak' : list(toeMedPk), 'ForefootAvg' : list(ffAvg), 'ForefootPeak' : list(ffPk), 'ForefootContA' : list(ffConArea),
+                                         'ForefootLat': list(ffLatAvg), 'ForefootLatPk': list(ffLatPk), 'ForefootMed': list(ffMedAvg), 'ForefootMedPk': list(ffMedPk),
+                                         'HeelConArea' : list(heelArea), 'HeelPressure' : list(heelPres)})
                
                 
                 
