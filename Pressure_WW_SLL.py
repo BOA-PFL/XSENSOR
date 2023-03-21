@@ -547,7 +547,17 @@ for fName in entries:
                                  'HeelConArea' : list(heelArea), 'HeelPressure' : list(heelPres)})
        
         
+                                   
+                outfileName = fPath + '1_CompiledResults_SLL.csv'
+                if save_on == 1:
+                    if os.path.exists(outfileName) == False:
+                    
+                        outcomes.to_csv(outfileName, header=True, index = False)
                 
+                    else:
+                        outcomes.to_csv(outfileName, mode='a', header=False, index = False) 
+                       
+                        
         
         
     except:
@@ -555,16 +565,6 @@ for fName in entries:
         
             
             
-   
-outfileName = fPath + '1_CompiledResults_SLL.csv'
-if save_on == 1:
-    if os.path.exists(outfileName) == False:
-    
-        outcomes.to_csv(outfileName, header=True, index = False)
 
-    else:
-        outcomes.to_csv(outfileName, mode='a', header=False, index = False) 
-       
-        
 
 
