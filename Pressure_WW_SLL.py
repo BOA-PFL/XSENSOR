@@ -431,75 +431,90 @@ for fName in entries:
     movement = []
 
     
+    toeClawAvg = []
+    toeClawPk =[]
+    toeLatAvg = []
+    toeLatPk =[]
+    toeMedAvg = []
+    toeMedPk =[]
+
+    ffAvg = []
+    ffPk = []
+    ffConArea = []
+    ffLatAvg = []
+    ffLatPk = []
+    ffMedAvg = []
+    ffMedPk = []
+    
+    heelArea = []
+    heelPres = []
+
     try: 
-        #fName = entries[5]
+        #fName = entries[2]
         subName = fName.split(sep = "_")[0]
         ConfigTmp = fName.split(sep="_")[1]
         moveTmp = fName.split(sep = "_")[2].split(sep = '.')[0]
         
         # Make sure the files are named FirstLast_Config_Movement_Trial# - The "if" statement won't work if there isn't a trial number next to the movement
-        if ('SLL' in moveTmp) or ('SLLT' in moveTmp): # or ('Trail' in moveTmp):
+        #if ('SLL' in moveTmp):# or ('SLLT' in moveTmp): # or ('Trail' in moveTmp):
+        if (moveTmp == 'SLLT'):
             #dat = pd.read_csv(fPath+fName, sep=',', skiprows = 1, header = 'infer')
-        
-            minima = []
-            fVal = []
-            fOff = []
             
+  
             tmpDat = createTSmat(fName)
-            nFor = tmpDat.RForce * -1 
-            land = sig.find_peaks(tmpDat.RForce, height = 700, distance = 600)[0]
-            minima  = sig.find_peaks(nFor, height = -75, distance = 200)[0] 
+            ffoot = np.mean(tmpDat.plantarForefoot, axis = (1,2)) * 6895 * 0.014699
             
             
-            for ii in land:
-                fVal.append(tmpDat.RForce[ii])
+            land = sig.find_peaks(tmpDat.RForce, height = 1000, distance = 600)[0]
+            land_ht =  sig.find_peaks(tmpDat.RForce, height = 1000, distance = 600)[1]['peak_heights']
+            fft_pk = sig.find_peaks(ffoot, height = 1000, distance = 500)[0]
+            fft_ht = sig.find_peaks(ffoot, height = 1000, distance = 500)[1]['peak_heights']
             
-            take = []
-            for ii in range(len(minima)):
-                rr = minima[ii] - 40
-                if tmpDat.RForce[rr]> 500:
-                    take.append(minima[ii])
-                    fOff.append(tmpDat.RForce[rr+50])
-                
+            htThrsh = np.mean(land_ht) - 400
+                        
+            true_land = sig.find_peaks(tmpDat.RForce, height = htThrsh, distance = 500)[0]
+            land_ht =  sig.find_peaks(tmpDat.RForce, height = htThrsh, distance = 500)[1]['peak_heights']
+   
+  
             
             answer = True # if data check is off. 
             if data_check == 1:
                 plt.figure()
-                plt.plot(tmpDat.RForce, label = 'Right Foot Total Force')      
-                plt.plot(land, fVal, marker = 'o', linestyle = 'none')
-                plt.plot(take, fOff, marker = 'v', linestyle = 'none')
+                plt.plot(tmpDat.RForce, label = 'Right Foot Total Force') 
+                plt.plot(true_land, land_ht, marker = 'o', linestyle = 'none')
+                #plt.plot(range(len(ffoot)), ffoot)
+                #plt.plot(fft_pk, fft_ht, marker = 'v', linestyle = 'none')
+                
+  
                 answer = messagebox.askyesno("Question","Is data clean?")    
+  
+  
+  
                 
-                
-
             
+            if answer == False:
+                disThrsh = np.mean(land)- 100
+                true_land = sig.find_peaks(tmpDat.RForce, height = htThrsh, distance = disThrsh)[0]
+                land_ht =  sig.find_peaks(tmpDat.RForce, height = htThrsh, distance = disThrsh)[1]['peak_heights']
+                plt.figure()
+                plt.plot(tmpDat.RForce, label = 'Right Foot Total Force') 
+                plt.plot(land, land_ht, marker = 'o', linestyle = 'none')
+                plt.plot(range(len(ffoot)), ffoot)
+                plt.plot(fft_pk, fft_ht, marker = 'v', linestyle = 'none')
+                answer = messagebox.askyesno("Question","Is data clean?") 
+            
+                            
             if answer == False:
                 plt.close('all')
                 print('Adding file to bad file list')
                 badFileList.append(fName)
-        
+                
             if answer == True:
                 plt.close('all')
                 print('Estimating point estimates')
                 
-                       
-                toeClawAvg = []
-                toeClawPk =[]
-                toeLatAvg = []
-                toeLatPk =[]
-                toeMedAvg = []
-                toeMedPk =[]
-            
-                ffAvg = []
-                ffPk = []
-                ffConArea = []
-                ffLatAvg = []
-                ffLatPk = []
-                ffMedAvg = []
-                ffMedPk = []
-                
-                heelArea = []
-                heelPres = []
+        
+        
                 
                 # toe 63 ; fft 72 ; heel 45
                 for ii in range(len(land)):
@@ -525,20 +540,19 @@ for fName in entries:
                     subject.append(tmpDat.subject)
                     movement.append(moveTmp)
             
-                outcomes = pd.DataFrame({'Subject': list(subject), 'Movement':list(movement), 'Config':list(config),
-                                         'ToeClaw': list(toeClawAvg), 'ToeClawPeak': list(toeClawPk), 'ToeLat': list(toeLatAvg), 'ToeLatPeak' : list(toeLatPk),
-                                         'ToeMed' : list(toeMedAvg), 'ToeMedPeak' : list(toeMedPk), 'ForefootAvg' : list(ffAvg), 'ForefootPeak' : list(ffPk), 'ForefootContA' : list(ffConArea),
-                                         'ForefootLat': list(ffLatAvg), 'ForefootLatPk': list(ffLatPk), 'ForefootMed': list(ffMedAvg), 'ForefootMedPk': list(ffMedPk),
-                                         'HeelConArea' : list(heelArea), 'HeelPressure' : list(heelPres)})
-               
-                
+        outcomes = pd.DataFrame({'Subject': list(subject), 'Movement':list(movement), 'Config':list(config),
+                                 'ToeClaw': list(toeClawAvg), 'ToeClawPeak': list(toeClawPk), 'ToeLat': list(toeLatAvg), 'ToeLatPeak' : list(toeLatPk),
+                                 'ToeMed' : list(toeMedAvg), 'ToeMedPeak' : list(toeMedPk), 'ForefootAvg' : list(ffAvg), 'ForefootPeak' : list(ffPk), 'ForefootContA' : list(ffConArea),
+                                 'ForefootLat': list(ffLatAvg), 'ForefootLatPk': list(ffLatPk), 'ForefootMed': list(ffMedAvg), 'ForefootMedPk': list(ffMedPk),
+                                 'HeelConArea' : list(heelArea), 'HeelPressure' : list(heelPres)})
+       
+        
                 
         
         
     except:
             print('Not usable data')             
-            
-            
+        
             
             
    
