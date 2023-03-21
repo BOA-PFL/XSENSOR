@@ -540,7 +540,7 @@ for fName in entries:
                     subject.append(tmpDat.subject)
                     movement.append(moveTmp)
             
-        outcomes = pd.DataFrame({'Subject': list(subject), 'Movement':list(movement), 'Config':list(config),
+                outcomes = pd.DataFrame({'Subject': list(subject), 'Movement':list(movement), 'Config':list(config),
                                  'ToeClaw': list(toeClawAvg), 'ToeClawPeak': list(toeClawPk), 'ToeLat': list(toeLatAvg), 'ToeLatPeak' : list(toeLatPk),
                                  'ToeMed' : list(toeMedAvg), 'ToeMedPeak' : list(toeMedPk), 'ForefootAvg' : list(ffAvg), 'ForefootPeak' : list(ffPk), 'ForefootContA' : list(ffConArea),
                                  'ForefootLat': list(ffLatAvg), 'ForefootLatPk': list(ffLatPk), 'ForefootMed': list(ffMedAvg), 'ForefootMedPk': list(ffMedPk),
