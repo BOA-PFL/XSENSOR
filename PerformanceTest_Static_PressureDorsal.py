@@ -49,10 +49,10 @@ class avgData:
         fig, (ax1, ax2) = plt.subplots(1,2)
         ax1 = sns.heatmap(self.avgDorsal, ax = ax1, cmap="mako", vmin = 0, vmax = np.max(self.avgDorsal) * 2)
         ax1.set(xticklabels=[])
-        ax1.set_title('Shin Pressure') 
+        ax1.set_title('Dorsal Pressure') 
         ax2 = sns.heatmap(self.avgPlantar, ax = ax2, cmap="mako", vmin = 0, vmax = np.max(self.avgPlantar) * 2)
         ax2.set(xticklabels=[])
-        ax2.set_title('Calf Pressure') 
+        ax2.set_title('Plantar Pressure') 
         plt.suptitle(self.config)
         plt.tight_layout()
         return fig  
@@ -115,7 +115,7 @@ plantarTotalPressure = []
 
 for entry in entries:
     
-    entry = entries[0]
+    # entry = entries[0]
     tmpAvgMat = createAvgMat(entry)
     tmpAvgMat.plotAvgPressure()
     answer = messagebox.askyesno("Question","Is data clean?")
@@ -138,12 +138,12 @@ for entry in entries:
         sdDorsalPressure = float(np.std(tmpAvgMat.avgDorsal))
         totalDorsalPressure = float(np.sum(tmpAvgMat.avgDorsal))
         
-        ffDorsalContact = float(np.count_nonzero(tmpAvgMat.avgDorsal[:6, :])/60*100)
-        ffDorsalPressure = float(np.mean(tmpAvgMat.avgDorsal[:6, :]))
+        instepDorsalContact = float(np.count_nonzero(tmpAvgMat.avgDorsal[:6, :])/60*100)
+        instepDorsalPressure = float(np.mean(tmpAvgMat.avgDorsal[:6, :]))
         mfDorsalContact = float(np.count_nonzero(tmpAvgMat.avgDorsal[6:12, :])/60*100)
         mfDorsalPressure = float(np.mean(tmpAvgMat.avgDorsal[6:12, :]))
-        instepDorsalContact = float(np.count_nonzero(tmpAvgMat.avgDorsal[12:, :])/60*100)
-        instepDorsalPressure = float(np.mean(tmpAvgMat.avgDorsal[12:, :]))
+        ffDorsalContact = float(np.count_nonzero(tmpAvgMat.avgDorsal[12:, :])/60*100)
+        ffDorsalPressure= float(np.mean(tmpAvgMat.avgDorsal[12:, :]))
         
         
         
@@ -153,14 +153,14 @@ for entry in entries:
         plantarSDPressure = float(np.std(tmpAvgMat.avgPlantar))
         plantarTotalPressure = float(np.sum(tmpAvgMat.avgPlantar))
         
-        toeContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[:7, :])/63*100)
-        toePressure = float(np.mean(tmpAvgMat.avgPlantar[:7, :]))
-        ffContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[7:13, :])/54*100)
-        ffPressure = float(np.mean(tmpAvgMat.avgPlantar[7:13, :]))
-        mfContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[13:22, :])/81*100)
-        mfPressure = float(np.mean(tmpAvgMat.avgPlantar[13:22, :]))
-        heelContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[22:, :])/72*100)
-        heelPressure = float(np.mean(tmpAvgMat.avgPlantar[22:, :]))
+        heelContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[:7, :])/63*100)
+        heelPressure = float(np.mean(tmpAvgMat.avgPlantar[:7, :]))
+        mfContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[7:15, :])/54*100)
+        mfPressure = float(np.mean(tmpAvgMat.avgPlantar[7:15, :]))
+        ffContact= float(np.count_nonzero(tmpAvgMat.avgPlantar[15:25, :])/81*100)
+        ffPressure = float(np.mean(tmpAvgMat.avgPlantar[15:25, :]))
+        toeContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[25:, :])/72*100)
+        toePressure = float(np.mean(tmpAvgMat.avgPlantar[25:, :]))
 
         
         outcomes = pd.DataFrame([[subject,config,meanDorsalPressure,maxDorsalPressure,sdDorsalPressure,totalDorsalPressure,
