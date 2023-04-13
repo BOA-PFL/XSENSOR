@@ -116,6 +116,8 @@ def createAvgMat(inputName):
 # plantarSDPressure = []
 # plantarTotalPressure = []
 
+
+
 for entry in entries:
     
 
