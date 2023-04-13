@@ -13,15 +13,13 @@ import seaborn as sns
 from dataclasses import dataclass
 from tkinter import messagebox
 
-save_on = 1
+save_on = 0
 
 # Read in files
 # only read .asc files for this work
-<<<<<<< Updated upstream
-fPath = 'C:\\Users\\kate.harrison\\Boa Technology Inc\\PFL Team - General\\Testing Segments\\Snow Performance\\2022\\AlpinePressureMapping_Dec2022\\Pressure\\'
-=======
+
 fPath = 'C:/Users/Kate.Harrison/Boa Technology Inc/PFL Team - General/Testing Segments/AgilityPerformanceData/AS_Train_TongueDialLocationII_Mech_Jan23/Xsensor/Static/'
->>>>>>> Stashed changes
+
 fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
 
@@ -53,10 +51,10 @@ class avgData:
         fig, (ax1, ax2) = plt.subplots(1,2)
         ax1 = sns.heatmap(self.avgDorsal, ax = ax1, cmap="mako", vmin = 0, vmax = np.max(self.avgDorsal) * 2)
         ax1.set(xticklabels=[])
-        ax1.set_title('Shin Pressure') 
+        ax1.set_title('Dorsal Pressure') 
         ax2 = sns.heatmap(self.avgPlantar, ax = ax2, cmap="mako", vmin = 0, vmax = np.max(self.avgPlantar) * 2)
         ax2.set(xticklabels=[])
-        ax2.set_title('Calf Pressure') 
+        ax2.set_title('Plantar Pressure') 
         plt.suptitle(self.config)
         plt.tight_layout()
         return fig  
@@ -97,7 +95,7 @@ def createAvgMat(inputName):
         
    
     avgDorsalMat = np.array(np.mean(sensel, axis = 0)).reshape((18,10))
-    avgPlantarMat = np.array(np.flip(con_press))
+    avgPlantarMat = np.array(con_press)
     
     result = avgData(avgDorsalMat, avgPlantarMat, config, subj, dat)
     
@@ -120,16 +118,14 @@ def createAvgMat(inputName):
 
 for entry in entries:
     
-<<<<<<< Updated upstream
-    entry = entries[0]
-=======
+
     #entry = entries[0]
     if 'tanding' in entry:
         Movement ='Standing'
     elif 'itting' in entry: 
         Movement ='Sitting'
             
->>>>>>> Stashed changes
+
     tmpAvgMat = createAvgMat(entry)
     tmpAvgMat.plotAvgPressure()
     answer = messagebox.askyesno("Question","Is data clean?")
@@ -155,20 +151,13 @@ for entry in entries:
         dorsalContact = float(np.count_nonzero(tmpAvgMat.avgDorsal)/180*100)
         
         ffDorsalContact = float(np.count_nonzero(tmpAvgMat.avgDorsal[:6, :])/60*100)
-<<<<<<< Updated upstream
-=======
-        ffMedDorsalContact = float(np.count_nonzero(tmpAvgMat.avgDorsal[:6, :4]))
->>>>>>> Stashed changes
+
         ffDorsalPressure = float(np.mean(tmpAvgMat.avgDorsal[:6, :]))
         mfDorsalContact = float(np.count_nonzero(tmpAvgMat.avgDorsal[6:12, :])/60*100)
         mfDorsalPressure = float(np.mean(tmpAvgMat.avgDorsal[6:12, :]))
         instepDorsalContact = float(np.count_nonzero(tmpAvgMat.avgDorsal[12:, :])/60*100)
         instepDorsalPressure = float(np.mean(tmpAvgMat.avgDorsal[12:, :]))
-<<<<<<< Updated upstream
-        
-        
-=======
->>>>>>> Stashed changes
+
         
         plantarContact = float(np.count_nonzero(tmpAvgMat.avgPlantar))
         plantarPeakPressure = float(np.max(tmpAvgMat.avgPlantar))
@@ -178,24 +167,15 @@ for entry in entries:
         
         toeContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[:7, :])/63*100)
         toePressure = float(np.mean(tmpAvgMat.avgPlantar[:7, :]))
-        ffContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[7:13, :])/54*100)
+        ffContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[7:13, :])/72*100)
         ffPressure = float(np.mean(tmpAvgMat.avgPlantar[7:13, :]))
-        mfContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[13:22, :])/81*100)
+        mfContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[13:22, :])/90*100)
         mfPressure = float(np.mean(tmpAvgMat.avgPlantar[13:22, :]))
         heelContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[22:, :])/72*100)
         heelPressure = float(np.mean(tmpAvgMat.avgPlantar[22:, :]))
 
         
-<<<<<<< Updated upstream
-        outcomes = pd.DataFrame([[subject,config,meanDorsalPressure,maxDorsalPressure,sdDorsalPressure,totalDorsalPressure,
-                                  toeContact, toePressure, ffContact, ffPressure, mfContact, mfPressure, heelContact, heelPressure,
-                                  plantarContact, plantarPeakPressure, plantarAvgPressure, plantarSDPressure, plantarTotalPressure]],
-                                columns=['Subject','Config','meanDorsalPressure','maxDorsalPressure','sdDorsalPressure','totalDorsalPressure',
-                                         'toeContact', 'toePressure', 'ffContact', 'ffPressure',
-                                         'mfContact', 'mfPressure', 'heelContact', 'heelPressure',
-                                         'plantarContact', 'plantarPeakPressure', 'plantarAvgPressure', 'plantarSDPressure', 'plantarTotalPressure',
-                                         'ffDorsalContact', 'ffDorsalPressure', 'mfDorsalContact', 'mfDorsalPressure', 'instepDorsalContact', 'instepDorsalPressure'])
-=======
+
         outcomes = pd.DataFrame([[subject,config,Movement, 
                                   dorsalContact, meanDorsalPressure, maxDorsalPressure,sdDorsalPressure,totalDorsalPressure,
                                   
@@ -218,7 +198,7 @@ for entry in entries:
                                          'mfContact', 'mfPressure', 'heelContact', 'heelPressure'
                                          
                                          ])
->>>>>>> Stashed changes
+
           
         outfileName = fPath + 'CompiledResults.csv'
         if save_on == 1:
