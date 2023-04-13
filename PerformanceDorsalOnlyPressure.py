@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
 """
+Created on Wed Jan 18 16:42:37 2023
+
+@author: Dan.Feeney
+"""
+
+# -*- coding: utf-8 -*-
+"""
 Created on Mon Nov 21 15:35:44 2022
 
 @author: Dan.Feeney
@@ -13,27 +20,13 @@ import seaborn as sns
 from dataclasses import dataclass
 from tkinter import messagebox
 
-save_on = 0
+save_on = 1
 
 # Read in files
 # only read .asc files for this work
-fPath = 'C:\\Users\\daniel.feeney\\Boa Technology Inc\\PFL Team - General\\Testing Segments\\Snow Performance\\2022\\AlpinePressureMapping_Dec2022\\Pressure\\'
+fPath = 'C:\\Users\\daniel.feeney\\Boa Technology Inc\\PFL Team - General\\Testing Segments\\Snow Performance\\SkiValidation_Dec2022\\InLabPressure\\'
 fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
-
-
-### set plot font size ###
-SMALL_SIZE = 14
-MEDIUM_SIZE = 16
-BIGGER_SIZE = 18
-
-plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
-plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
-plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
-plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
-plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
-plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
-plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
 @dataclass
 class avgData:
@@ -49,12 +42,10 @@ class avgData:
         fig, (ax1, ax2) = plt.subplots(1,2)
         ax1 = sns.heatmap(self.avgDorsal, ax = ax1, cmap="mako", vmin = 0, vmax = np.max(self.avgDorsal) * 2)
         ax1.set(xticklabels=[])
-        ax1.set_title('Shin Pressure') 
+        ax1.set_title('Posterior Pressure') 
         ax2 = sns.heatmap(self.avgPlantar, ax = ax2, cmap="mako", vmin = 0, vmax = np.max(self.avgPlantar) * 2)
         ax2.set(xticklabels=[])
-        ax2.set_title('Calf Pressure') 
-        plt.suptitle(self.config)
-        plt.tight_layout()
+        ax2.set_title('Anterior Pressure') 
         return fig  
     
     def sortDF(self, colName):
@@ -65,6 +56,19 @@ class avgData:
         subsetDat = self.fullDat.iloc[:,self.fullDat.columns.get_loc(colName):self.fullDat.columns.get_loc(colName)+12]
         return(subsetDat)
 
+# dd = test.sortDF('Group')
+# filter_col = [col for col in dat if col.startswith('Group')]
+
+@dataclass
+class footLocData:
+    RLHeel: pd.DataFrame
+    RMHeel: pd.DataFrame
+    RMMidfoot: pd.DataFrame
+    RLMidfoot: pd.DataFrame
+    RMMets: pd.DataFrame
+    RLMets: pd.DataFrame
+    RMToes: pd.DataFrame
+    RLToes: pd.DataFrame
     
 
 def createAvgMat(inputName):
@@ -99,19 +103,50 @@ def createAvgMat(inputName):
     
     return(result)
 
+def subsetMat(inputDF):
+    """ 
+    Input an instance of class avgData with regions of the foot separated
+    with masks from XSENSOR
+    Outputs an instance of class footLocData with each region separated out 
+    """
+    
+    filter_col = [col for col in inputDF.fullDat if col.startswith('Group')]
+   
+    if len(filter_col) != 8:
+        print('check subsetMat function if correct class names are specified')
+        
+    RLH = inputDF.sortDF(filter_col[0])
+    RMH = inputDF.sortDF(filter_col[1])
+    RMM = inputDF.sortDF(filter_col[2])
+    RLM = inputDF.sortDF(filter_col[3])
+    RMMet = inputDF.sortDF(filter_col[4])
+    RLMet = inputDF.sortDF(filter_col[5])
+    RMToes = inputDF.sortDF(filter_col[6])
+    RLToes = inputDF.sortDF(filter_col[7])
+    
+    output = footLocData(RLH, RMH, RMM, RLM, RMMet, RLMet, RMToes, RLToes)
+    
+    return(output)
 
-meanShinPressure = []
-maxShinPressure = [] 
-sdShinPressure = []
-totalShinPressure = []
+def calcSummaryStats(inputDF):
+    """ 
+    Calculates mean, peak, and contact % from an input DF
+    4,6,and 9 are mean, peak, and contact% from XSENSOR output
+    """
+    colsInterest = list((4,6,9))
+    outVal = []
+    for val in colsInterest:
+        outVal.append( np.mean(inputDF.iloc[:,val]) ) 
+    [avg, peak, avgCon] = outVal
+    
+    return(outVal)
+
+meanDorsalPressure = []
+maxDorsalPressure = [] 
+sdDorsalPressure = []
+totalDorsalPressure = []
 config = []
 subject = []
-
-calfContact = []
-calfPeakPressure = []
-calfAvgPressure = []
-calfSDPressure = []
-calfTotalPressure = []
 
 for entry in entries:
     
@@ -128,25 +163,19 @@ for entry in entries:
         plt.close('all')
         print('Estimating point estimates')
 
-        config = (tmpAvgMat.config)
-        subject = (tmpAvgMat.subject)
-        meanShinPressure = float(np.mean(tmpAvgMat.avgDorsal))
-        maxShinPressure = float(np.max(tmpAvgMat.avgDorsal))
-        sdShinPressure = float(np.std(tmpAvgMat.avgDorsal))
-        totalShinPressure = float(np.sum(tmpAvgMat.avgDorsal))
+        config.append(tmpAvgMat.config)
+        subject.append(tmpAvgMat.subject)
+        meanDorsalPressure = float(np.mean(tmpAvgMat.avgDorsal))
+        maxDorsalPressure = float(np.max(tmpAvgMat.avgDorsal))
+        sdDorsalPressure = float(np.std(tmpAvgMat.avgDorsal))
+        totalDorsalPressure = float(np.sum(tmpAvgMat.avgDorsal))
         
-        calfContact = float(np.count_nonzero(tmpAvgMat.avgPlantar))
-        calfPeakPressure = float(np.max(tmpAvgMat.avgPlantar))
-        calfAvgPressure = float(np.mean(tmpAvgMat.avgPlantar))
-        calfSDPressure = float(np.std(tmpAvgMat.avgPlantar))
-        calfTotalPressure = float(np.sum(tmpAvgMat.avgPlantar))
-
+        
 
         
-        outcomes = pd.DataFrame([[subject,config,meanShinPressure,maxShinPressure,sdShinPressure,totalShinPressure,
-                                  calfContact, calfPeakPressure, calfAvgPressure, calfSDPressure, calfTotalPressure]],
-                                columns=['Subject','Config','meanShinPressure','maxShinPressure','sdShinPressure','totalShinPressure',
-                                         'calfContact', 'calfPeakPressure', 'calfAvgPressure', 'calfSDPressure', 'calfTotalPressure'])
+        outcomes = pd.DataFrame([[subject,config,meanDorsalPressure,maxDorsalPressure,sdDorsalPressure,totalDorsalPressure,
+                                ]],
+                                columns=['Subject','Config','meanDorsalPressure','maxDorsalPressure','sdDorsalpressure','totalDorsalPressure'])
           
         outfileName = fPath + 'CompiledResults.csv'
         if save_on == 1:

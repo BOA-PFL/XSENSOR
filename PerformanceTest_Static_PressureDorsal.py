@@ -119,12 +119,14 @@ def createAvgMat(inputName):
 for entry in entries:
     
 
+
     #entry = entries[0]
     if 'tanding' in entry:
         Movement ='Standing'
     elif 'itting' in entry: 
         Movement ='Sitting'
             
+
 
     tmpAvgMat = createAvgMat(entry)
     tmpAvgMat.plotAvgPressure()
@@ -150,13 +152,16 @@ for entry in entries:
         totalDorsalPressure = float(np.sum(tmpAvgMat.avgDorsal))
         dorsalContact = float(np.count_nonzero(tmpAvgMat.avgDorsal)/180*100)
         
-        ffDorsalContact = float(np.count_nonzero(tmpAvgMat.avgDorsal[:6, :])/60*100)
 
+        ffDorsalContact = float(np.count_nonzero(tmpAvgMat.avgDorsal[:6, :])/60*100)
         ffDorsalPressure = float(np.mean(tmpAvgMat.avgDorsal[:6, :]))
         mfDorsalContact = float(np.count_nonzero(tmpAvgMat.avgDorsal[6:12, :])/60*100)
         mfDorsalPressure = float(np.mean(tmpAvgMat.avgDorsal[6:12, :]))
         instepDorsalContact = float(np.count_nonzero(tmpAvgMat.avgDorsal[12:, :])/60*100)
         instepDorsalPressure = float(np.mean(tmpAvgMat.avgDorsal[12:, :]))
+
+
+        
 
         
         plantarContact = float(np.count_nonzero(tmpAvgMat.avgPlantar))
@@ -165,6 +170,7 @@ for entry in entries:
         plantarSDPressure = float(np.std(tmpAvgMat.avgPlantar))
         plantarTotalPressure = float(np.sum(tmpAvgMat.avgPlantar))
         
+
         toeContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[:7, :])/63*100)
         toePressure = float(np.mean(tmpAvgMat.avgPlantar[:7, :]))
         ffContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[7:13, :])/72*100)
