@@ -455,6 +455,14 @@ for fName in entries:
     heelAreaLate = []
     heelPLate = []
     maxmaxToes = []
+    
+    ffAreaMid = []
+    ffPMid = []
+    
+    mfAreaLate = []
+    mfPLate = []
+    mfAreaMid = []
+    mfPMid = []
 
     latPmidstance = []
     latAreamidstance = []
@@ -468,6 +476,17 @@ for fName in entries:
     latPropMid = []
     medPropMid = []
     dorsalVar = []
+    maxDorsal = []
+    
+    ffDorsalEarlyP = []
+    ffDorsalMidP = []
+    ffDorsalLateP = []
+    mfDorsalEarlyP = []
+    mfDorsalMidP = []
+    mfDorsalLateP = []
+    instepEarlyP = []
+    instepMidP = []
+    instepLateP = []
 
     try: 
         fName = entries[9]
@@ -522,6 +541,14 @@ for fName in entries:
                     toeAreamidstance.append(np.count_nonzero(tmpDat.plantarToe[pct40:pct60,:,:])/(pct60 - pct40)/63*100)
                     ffAreaLate.append(np.count_nonzero(tmpDat.plantarForefoot[pct90:tmpDat.RTO[i], :,:])/(tmpDat.RTO[i] - pct90)/72*100)
                     ffPLate.append(np.mean(tmpDat.plantarForefoot[pct90:tmpDat.RTO[i], :, :]))
+                    ffAreaMid.append(np.count_nonzero(tmpDat.plantarForefoot[pct40:pct60, :,:])/(pct60 - pct40)/72*100)
+                    ffPMid.append((np.mean(tmpDat.plantarForefoot[pct40:pct60, :, :])))
+                    
+                    mfAreaLate.append(np.count_nonzero(tmpDat.plantarMidfoot[pct90:tmpDat.RTO[i], :,:])/(tmpDat.RTO[i] - pct90)/80*100)
+                    mfPLate.append(np.mean(tmpDat.plantarMidfoot[pct90:tmpDat.RTO[i], :, :]))
+                    mfAreaMid.append(np.count_nonzero(tmpDat.plantarMidfoot[pct40:pct60, :,:])/(pct60 - pct40)/80*100)
+                    mfPMid.append((np.mean(tmpDat.plantarMidfoot[pct40:pct60, :, :])))
+                    
                     heelAreaLate.append(np.count_nonzero(tmpDat.plantarHeel[pct50:tmpDat.RTO[i], :, :])/(tmpDat.RTO[i] - pct50)/45*100) # making this from 50% stance time to toe off to match big data. Consider switing to 90% to toe off?
                     heelPLate.append(np.mean(tmpDat.plantarHeel[pct90:tmpDat.RTO[i], :, :]))
     
@@ -538,11 +565,30 @@ for fName in entries:
                     medPropMid.append(np.mean(tmpDat.plantarMedial[pct40:pct60, :, :])/np.mean(tmpDat.plantarMat[pct40:pct60, :, :]))
                     
                     dorsalVar.append(np.std(tmpDat.dorsalMat[tmpDat.RHS[i]:tmpDat.RTO[i], :, :])/np.mean(tmpDat.dorsalMat[tmpDat.RHS[i]:tmpDat.RTO[i], :, :]))
+                    maxDorsal.append(np.max(tmpDat.dorsalMat))
+                    
+                    ffDorsalEarlyP.append(np.mean(tmpDat.dorsalForefoot[tmpDat.RHS[i]:pct10, :, :]))
+                    ffDorsalMidP.append(np.mean(tmpDat.dorsalForefoot[pct40:pct60, :, :]))
+                    ffDorsalLateP.append(np.mean(tmpDat.dorsalForefoot[pct90:tmpDat.RTO[i], :, :]))
+                    mfDorsalEarlyP.append(np.mean(tmpDat.dorsalMidfoot[tmpDat.RHS[i]:pct10, :, :]))
+                    mfDorsalMidP.append(np.mean(tmpDat.dorsalMidfoot[pct40:pct60, :, :]))
+                    mfDorsalLateP.append(np.mean(tmpDat.dorsalMidfoot[pct90:tmpDat.RTO[i], :, :]))
+                    instepEarlyP.append(np.mean(tmpDat.dorsalInstep[tmpDat.RHS[i]:pct10, :, :]))
+                    instepMidP.append(np.mean(tmpDat.dorsalInstep[pct40:pct60, :, :]))
+                    instepLateP.append(np.mean(tmpDat.dorsalInstep[pct90:tmpDat.RTO[i], :, :]))
+                    
     
                     
     
             
-                outcomes = pd.DataFrame({'Subject': list(subject), 'Movement':list(movement), 'Config':list(config), 'ContactTime':list(ct),'toeP_mid':list(toePmidstance),'toeArea_mid':list(toeAreamidstance), 'ffP_late':list(ffPLate), 'ffArea_late':list(ffAreaLate),'heelPressure_late':list(heelPLate), 'heelAreaP':list(heelAreaLate), 'maxmaxToes':list(maxmaxToes), 'latP_mid':list(latPmidstance), 'latArea_mid':list(latAreamidstance), 'latP_late':list(latPLate), 'latArea_late':list(latAreaLate),'medP_mid':list(medPmidstance), 'medArea_mid':list(medAreamidstance), 'medP_late':list(medPLate), 'medArea_late':list(medAreaLate),'latPropMid':list(latPropMid), 'medPropMid':list(medPropMid),'dorsalVar':list(dorsalVar) })
+                outcomes = pd.DataFrame({'Subject': list(subject), 'Movement':list(movement), 'Config':list(config), 'ContactTime':list(ct),
+                                         'toeP_mid':list(toePmidstance),'toeArea_mid':list(toeAreamidstance), 'maxmaxToes':list(maxmaxToes),
+                                         'ffP_late':list(ffPLate), 'ffArea_late':list(ffAreaLate), 'ffP_Mid':list(ffPMid), 'ffArea_Mid':list(ffAreaMid),
+                                         'mfP_late':list(mfPLate), 'mfArea_late':list(mfAreaLate), 'mfP_Mid':list(mfPMid), 'mfArea_Mid':list(mfAreaMid),
+                                         'heelPressure_late':list(heelPLate), 'heelAreaP':list(heelAreaLate),  
+                                         'latP_mid':list(latPmidstance), 'latArea_mid':list(latAreamidstance), 'latP_late':list(latPLate), 'latArea_late':list(latAreaLate), 'latPropMid':list(latPropMid),
+                                         'medP_mid':list(medPmidstance), 'medArea_mid':list(medAreamidstance), 'medP_late':list(medPLate), 'medArea_late':list(medAreaLate), 'medPropMid':list(medPropMid),
+                                         'dorsalVar':list(dorsalVar) })
               
                 outfileName = fPath + '0_CompiledResults.csv'
                 if save_on == 1:
