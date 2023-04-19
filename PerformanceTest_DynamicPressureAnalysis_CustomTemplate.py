@@ -28,9 +28,9 @@ plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
 plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
 plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
-save_on = 1
+save_on = 0
 
-data_check = 0
+data_check = 1
 
 fwdLook = 30
 fThresh = 50
@@ -408,8 +408,8 @@ def createTSmat(inputName):
     dorsalInstepLat = dorsalMat[:,12:,5:]
     dorsalInstepMed = dorsalMat[:,12:,:5]
     
-    plantarLateral = plantarMat[:,:,4:]
-    plantarMedial = plantarMat[:,:,:4]
+    plantarLateral = plantarMat[:,:,6:]
+    plantarMedial = plantarMat[:,:,:6]
     
     RForce = np.mean(plantarMat, axis = (1,2))*6895*0.014699
     RForce = zeroInsoleForce(RForce,freq)
@@ -539,28 +539,28 @@ for fName in entries:
                     
                     maxmaxToes.append(np.max(tmpDat.plantarToe[tmpDat.RHS[i]:tmpDat.RTO[i]])*6.895)
                     toePmidstance.append(np.mean(tmpDat.plantarToe[pct40:pct60,:,:])*6.895)
-                    toeAreamidstance.append(np.count_nonzero(tmpDat.plantarToe[pct40:pct60,:,:])/(pct60 - pct40)/63*100)
-                    ffAreaLate.append(np.count_nonzero(tmpDat.plantarForefoot[pct90:tmpDat.RTO[i], :,:])/(tmpDat.RTO[i] - pct90)/72*100)
+                    toeAreamidstance.append(np.count_nonzero(tmpDat.plantarToe[pct40:pct60,:,:])/(pct60 - pct40)/47*100)
+                    ffAreaLate.append(np.count_nonzero(tmpDat.plantarForefoot[pct90:tmpDat.RTO[i], :,:])/(tmpDat.RTO[i] - pct90)/67*100)
                     ffPLate.append(np.mean(tmpDat.plantarForefoot[pct90:tmpDat.RTO[i], :, :])*6.895)
-                    ffAreaMid.append(np.count_nonzero(tmpDat.plantarForefoot[pct40:pct60, :,:])/(pct60 - pct40)/72*100)
+                    ffAreaMid.append(np.count_nonzero(tmpDat.plantarForefoot[pct40:pct60, :,:])/(pct60 - pct40)/67*100)
                     ffPMid.append((np.mean(tmpDat.plantarForefoot[pct40:pct60, :, :]))*6.895)
                     
-                    mfAreaLate.append(np.count_nonzero(tmpDat.plantarMidfoot[pct90:tmpDat.RTO[i], :,:])/(tmpDat.RTO[i] - pct90)/80*100)
+                    mfAreaLate.append(np.count_nonzero(tmpDat.plantarMidfoot[pct90:tmpDat.RTO[i], :,:])/(tmpDat.RTO[i] - pct90)/63*100)
                     mfPLate.append(np.mean(tmpDat.plantarMidfoot[pct90:tmpDat.RTO[i], :, :])*6.895)
-                    mfAreaMid.append(np.count_nonzero(tmpDat.plantarMidfoot[pct40:pct60, :,:])/(pct60 - pct40)/80*100)
+                    mfAreaMid.append(np.count_nonzero(tmpDat.plantarMidfoot[pct40:pct60, :,:])/(pct60 - pct40)/63*100)
                     mfPMid.append((np.mean(tmpDat.plantarMidfoot[pct40:pct60, :, :]))*6.895)
                     
-                    heelAreaLate.append(np.count_nonzero(tmpDat.plantarHeel[pct50:tmpDat.RTO[i], :, :])/(tmpDat.RTO[i] - pct50)/45*100) # making this from 50% stance time to toe off to match big data. Consider switing to 90% to toe off?
+                    heelAreaLate.append(np.count_nonzero(tmpDat.plantarHeel[pct50:tmpDat.RTO[i], :, :])/(tmpDat.RTO[i] - pct50)/43*100) # making this from 50% stance time to toe off to match big data. Consider switing to 90% to toe off?
                     heelPLate.append(np.mean(tmpDat.plantarHeel[pct90:tmpDat.RTO[i], :, :])*6.895)
     
                     latPmidstance.append(np.mean(tmpDat.plantarLateral[pct40:pct60, :, :])*6.895)
-                    latAreamidstance.append(np.count_nonzero(tmpDat.plantarLateral[pct40:pct60, :, :])/(pct60-pct40)/50*100)
+                    latAreamidstance.append(np.count_nonzero(tmpDat.plantarLateral[pct40:pct60, :, :])/(pct60-pct40)/107*100)
                     latPLate.append(np.mean(tmpDat.plantarLateral[pct90:tmpDat.RTO[i], :, :])*6.895)
-                    latAreaLate.append(np.count_nonzero(tmpDat.plantarLateral[pct90:tmpDat.RTO[i], :, :])/(tmpDat.RTO[i] - pct90)/50*100)
+                    latAreaLate.append(np.count_nonzero(tmpDat.plantarLateral[pct90:tmpDat.RTO[i], :, :])/(tmpDat.RTO[i] - pct90)/107*100)
                     medPmidstance.append(np.mean(tmpDat.plantarMedial[pct40:pct60, :, :])*6.895)
-                    medAreamidstance.append(np.count_nonzero(tmpDat.plantarMedial[pct40:pct60, :, :])/(pct60-pct40)/32*100)
+                    medAreamidstance.append(np.count_nonzero(tmpDat.plantarMedial[pct40:pct60, :, :])/(pct60-pct40)/113*100)
                     medPLate.append(np.mean(tmpDat.plantarMedial[pct90:tmpDat.RTO[i], :, :])*6.895)
-                    medAreaLate.append(np.count_nonzero(tmpDat.plantarMedial[pct90:tmpDat.RTO[i], :, :])/(tmpDat.RTO[i]-pct90)/32*100)
+                    medAreaLate.append(np.count_nonzero(tmpDat.plantarMedial[pct90:tmpDat.RTO[i], :, :])/(tmpDat.RTO[i]-pct90)/113*100)
                     
                     latPropMid.append(np.mean(tmpDat.plantarLateral[pct40:pct60, :, :])/np.mean(tmpDat.plantarMat[pct40:pct60, :, :]))
                     medPropMid.append(np.mean(tmpDat.plantarMedial[pct40:pct60, :, :])/np.mean(tmpDat.plantarMat[pct40:pct60, :, :]))

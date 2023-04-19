@@ -166,20 +166,20 @@ for entry in entries:
         
 
         
-        plantarContact = float(np.count_nonzero(tmpAvgMat.avgPlantar))
+        plantarContact = float(np.count_nonzero(tmpAvgMat.avgPlantar)/220*100)
         plantarPeakPressure = float(np.max(tmpAvgMat.avgPlantar)*6.895)
         plantarAvgPressure = float(np.mean(tmpAvgMat.avgPlantar)*6.895)
         plantarSDPressure = float(np.std(tmpAvgMat.avgPlantar)*6.895)
         plantarTotalPressure = float(np.sum(tmpAvgMat.avgPlantar)*6.895)
         
 
-        toeContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[:7, :])/63*100)
+        toeContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[:7, :])/47*100)
         toePressure = float(np.mean(tmpAvgMat.avgPlantar[:7, :])*6.895)
-        ffContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[7:13, :])/72*100)
+        ffContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[7:13, :])/67*100)
         ffPressure = float(np.mean(tmpAvgMat.avgPlantar[7:13, :])*6.895)
-        mfContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[13:22, :])/90*100)
+        mfContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[13:22, :])/63*100)
         mfPressure = float(np.mean(tmpAvgMat.avgPlantar[13:22, :])*6.895)
-        heelContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[22:, :])/72*100)
+        heelContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[22:, :])/43*100)
         heelPressure = float(np.mean(tmpAvgMat.avgPlantar[22:, :])*6.895)
 
         
