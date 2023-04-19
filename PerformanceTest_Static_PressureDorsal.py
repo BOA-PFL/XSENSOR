@@ -13,12 +13,12 @@ import seaborn as sns
 from dataclasses import dataclass
 from tkinter import messagebox
 
-save_on = 0
+save_on = 1
 
 # Read in files
 # only read .asc files for this work
 
-fPath = 'C:/Users/Kate.Harrison/Boa Technology Inc/PFL Team - General/Testing Segments/AgilityPerformanceData/AS_Train_TongueDialLocationII_Mech_Jan23/Xsensor/Static/'
+fPath = 'C:/Users/Kate.Harrison/Boa Technology Inc/PFL Team - General/Testing Segments/Material Testing/UpperStiffnessA&S_Performance_Jan2023/XSENSOR/Static/'
 
 fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
@@ -148,39 +148,39 @@ for entry in entries:
         config = (tmpAvgMat.config)
         subject = (tmpAvgMat.subject)
         
-        meanDorsalPressure = float(np.mean(tmpAvgMat.avgDorsal))
-        maxDorsalPressure = float(np.max(tmpAvgMat.avgDorsal))
-        sdDorsalPressure = float(np.std(tmpAvgMat.avgDorsal))
-        totalDorsalPressure = float(np.sum(tmpAvgMat.avgDorsal))
+        meanDorsalPressure = float(np.mean(tmpAvgMat.avgDorsal)*6.895)
+        maxDorsalPressure = float(np.max(tmpAvgMat.avgDorsal)*6.895)
+        sdDorsalPressure = float(np.std(tmpAvgMat.avgDorsal)*6.895)
+        totalDorsalPressure = float(np.sum(tmpAvgMat.avgDorsal)*6.895)
         dorsalContact = float(np.count_nonzero(tmpAvgMat.avgDorsal)/180*100)
         
 
         ffDorsalContact = float(np.count_nonzero(tmpAvgMat.avgDorsal[:6, :])/60*100)
-        ffDorsalPressure = float(np.mean(tmpAvgMat.avgDorsal[:6, :]))
+        ffDorsalPressure = float(np.mean(tmpAvgMat.avgDorsal[:6, :])*6.895)
         mfDorsalContact = float(np.count_nonzero(tmpAvgMat.avgDorsal[6:12, :])/60*100)
-        mfDorsalPressure = float(np.mean(tmpAvgMat.avgDorsal[6:12, :]))
+        mfDorsalPressure = float(np.mean(tmpAvgMat.avgDorsal[6:12, :])*6.895)
         instepDorsalContact = float(np.count_nonzero(tmpAvgMat.avgDorsal[12:, :])/60*100)
-        instepDorsalPressure = float(np.mean(tmpAvgMat.avgDorsal[12:, :]))
+        instepDorsalPressure = float(np.mean(tmpAvgMat.avgDorsal[12:, :])*6.895)
 
 
         
 
         
         plantarContact = float(np.count_nonzero(tmpAvgMat.avgPlantar))
-        plantarPeakPressure = float(np.max(tmpAvgMat.avgPlantar))
-        plantarAvgPressure = float(np.mean(tmpAvgMat.avgPlantar))
-        plantarSDPressure = float(np.std(tmpAvgMat.avgPlantar))
-        plantarTotalPressure = float(np.sum(tmpAvgMat.avgPlantar))
+        plantarPeakPressure = float(np.max(tmpAvgMat.avgPlantar)*6.895)
+        plantarAvgPressure = float(np.mean(tmpAvgMat.avgPlantar)*6.895)
+        plantarSDPressure = float(np.std(tmpAvgMat.avgPlantar)*6.895)
+        plantarTotalPressure = float(np.sum(tmpAvgMat.avgPlantar)*6.895)
         
 
         toeContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[:7, :])/63*100)
-        toePressure = float(np.mean(tmpAvgMat.avgPlantar[:7, :]))
+        toePressure = float(np.mean(tmpAvgMat.avgPlantar[:7, :])*6.895)
         ffContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[7:13, :])/72*100)
-        ffPressure = float(np.mean(tmpAvgMat.avgPlantar[7:13, :]))
+        ffPressure = float(np.mean(tmpAvgMat.avgPlantar[7:13, :])*6.895)
         mfContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[13:22, :])/90*100)
-        mfPressure = float(np.mean(tmpAvgMat.avgPlantar[13:22, :]))
+        mfPressure = float(np.mean(tmpAvgMat.avgPlantar[13:22, :])*6.895)
         heelContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[22:, :])/72*100)
-        heelPressure = float(np.mean(tmpAvgMat.avgPlantar[22:, :]))
+        heelPressure = float(np.mean(tmpAvgMat.avgPlantar[22:, :])*6.895)
 
         
 
