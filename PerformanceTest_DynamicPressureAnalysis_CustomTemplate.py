@@ -28,9 +28,9 @@ plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
 plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
 plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
-save_on = 0
+save_on = 1
 
-data_check = 1
+data_check = 0
 
 fwdLook = 30
 fThresh = 50
@@ -368,7 +368,9 @@ def createTSmat(inputName):
     
     for ii in range(len(headers)-1):
         plantarMat[:, store_r[ii],store_c[ii]] = plantarSensel.iloc[:,ii]
-
+    
+    plantarMat[plantarMat < 1] == 0
+    
     
     headers = dorsalSensel.columns
     store_r = []
@@ -383,8 +385,10 @@ def createTSmat(inputName):
     for ii in range(len(headers)-1):
         dorsalMat[:, store_r[ii],store_c[ii]] = dorsalSensel.iloc[:,ii]
     
-    dorsalMat = np.flip(dorsalMat, axis = 1)
-        
+    
+    dorsalMat = np.flip(dorsalMat, axis = 0)
+    
+    dorsalMat[dorsalMat <1] == 0    
     plantarToe = plantarMat[:,:7,:]
     plantarToeLat = plantarMat[:,:7,4:]
     plantarToeMed = plantarMat[:,:7,:4]
@@ -432,7 +436,7 @@ def createTSmat(inputName):
 
 # Read in files
 # only read .asc files for this work
-fPath = 'C:/Users/Kate.Harrison/Boa Technology Inc/PFL Team - General/Testing Segments/AgilityPerformanceData/AS_Train_TongueDialLocationII_Mech_Jan23/Xsensor/'
+fPath = 'C:/Users/Kate.Harrison/Boa Technology Inc/PFL Team - General/Testing Segments/'
 fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
 
@@ -490,7 +494,7 @@ for fName in entries:
     instepLateP = []
 
     try: 
-        #fName = entries[9]
+        #fName = entries[0]
         subName = fName.split(sep = "_")[0]
         ConfigTmp = fName.split(sep="_")[1]
         moveTmp = fName.split(sep = "_")[2].split(sep = '.')[0].lower()
@@ -536,6 +540,8 @@ for fName in entries:
                     pct50 = tmpDat.RHS[i] + round(frames*.5)
                     pct60 = tmpDat.RHS[i] + round(frames*.6)
                     pct90 = tmpDat.RHS[i] + round(frames*.9)
+                    
+                    
                     
                     maxmaxToes.append(np.max(tmpDat.plantarToe[tmpDat.RHS[i]:tmpDat.RTO[i]])*6.895)
                     toePmidstance.append(np.mean(tmpDat.plantarToe[pct40:pct60,:,:])*6.895)
