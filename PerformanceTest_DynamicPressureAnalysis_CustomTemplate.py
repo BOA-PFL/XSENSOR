@@ -280,9 +280,9 @@ class tsData:
     # below is a method of the dataclass
     def plotAvgPressure(self):
         
-        earlyPlantar = np.zeros([len(self.RHS), 30, 9])
-        midPlantar = np.zeros([len(self.RHS), 30, 9])
-        latePlantar = np.zeros([len(self.RHS), 30, 9])
+        earlyPlantar = np.zeros([len(self.RHS), 31, 9])
+        midPlantar = np.zeros([len(self.RHS), 31, 9])
+        latePlantar = np.zeros([len(self.RHS), 31, 9])
         
         earlyDorsal = np.zeros([len(self.RHS), 18, 10])
         midDorsal = np.zeros([len(self.RHS), 18, 10])
@@ -347,14 +347,14 @@ def createTSmat(inputName):
     """
     
     
-    #inputName = entries[1]
+    #inputName = entries[205]
     dat = pd.read_csv(fPath+inputName, sep=',', skiprows = 1, header = 'infer')
     dat = delimitTrial(dat, inputName)
     subj = inputName.split(sep="_")[0]
     config = inputName.split(sep="_")[1]
     movement = inputName.split(sep = '_')[2]
     dorsalSensel = dat.iloc[:,17:197]
-    plantarSensel = dat.iloc[:,214:425]
+    plantarSensel = dat.iloc[:,214:]
     
     headers = plantarSensel.columns
     store_r = []
@@ -369,7 +369,7 @@ def createTSmat(inputName):
     for ii in range(len(headers)-1):
         plantarMat[:, store_r[ii],store_c[ii]] = plantarSensel.iloc[:,ii]
     
-    plantarMat[plantarMat < 1] == 0
+    plantarMat[plantarMat < 1] = 0
     
     
     headers = dorsalSensel.columns
@@ -388,7 +388,7 @@ def createTSmat(inputName):
     
     dorsalMat = np.flip(dorsalMat, axis = 0)
     
-    dorsalMat[dorsalMat <1] == 0    
+    dorsalMat[dorsalMat <1] = 0    
     plantarToe = plantarMat[:,:7,:]
     plantarToeLat = plantarMat[:,:7,4:]
     plantarToeMed = plantarMat[:,:7,:4]
@@ -412,8 +412,8 @@ def createTSmat(inputName):
     dorsalInstepLat = dorsalMat[:,12:,5:]
     dorsalInstepMed = dorsalMat[:,12:,:5]
     
-    plantarLateral = plantarMat[:,:,6:]
-    plantarMedial = plantarMat[:,:,:6]
+    plantarLateral = plantarMat[:,:,4:]
+    plantarMedial = plantarMat[:,:,:4]
     
     RForce = np.mean(plantarMat, axis = (1,2))*6895*0.014699
     RForce = zeroInsoleForce(RForce,freq)
@@ -436,7 +436,7 @@ def createTSmat(inputName):
 
 # Read in files
 # only read .asc files for this work
-fPath = 'C:/Users/Kate.Harrison/Boa Technology Inc/PFL Team - General/Testing Segments/'
+fPath = 'C:/Users/Kate.Harrison/Boa Technology Inc/PFL Team - General/Testing Segments/AgilityPerformanceData/AS_Trail_HeelLockAgility_Perf_Apr23/Xsensor/'
 fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
 
@@ -494,7 +494,7 @@ for fName in entries:
     instepLateP = []
 
     try: 
-        #fName = entries[0]
+        #fName = entries[205]
         subName = fName.split(sep = "_")[0]
         ConfigTmp = fName.split(sep="_")[1]
         moveTmp = fName.split(sep = "_")[2].split(sep = '.')[0].lower()
@@ -551,22 +551,22 @@ for fName in entries:
                     ffAreaMid.append(np.count_nonzero(tmpDat.plantarForefoot[pct40:pct60, :,:])/(pct60 - pct40)/67*100)
                     ffPMid.append((np.mean(tmpDat.plantarForefoot[pct40:pct60, :, :]))*6.895)
                     
-                    mfAreaLate.append(np.count_nonzero(tmpDat.plantarMidfoot[pct90:tmpDat.RTO[i], :,:])/(tmpDat.RTO[i] - pct90)/63*100)
+                    mfAreaLate.append(np.count_nonzero(tmpDat.plantarMidfoot[pct90:tmpDat.RTO[i], :,:])/(tmpDat.RTO[i] - pct90)/70*100)
                     mfPLate.append(np.mean(tmpDat.plantarMidfoot[pct90:tmpDat.RTO[i], :, :])*6.895)
-                    mfAreaMid.append(np.count_nonzero(tmpDat.plantarMidfoot[pct40:pct60, :,:])/(pct60 - pct40)/63*100)
+                    mfAreaMid.append(np.count_nonzero(tmpDat.plantarMidfoot[pct40:pct60, :,:])/(pct60 - pct40)/70*100)
                     mfPMid.append((np.mean(tmpDat.plantarMidfoot[pct40:pct60, :, :]))*6.895)
                     
-                    heelAreaLate.append(np.count_nonzero(tmpDat.plantarHeel[pct50:tmpDat.RTO[i], :, :])/(tmpDat.RTO[i] - pct50)/43*100) # making this from 50% stance time to toe off to match big data. Consider switing to 90% to toe off?
+                    heelAreaLate.append(np.count_nonzero(tmpDat.plantarHeel[pct50:tmpDat.RTO[i], :, :])/(tmpDat.RTO[i] - pct50)/36*100) # making this from 50% stance time to toe off to match big data. Consider switing to 90% to toe off?
                     heelPLate.append(np.mean(tmpDat.plantarHeel[pct90:tmpDat.RTO[i], :, :])*6.895)
     
                     latPmidstance.append(np.mean(tmpDat.plantarLateral[pct40:pct60, :, :])*6.895)
-                    latAreamidstance.append(np.count_nonzero(tmpDat.plantarLateral[pct40:pct60, :, :])/(pct60-pct40)/107*100)
+                    latAreamidstance.append(np.count_nonzero(tmpDat.plantarLateral[pct40:pct60, :, :])/(pct60-pct40)/138*100)
                     latPLate.append(np.mean(tmpDat.plantarLateral[pct90:tmpDat.RTO[i], :, :])*6.895)
-                    latAreaLate.append(np.count_nonzero(tmpDat.plantarLateral[pct90:tmpDat.RTO[i], :, :])/(tmpDat.RTO[i] - pct90)/107*100)
+                    latAreaLate.append(np.count_nonzero(tmpDat.plantarLateral[pct90:tmpDat.RTO[i], :, :])/(tmpDat.RTO[i] - pct90)/138*100)
                     medPmidstance.append(np.mean(tmpDat.plantarMedial[pct40:pct60, :, :])*6.895)
-                    medAreamidstance.append(np.count_nonzero(tmpDat.plantarMedial[pct40:pct60, :, :])/(pct60-pct40)/113*100)
+                    medAreamidstance.append(np.count_nonzero(tmpDat.plantarMedial[pct40:pct60, :, :])/(pct60-pct40)/82*100)
                     medPLate.append(np.mean(tmpDat.plantarMedial[pct90:tmpDat.RTO[i], :, :])*6.895)
-                    medAreaLate.append(np.count_nonzero(tmpDat.plantarMedial[pct90:tmpDat.RTO[i], :, :])/(tmpDat.RTO[i]-pct90)/113*100)
+                    medAreaLate.append(np.count_nonzero(tmpDat.plantarMedial[pct90:tmpDat.RTO[i], :, :])/(tmpDat.RTO[i]-pct90)/82*100)
                     
                     latPropMid.append(np.mean(tmpDat.plantarLateral[pct40:pct60, :, :])/np.mean(tmpDat.plantarMat[pct40:pct60, :, :]))
                     medPropMid.append(np.mean(tmpDat.plantarMedial[pct40:pct60, :, :])/np.mean(tmpDat.plantarMat[pct40:pct60, :, :]))
@@ -600,7 +600,7 @@ for fName in entries:
                                          'mfDorsalEarlyP':list(mfDorsalEarlyP), 'mfDorsalMidP':list(mfDorsalMidP), 'mfDorsalLateP':list(mfDorsalLateP),
                                          'instepEarlyP':list(instepEarlyP), 'instepMidP':list(instepMidP), 'instepLateP':list(instepLateP)})
               
-                outfileName = fPath + '0_CompiledResults1.csv'
+                outfileName = fPath + '0_CompiledResults4.csv'
                 if save_on == 1:
                     if os.path.exists(outfileName) == False:
                     
