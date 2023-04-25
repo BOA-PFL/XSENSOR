@@ -78,7 +78,7 @@ def createAvgMat(inputName):
     subj = inputName.split(sep="_")[0]
     config = inputName.split(sep="_")[1].split(sep=".")[0]
     sensel = dat.iloc[:,17:197]
-    plantarSensel = dat.iloc[:,214:425]
+    plantarSensel = dat.iloc[:,214:]
     
     headers = plantarSensel.columns
     store_r = []
@@ -176,9 +176,9 @@ for entry in entries:
         toePressure = float(np.mean(tmpAvgMat.avgPlantar[:7, :])*6.895)
         ffContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[7:13, :])/67*100)
         ffPressure = float(np.mean(tmpAvgMat.avgPlantar[7:13, :])*6.895)
-        mfContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[13:22, :])/63*100)
+        mfContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[13:22, :])/70*100)
         mfPressure = float(np.mean(tmpAvgMat.avgPlantar[13:22, :])*6.895)
-        heelContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[22:, :])/43*100)
+        heelContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[22:, :])/36*100)
         heelPressure = float(np.mean(tmpAvgMat.avgPlantar[22:, :])*6.895)
 
         
