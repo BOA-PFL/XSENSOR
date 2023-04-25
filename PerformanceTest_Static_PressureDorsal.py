@@ -18,7 +18,7 @@ save_on = 1
 # Read in files
 # only read .asc files for this work
 
-fPath = 'C:/Users/Kate.Harrison/Boa Technology Inc/PFL Team - General/Testing Segments/Material Testing/UpperStiffnessA&S_Performance_Jan2023/XSENSOR/Static/'
+fPath = 'C:/Users/Kate.Harrison/Boa Technology Inc/PFL Team - General/Testing Segments/'
 
 fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
@@ -95,6 +95,8 @@ def createAvgMat(inputName):
         
    
     avgDorsalMat = np.array(np.mean(sensel, axis = 0)).reshape((18,10))
+   
+    avgDorsalMat = np.flip(avgDorsalMat, axis = 0)
     avgPlantarMat = np.array(con_press)
     
     result = avgData(avgDorsalMat, avgPlantarMat, config, subj, dat)
@@ -122,7 +124,7 @@ for entry in entries:
     
 
 
-    #entry = entries[0]
+    #entry = entries[1]
     if 'tanding' in entry:
         Movement ='Standing'
     elif 'itting' in entry: 
@@ -163,9 +165,6 @@ for entry in entries:
         instepDorsalPressure = float(np.mean(tmpAvgMat.avgDorsal[12:, :])*6.895)
 
 
-        
-
-        
         plantarContact = float(np.count_nonzero(tmpAvgMat.avgPlantar)/220*100)
         plantarPeakPressure = float(np.max(tmpAvgMat.avgPlantar)*6.895)
         plantarAvgPressure = float(np.mean(tmpAvgMat.avgPlantar)*6.895)
