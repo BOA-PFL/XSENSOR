@@ -18,7 +18,7 @@ save_on = 1
 # Read in files
 # only read .asc files for this work
 
-fPath = 'C:/Users/Kate.Harrison/Boa Technology Inc/PFL Team - General/Testing Segments/'
+fPath = 'C:/Users/Kate.Harrison/Boa Technology Inc/PFL Team - General/Testing Segments/Material Testing/UpperStiffnessA&S_Performance_Jan2023/XSENSOR/Static/'
 
 fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
@@ -174,12 +174,12 @@ for entry in entries:
 
         toeContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[:7, :])/47*100)
         toePressure = float(np.mean(tmpAvgMat.avgPlantar[:7, :])*6.895)
-        ffContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[7:13, :])/67*100)
-        ffPressure = float(np.mean(tmpAvgMat.avgPlantar[7:13, :])*6.895)
-        mfContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[13:22, :])/70*100)
-        mfPressure = float(np.mean(tmpAvgMat.avgPlantar[13:22, :])*6.895)
-        heelContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[22:, :])/36*100)
-        heelPressure = float(np.mean(tmpAvgMat.avgPlantar[22:, :])*6.895)
+        ffContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[7:15, :])/67*100)
+        ffPressure = float(np.mean(tmpAvgMat.avgPlantar[7:15, :])*6.895)
+        mfContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[15:25, :])/70*100)
+        mfPressure = float(np.mean(tmpAvgMat.avgPlantar[15:25, :])*6.895)
+        heelContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[25:, :])/36*100)
+        heelPressure = float(np.mean(tmpAvgMat.avgPlantar[25:, :])*6.895)
 
         
 
