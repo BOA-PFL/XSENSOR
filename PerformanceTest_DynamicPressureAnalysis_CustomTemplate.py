@@ -436,7 +436,7 @@ def createTSmat(inputName):
 
 # Read in files
 # only read .asc files for this work
-fPath = 'C:/Users/Kate.Harrison/Boa Technology Inc/PFL Team - General/Testing Segments/AgilityPerformanceData/AS_Trail_HeelLockAgility_Perf_Apr23/Xsensor/'
+fPath = 'C:/Users/Kate.Harrison/Boa Technology Inc/PFL Team - General/Testing Segments/AgilityPerformanceData/AS_Trail_LowCutZonal_Mech_Jan23/Xsensor/'
 fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
 
@@ -572,7 +572,7 @@ for fName in entries:
                     medPropMid.append(np.mean(tmpDat.plantarMedial[pct40:pct60, :, :])/np.mean(tmpDat.plantarMat[pct40:pct60, :, :]))
                     
                     dorsalVar.append(np.std(tmpDat.dorsalMat[tmpDat.RHS[i]:tmpDat.RTO[i], :, :])/np.mean(tmpDat.dorsalMat[tmpDat.RHS[i]:tmpDat.RTO[i], :, :])*6.895)
-                    maxDorsal.append(np.max(tmpDat.dorsalMat)*6.895)
+                    maxDorsal.append(np.max(tmpDat.dorsalMat[tmpDat.RHS[i]:tmpDat.RTO[i], :, :])*6.895)
                     
                     ffDorsalEarlyP.append(np.mean(tmpDat.dorsalForefoot[tmpDat.RHS[i]:pct10, :, :])*6.895)
                     ffDorsalMidP.append(np.mean(tmpDat.dorsalForefoot[pct40:pct60, :, :])*6.895)
