@@ -77,7 +77,7 @@ def delimitTrial(inputDF,FName):
         plt.close()
         outputDat = inputDF.iloc[int(np.floor(pts[0,0])) : int(np.floor(pts[1,0])),:]
         outputDat = outputDat.reset_index(drop = True)
-        trial_segment = np.array([FName, pts])
+        trial_segment = np.array([FName, pts], dtype = object)
         np.save(fPath+FName+'TrialSeg.npy',trial_segment)
 
     return(outputDat)
@@ -354,7 +354,7 @@ def createTSmat(inputName):
     config = inputName.split(sep="_")[1]
     movement = inputName.split(sep = '_')[2]
     dorsalSensel = dat.iloc[:,17:197]
-    plantarSensel = dat.iloc[:,214:]
+    plantarSensel = dat.iloc[:,214:429]
     
     headers = plantarSensel.columns
     store_r = []
@@ -436,7 +436,7 @@ def createTSmat(inputName):
 
 # Read in files
 # only read .asc files for this work
-fPath = 'C:/Users/Kate.Harrison/Boa Technology Inc/PFL Team - General/Testing Segments/AgilityPerformanceData/AS_Trail_LowCutZonal_Mech_Jan23/Xsensor/'
+fPath = 'C:/Users/Kate.Harrison/Boa Technology Inc/PFL Team - General/Testing Segments/AgilityPerformanceData/AS_Train_TongueDialLocationII_Mech_Jan23/Xsensor/'
 fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
 
@@ -568,8 +568,8 @@ for fName in entries:
                     medPLate.append(np.mean(tmpDat.plantarMedial[pct90:tmpDat.RTO[i], :, :])*6.895)
                     medAreaLate.append(np.count_nonzero(tmpDat.plantarMedial[pct90:tmpDat.RTO[i], :, :])/(tmpDat.RTO[i]-pct90)/82*100)
                     
-                    latPropMid.append(np.mean(tmpDat.plantarLateral[pct40:pct60, :, :])/np.mean(tmpDat.plantarMat[pct40:pct60, :, :]))
-                    medPropMid.append(np.mean(tmpDat.plantarMedial[pct40:pct60, :, :])/np.mean(tmpDat.plantarMat[pct40:pct60, :, :]))
+                    latPropMid.append(np.sum(tmpDat.plantarLateral[pct40:pct60, :, :])/np.sum(tmpDat.plantarMat[pct40:pct60, :, :]))
+                    medPropMid.append(np.sum(tmpDat.plantarMedial[pct40:pct60, :, :])/np.sum(tmpDat.plantarMat[pct40:pct60, :, :]))
                     
                     dorsalVar.append(np.std(tmpDat.dorsalMat[tmpDat.RHS[i]:tmpDat.RTO[i], :, :])/np.mean(tmpDat.dorsalMat[tmpDat.RHS[i]:tmpDat.RTO[i], :, :])*6.895)
                     maxDorsal.append(np.max(tmpDat.dorsalMat[tmpDat.RHS[i]:tmpDat.RTO[i], :, :])*6.895)
@@ -600,7 +600,7 @@ for fName in entries:
                                          'mfDorsalEarlyP':list(mfDorsalEarlyP), 'mfDorsalMidP':list(mfDorsalMidP), 'mfDorsalLateP':list(mfDorsalLateP),
                                          'instepEarlyP':list(instepEarlyP), 'instepMidP':list(instepMidP), 'instepLateP':list(instepLateP)})
               
-                outfileName = fPath + '0_CompiledResults4.csv'
+                outfileName = fPath + '0_CompiledResults.csv'
                 if save_on == 1:
                     if os.path.exists(outfileName) == False:
                     
