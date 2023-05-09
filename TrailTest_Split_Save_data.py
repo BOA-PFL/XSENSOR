@@ -14,6 +14,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
+# Define the path
+fPath = 'C:\\Users\eric.honert\\Boa Technology Inc\\PFL Team - General\\Testing Segments\\EndurancePerformance\\EH_Trail_HeelLockTrail_Perf_May23\\Xsensor\\Raw\\'
+fSave = 'C:\\Users\eric.honert\\Boa Technology Inc\\PFL Team - General\\Testing Segments\\EndurancePerformance\\EH_Trail_HeelLockTrail_Perf_May23\\Xsensor\\'
+fileExt = r".csv"
+entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
+cropped_entries = [fName for fName in os.listdir(fSave) if fName.endswith(fileExt)]
+
+# Pull in the Config Names
+configs_df = pd.read_excel('C:\\Users\eric.honert\\Boa Technology Inc\\PFL Team - General\\Testing Segments\\EndurancePerformance\\EH_Trail_HeelLockTrail_Perf_May23\\Qual_EH_Trail_HeelLockTrail_Perf_May23.xlsx')
+
+config_no = len(np.unique(configs_df.Config))
+
 # Define Functions
 def delimitTrial(inputDF,forceL,forceR,xaxislim):
     """
@@ -45,30 +57,32 @@ def delimitTrial(inputDF,forceL,forceR,xaxislim):
     return(outputDat)
 
 
-# Define the path
-fPath = 'C:\\Users\eric.honert\\Boa Technology Inc\\PFL Team - General\\Testing Segments\\EndurancePerformance\\TrailRun_2022\\PressureData\\Raw\\'
-fSave = 'C:\\Users\eric.honert\\Boa Technology Inc\\PFL Team - General\\Testing Segments\\EndurancePerformance\\TrailRun_2022\\PressureData\\'
-fileExt = r".csv"
-entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
 
-sub = 'S05'
-cond = ['lace','pfs']
-
-
-dat = pd.read_csv(fPath+entries[3], sep=',', skiprows = 1, header = 'infer')
-
-# dat1 = delimitTrial(dat,dat.iloc[:,15],dat.iloc[:,27],[0,round(0.25*len(dat.iloc[:,15]))])
-# dat2 = delimitTrial(dat,dat.iloc[:,15],dat.iloc[:,27],[round(0.25*len(dat.iloc[:,15])),round(0.5*len(dat.iloc[:,15]))])
-# dat3 = delimitTrial(dat,dat.iloc[:,15],dat.iloc[:,27],[round(0.5*len(dat.iloc[:,15])),round(0.75*len(dat.iloc[:,15]))])
-# dat4 = delimitTrial(dat,dat.iloc[:,15],dat.iloc[:,27],[round(0.75*len(dat.iloc[:,15])),len(dat.iloc[:,15])])
-
-dat1 = delimitTrial(dat,dat.iloc[:,15],dat.iloc[:,27],[0,round(0.3*len(dat.iloc[:,15]))])
-dat2 = delimitTrial(dat,dat.iloc[:,15],dat.iloc[:,27],[round(0.25*len(dat.iloc[:,15])),round(0.6*len(dat.iloc[:,15]))])
-dat3 = delimitTrial(dat,dat.iloc[:,15],dat.iloc[:,27],[round(0.4*len(dat.iloc[:,15])),round(0.8*len(dat.iloc[:,15]))])
-dat4 = delimitTrial(dat,dat.iloc[:,15],dat.iloc[:,27],[round(0.75*len(dat.iloc[:,15])),len(dat.iloc[:,15])])
-
-
-dat1.to_csv(fSave+sub+'_'+cond[0]+'_1.csv', index = False)
-dat2.to_csv(fSave+sub+'_'+cond[1]+'_1.csv', index = False)
-dat3.to_csv(fSave+sub+'_'+cond[1]+'_2.csv', index = False)
-dat4.to_csv(fSave+sub+'_'+cond[0]+'_2.csv', index = False)            
+for entry in entries:
+    subject = entry.split('_')[0]
+    # Don't redo cropping
+    if any(subject not in s for s in cropped_entries):
+        dat = pd.read_csv(fPath+entry, sep=',', skiprows = 1, header = 'infer')
+        subconfig = pd.DataFrame.reset_index(configs_df[configs_df.Subject == subject])
+        
+        # Look at the number of configurations to decide how to crop the data
+        if config_no == 3:
+            # Segment the data:
+            dat1 = delimitTrial(dat,dat.iloc[:,15],dat.iloc[:,27],[0,round(0.4*len(dat.iloc[:,15]))])
+            dat2 = delimitTrial(dat,dat.iloc[:,15],dat.iloc[:,27],[round(0.25*len(dat.iloc[:,15])),round(0.75*len(dat.iloc[:,15]))])
+            dat3 = delimitTrial(dat,dat.iloc[:,15],dat.iloc[:,27],[round(0.55*len(dat.iloc[:,15])),len(dat.iloc[:,15])])
+            # Save the data:
+            dat1.to_csv(fSave+subject+'_'+subconfig.Config[0]+'_1.csv', index = False)
+            dat2.to_csv(fSave+subject+'_'+subconfig.Config[1]+'_2.csv', index = False)
+            dat3.to_csv(fSave+subject+'_'+subconfig.Config[2]+'_3.csv', index = False)
+        elif config_no == 2:
+            dat1 = delimitTrial(dat,dat.iloc[:,15],dat.iloc[:,27],[0,round(0.3*len(dat.iloc[:,15]))])
+            dat2 = delimitTrial(dat,dat.iloc[:,15],dat.iloc[:,27],[round(0.25*len(dat.iloc[:,15])),round(0.6*len(dat.iloc[:,15]))])
+            dat3 = delimitTrial(dat,dat.iloc[:,15],dat.iloc[:,27],[round(0.4*len(dat.iloc[:,15])),round(0.8*len(dat.iloc[:,15]))])
+            dat4 = delimitTrial(dat,dat.iloc[:,15],dat.iloc[:,27],[round(0.75*len(dat.iloc[:,15])),len(dat.iloc[:,15])])
+            # Save the data:
+            dat1.to_csv(fSave+subject+'_'+subconfig.Config[0]+'_1.csv', index = False)
+            dat2.to_csv(fSave+subject+'_'+subconfig.Config[1]+'_2.csv', index = False)
+            dat3.to_csv(fSave+subject+'_'+subconfig.Config[1]+'_3.csv', index = False)
+            dat4.to_csv(fSave+subject+'_'+subconfig.Config[0]+'_4.csv', index = False)
+            
