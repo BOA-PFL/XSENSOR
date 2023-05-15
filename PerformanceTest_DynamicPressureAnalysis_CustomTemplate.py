@@ -356,6 +356,7 @@ def createTSmat(inputName):
     dorsalSensel = dat.iloc[:,17:197]
     plantarSensel = dat.iloc[:,214:425]
     
+    
     headers = plantarSensel.columns
     store_r = []
     store_c = []
@@ -452,6 +453,7 @@ for fName in entries:
     toeAreamidstance = []
     ffAreaLate = []
     ffPLate = []
+    ffPMaxLate = []
     heelAreaLate = []
     heelPLate = []
     maxmaxToes = []
@@ -522,6 +524,7 @@ for fName in entries:
                     toeAreamidstance.append(np.count_nonzero(tmpDat.plantarToe[pct40:pct60,:,:])/(pct60 - pct40)/63*100)
                     ffAreaLate.append(np.count_nonzero(tmpDat.plantarForefoot[pct90:tmpDat.RTO[i], :,:])/(tmpDat.RTO[i] - pct90)/72*100)
                     ffPLate.append(np.mean(tmpDat.plantarForefoot[pct90:tmpDat.RTO[i], :, :]))
+                    ffPMaxLate.append(np.max(tmpDat.plantarForefoot[pct90:tmpDat.RTO[i], :, :]))
                     heelAreaLate.append(np.count_nonzero(tmpDat.plantarHeel[pct50:tmpDat.RTO[i], :, :])/(tmpDat.RTO[i] - pct50)/45*100) # making this from 50% stance time to toe off to match big data. Consider switing to 90% to toe off?
                     heelPLate.append(np.mean(tmpDat.plantarHeel[pct90:tmpDat.RTO[i], :, :]))
     
@@ -542,7 +545,7 @@ for fName in entries:
                     
     
             
-                outcomes = pd.DataFrame({'Subject': list(subject), 'Movement':list(movement), 'Config':list(config), 'ContactTime':list(ct),'toeP_mid':list(toePmidstance),'toeArea_mid':list(toeAreamidstance), 'ffP_late':list(ffPLate), 'ffArea_late':list(ffAreaLate),'heelPressure_late':list(heelPLate), 'heelAreaP':list(heelAreaLate), 'maxmaxToes':list(maxmaxToes), 'latP_mid':list(latPmidstance), 'latArea_mid':list(latAreamidstance), 'latP_late':list(latPLate), 'latArea_late':list(latAreaLate),'medP_mid':list(medPmidstance), 'medArea_mid':list(medAreamidstance), 'medP_late':list(medPLate), 'medArea_late':list(medAreaLate),'latPropMid':list(latPropMid), 'medPropMid':list(medPropMid),'dorsalVar':list(dorsalVar) })
+                outcomes = pd.DataFrame({'Subject': list(subject), 'Movement':list(movement), 'Config':list(config), 'ContactTime':list(ct),'toeP_mid':list(toePmidstance),'toeArea_mid':list(toeAreamidstance), 'ffP_late':list(ffPLate), 'ffArea_late':list(ffAreaLate),'ffPMax_late':list(ffPMaxLate),'heelPressure_late':list(heelPLate), 'heelAreaP':list(heelAreaLate), 'maxmaxToes':list(maxmaxToes), 'latP_mid':list(latPmidstance), 'latArea_mid':list(latAreamidstance), 'latP_late':list(latPLate), 'latArea_late':list(latAreaLate),'medP_mid':list(medPmidstance), 'medArea_mid':list(medAreamidstance), 'medP_late':list(medPLate), 'medArea_late':list(medAreaLate),'latPropMid':list(latPropMid), 'medPropMid':list(medPropMid),'dorsalVar':list(dorsalVar) })
               
                 outfileName = fPath + '0_CompiledResults.csv'
                 if save_on == 1:
