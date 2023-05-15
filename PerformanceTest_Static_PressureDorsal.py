@@ -18,7 +18,8 @@ save_on = 1
 # Read in files
 # only read .asc files for this work
 
-fPath = 'C:/Users/Kate.Harrison/Boa Technology Inc/PFL Team - General/Testing Segments/Material Testing/UpperStiffnessA&S_Performance_Jan2023/XSENSOR/Static/'
+#fPath = 'C:\\Users\\kate.harrison\\Boa Technology Inc\\PFL Team - General\\Testing Segments\\Snow Performance\\2022\\AlpinePressureMapping_Dec2022\\Pressure\\'
+
 
 fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
@@ -120,7 +121,7 @@ def createAvgMat(inputName):
 
 
 
-for entry in entries:
+for entry in entries[2:]:
     
 
 
@@ -159,10 +160,13 @@ for entry in entries:
 
         ffDorsalContact = float(np.count_nonzero(tmpAvgMat.avgDorsal[:6, :])/60*100)
         ffDorsalPressure = float(np.mean(tmpAvgMat.avgDorsal[:6, :])*6.895)
+        ffDorsalMaxPressure = float(np.max(tmpAvgMat.avgDorsal[:6, :])*6.895)
         mfDorsalContact = float(np.count_nonzero(tmpAvgMat.avgDorsal[6:12, :])/60*100)
         mfDorsalPressure = float(np.mean(tmpAvgMat.avgDorsal[6:12, :])*6.895)
+        mfDorsalMaxPressure = float(np.max(tmpAvgMat.avgDorsal[6:12, :])*6.895)
         instepDorsalContact = float(np.count_nonzero(tmpAvgMat.avgDorsal[12:, :])/60*100)
         instepDorsalPressure = float(np.mean(tmpAvgMat.avgDorsal[12:, :])*6.895)
+        instepDorsalMaxPressure = float(np.mean(tmpAvgMat.avgDorsal[12:, :])*6.895)
 
 
         plantarContact = float(np.count_nonzero(tmpAvgMat.avgPlantar)/220*100)
@@ -171,7 +175,6 @@ for entry in entries:
         plantarSDPressure = float(np.std(tmpAvgMat.avgPlantar)*6.895)
         plantarTotalPressure = float(np.sum(tmpAvgMat.avgPlantar)*6.895)
         
-
         toeContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[:7, :])/47*100)
         toePressure = float(np.mean(tmpAvgMat.avgPlantar[:7, :])*6.895)
         ffContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[7:15, :])/67*100)
@@ -185,9 +188,9 @@ for entry in entries:
 
         outcomes = pd.DataFrame([[subject,config,Movement, 
                                   dorsalContact, meanDorsalPressure, maxDorsalPressure,sdDorsalPressure,totalDorsalPressure,
-                                  
-                                  ffDorsalContact, ffDorsalPressure, mfDorsalContact, mfDorsalPressure, instepDorsalContact, instepDorsalPressure,
-                                  
+
+                                  ffDorsalContact, ffDorsalPressure, ffDorsalMaxPressure, mfDorsalContact, mfDorsalPressure,  mfDorsalMaxPressure, instepDorsalContact, instepDorsalPressure, instepDorsalMaxPressure,
+                    
                                   plantarContact, plantarAvgPressure, plantarPeakPressure,  plantarSDPressure, plantarTotalPressure,
                                   
                                   toeContact, toePressure, ffContact, ffPressure, mfContact, mfPressure, heelContact, heelPressure
@@ -196,8 +199,9 @@ for entry in entries:
                                 columns=['Subject','Config', 'Movement', 
                                          'dorsalContact', 'meanDorsalPressure','maxDorsalPressure','sdDorsalPressure','totalDorsalPressure',
                                          
-                                         'ffDorsalContact', 'ffDorsalPressure', 'mfDorsalContact', 'mfDorsalPressure', 
-                                         'instepDorsalContact', 'instepDorsalPressure',
+
+                                         'ffDorsalContact', 'ffDorsalPressure', 'ffDorsalMaxPressure', 'mfDorsalContact', 'mfDorsalPressure', 
+                                         'mfDorsalMaxPressure', 'instepDorsalContact', 'instepDorsalPressure','instepDorsalMaxPressure',
                                          
                                          'plantarContact', 'meanPlantarPressure', 'maxPlantarPressure', 'sdPlantarPressure', 'totalPlantarPressure',
                                          
@@ -207,7 +211,7 @@ for entry in entries:
                                          ])
 
           
-        outfileName = fPath + 'CompiledResults.csv'
+        outfileName = fPath + 'CompiledResults_Static.csv'
         if save_on == 1:
             if os.path.exists(outfileName) == False:
                 
