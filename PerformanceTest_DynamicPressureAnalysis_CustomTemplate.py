@@ -356,6 +356,7 @@ def createTSmat(inputName):
     dorsalSensel = dat.iloc[:,17:197]
     plantarSensel = dat.iloc[:,214:429]
     
+    
     headers = plantarSensel.columns
     store_r = []
     store_c = []
@@ -457,6 +458,7 @@ for fName in entries:
     toeAreamidstance = []
     ffAreaLate = []
     ffPLate = []
+    ffPMaxLate = []
     heelAreaLate = []
     heelPLate = []
     maxmaxToes = []
@@ -546,13 +548,14 @@ for fName in entries:
                     pct60 = tmpDat.RHS[i] + round(frames*.6)
                     pct90 = tmpDat.RHS[i] + round(frames*.9)
                     
-                    
+
                     
                     maxmaxToes.append(np.max(tmpDat.plantarToe[tmpDat.RHS[i]:tmpDat.RTO[i]])*6.895)
                     toePmidstance.append(np.mean(tmpDat.plantarToe[pct40:pct60,:,:])*6.895)
                     toeAreamidstance.append(np.count_nonzero(tmpDat.plantarToe[pct40:pct60,:,:])/(pct60 - pct40)/47*100)
                     ffAreaLate.append(np.count_nonzero(tmpDat.plantarForefoot[pct90:tmpDat.RTO[i], :,:])/(tmpDat.RTO[i] - pct90)/67*100)
                     ffPLate.append(np.mean(tmpDat.plantarForefoot[pct90:tmpDat.RTO[i], :, :])*6.895)
+                    ffPMaxLate.append(np.max(tmpDat.plantarForefoot[pct90:tmpDat.RTO[i], :, :]))
                     ffAreaMid.append(np.count_nonzero(tmpDat.plantarForefoot[pct40:pct60, :,:])/(pct60 - pct40)/67*100)
                     ffPMid.append((np.mean(tmpDat.plantarForefoot[pct40:pct60, :, :]))*6.895)
                     
@@ -597,9 +600,10 @@ for fName in entries:
                     
     
             
+
                 outcomes = pd.DataFrame({'Subject': list(subject), 'Movement':list(movement), 'Config':list(config), 'ContactTime':list(ct),
                                          'toeP_mid':list(toePmidstance),'toeArea_mid':list(toeAreamidstance), 'maxmaxToes':list(maxmaxToes),
-                                         'ffP_late':list(ffPLate), 'ffArea_late':list(ffAreaLate), 'ffP_Mid':list(ffPMid), 'ffArea_Mid':list(ffAreaMid),
+                                         'ffP_late':list(ffPLate), 'ffArea_late':list(ffAreaLate), 'ffP_Mid':list(ffPMid), 'ffArea_Mid':list(ffAreaMid), 'ffPMax_late':list(ffPMaxLate),
                                          'mfP_late':list(mfPLate), 'mfArea_late':list(mfAreaLate), 'mfP_Mid':list(mfPMid), 'mfArea_Mid':list(mfAreaMid),
                                          'heelPressure_late':list(heelPLate), 'heelAreaP':list(heelAreaLate),  
                                          'latP_mid':list(latPmidstance), 'latArea_mid':list(latAreamidstance), 'latP_late':list(latPLate), 'latArea_late':list(latAreaLate), 'latPropMid':list(latPropMid),
@@ -607,11 +611,12 @@ for fName in entries:
                                          'dorsalVar':list(dorsalVar), 'maxDorsalP':list(maxDorsal),
                                          'ffDorsalEarlyP':list(ffDorsalEarlyP), 'ffDorsalMidP':list(ffDorsalMidP), 'ffDorsalLateP':list(ffDorsalLateP),
                                          'mfDorsalEarlyP':list(mfDorsalEarlyP), 'mfDorsalMidP':list(mfDorsalMidP), 'mfDorsalLateP':list(mfDorsalLateP),
+
                                          'instepEarlyP':list(instepEarlyP), 'instepMidP':list(instepMidP), 'instepLateP':list(instepLateP),
                                          'ffDorsalMax':list(ffDorsalMax), 'mfDorsalMax':list(mfDorsalMax), 'instepMax':list(instepMax)
                                          
                                          })
-              
+
                 outfileName = fPath + '0_CompiledResults1.csv'
                 if save_on == 1:
                     if os.path.exists(outfileName) == False:
