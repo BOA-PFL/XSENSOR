@@ -494,6 +494,11 @@ for fName in entries:
     instepEarlyP = []
     instepMidP = []
     instepLateP = []
+    
+    ffDorsalMax=[]
+    mfDorsalMax=[]
+    instepMax=[]
+    
 
     try: 
         #fName = entries[205]
@@ -587,6 +592,10 @@ for fName in entries:
                     instepMidP.append(np.mean(tmpDat.dorsalInstep[pct40:pct60, :, :])*6.895)
                     instepLateP.append(np.mean(tmpDat.dorsalInstep[pct90:tmpDat.RTO[i], :, :])*6.895)
                     
+                    ffDorsalMax.append(np.max(tmpDat.dorsalForefoot[tmpDat.RHS[i]:tmpDat.RTO[i], :, :])*6.895)
+                    mfDorsalMax.append(np.max(tmpDat.dorsalMidfoot[tmpDat.RHS[i]:tmpDat.RTO[i], :, :])*6.895)
+                    instepMax.append(np.max(tmpDat.dorsalInstep[tmpDat.RHS[i]:tmpDat.RTO[i], :, :])*6.895)
+                    
     
                     
     
@@ -602,10 +611,13 @@ for fName in entries:
                                          'dorsalVar':list(dorsalVar), 'maxDorsalP':list(maxDorsal),
                                          'ffDorsalEarlyP':list(ffDorsalEarlyP), 'ffDorsalMidP':list(ffDorsalMidP), 'ffDorsalLateP':list(ffDorsalLateP),
                                          'mfDorsalEarlyP':list(mfDorsalEarlyP), 'mfDorsalMidP':list(mfDorsalMidP), 'mfDorsalLateP':list(mfDorsalLateP),
-                                         'instepEarlyP':list(instepEarlyP), 'instepMidP':list(instepMidP), 'instepLateP':list(instepLateP)})
 
-              
-                outfileName = fPath + '0_CompiledResults.csv'
+                                         'instepEarlyP':list(instepEarlyP), 'instepMidP':list(instepMidP), 'instepLateP':list(instepLateP),
+                                         'ffDorsalMax':list(ffDorsalMax), 'mfDorsalMax':list(mfDorsalMax), 'instepMax':list(instepMax)
+                                         
+                                         })
+
+                outfileName = fPath + '0_CompiledResults1.csv'
                 if save_on == 1:
                     if os.path.exists(outfileName) == False:
                     
