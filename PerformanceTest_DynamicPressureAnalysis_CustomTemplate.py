@@ -377,7 +377,7 @@ def createTSmat(inputName):
     store_r = []
     store_c = []
 
-    for name in headers:
+    for name in headers[1:]:
         store_r.append(int(name.split(sep = "_")[1])-1)
         store_c.append(int(name.split(sep = "_")[2].split(sep=".")[0])-1)
     
