@@ -6,6 +6,10 @@ Created on Mon Jun  5 17:10:41 2023
 
 This code crops the XSENSOR data based on the Notes column. The data will be
 cropped into smaller trials based on the notes and saved in a different folder
+
+This code searches the existing cropped trial based on the subject name and
+configuration. If the current subject/configuration exists in the "saved"
+this code skips cropping the file
 """
 
 import pandas as pd
@@ -20,18 +24,18 @@ fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
 cropped_entries = [fName for fName in os.listdir(fSave) if fName.endswith(fileExt)]
 
-
+# Index through the raw data files
 for entry in entries:
     subject = entry.split('_')[0]
+    tmpConfig = entry.split('_')[1]
     # Don't redo cropping
     cropped_count = 0
     for sub_entry in cropped_entries:
-        if subject in sub_entry:
+        if str(subject + '_' + tmpConfig) in sub_entry:
             cropped_count = cropped_count + 1
     
     if cropped_count == 0:
         print(entry)
-        tmpConfig = entry.split('_')[1]
         tmpSesh = entry.split('_')[2][0]
         dat = pd.read_csv(fPath+entry, sep=',', skiprows = 1, header = 'infer')
         dat.Note = dat['Note'].fillna(0)
@@ -47,7 +51,7 @@ for entry in entries:
                     # If there is a space in the note name
                     tmpTrial = Notes[ii].split('\r')[0].replace(" ","")
                 else:
-                    tmpTrial = Notes[ii]
+                    tmpTrial = Notes[ii].replace(" ","")
                         
                 # Save the portion of the data
                 portion.to_csv(fSave+subject+'_'+tmpConfig+'_'+tmpTrial+'_'+tmpSesh+'.csv',index=False)
