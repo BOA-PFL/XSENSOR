@@ -396,7 +396,7 @@ def createTSmat(inputName):
     config = inputName.split(sep="_")[1]
     movement = inputName.split(sep = '_')[2]
     dorsalSensel = dat.iloc[:,18:198]
-    plantarSensel = dat.iloc[:,210:429]
+    plantarSensel = dat.iloc[:,210:430]
     
     
     headers = plantarSensel.columns
