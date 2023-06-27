@@ -1,5 +1,3 @@
-
-
 # -*- coding: utf-8 -*-
 """
 Created on Tue Jan 17 11:23:50 2023
@@ -32,7 +30,7 @@ plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
 save_on = 1
 
-data_check = 0
+data_check = 1
 
 fwdLook = 30
 fThresh = 50
@@ -433,43 +431,13 @@ def createTSmat(inputName):
     
     return(result)
 
-def findLandings(force, fThreshold):
-    ric = []
-    for step in range(len(force)-1):
-        if force[step] < fThreshold and force[step + 1] >= fThreshold:
-            ric.append(step)
-    return ric
-
-#Find takeoff from FP when force goes from above thresh to 0
-def findTakeoffs(force, fThreshold):
-    rto = []
-    for step in range(len(force)-1):
-        if force[step] >= fThreshold and force[step + 1] < fThreshold:
-            rto.append(step + 1)
-    return rto
-
-def trimTakeoffs(landings, takeoffs):
-    if takeoffs[0] < landings[0]:
-        del(takeoffs[0])
-    return(takeoffs)
-
-def trimLandings(landings, trimmedTakeoffs):
-    if landings[len(landings)-1] > trimmedTakeoffs[len(trimmedTakeoffs)-1]:
-        del(landings[-1])
-    return(landings)
-
-def trimForce(inputDFCol, threshForce):
-    forceTot = inputDFCol
-    forceTot[forceTot<threshForce] = 0
-    forceTot = np.array(forceTot)
-    return(forceTot)
 
 
 #############################################################################################################################################################
 
 # Read in files
 # only read .asc files for this work
-fPath = 'C:/Users/bethany.kilpatrick/Boa Technology Inc/PFL - General/Testing Segments/Cycling Performance Tests/PP_Cycling_PFSBoundary_Mech_May23/Xsensor/'
+fPath = 'C:/Users/Kate.Harrison/Boa Technology Inc/PFL Team - General/Testing Segments/Cycling Performance Tests/PP_Cycling_PFSBoundary_Mech_May23/Xsensor/'
 fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
 
@@ -478,176 +446,190 @@ entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
 
 badFileList = []
 
-HeelConArea_Sprint = []
-HeelConArea_Steady = []
-HeelTotConArea = []
-Upstroke =[] 
-heelconArea = []
-
-
-steadySub = []
-steadyConfig = []
-steadyTrial = []
-steadyInitialSTDV = []
-steadyInitialPkP = []
-steadyPeakSTDV = []
-steadyPeakPkP = []
-steadyEndSTDV = []
-steadyEndPkP = []
-steadyOverallHeelSTDV = []
-steadyOverallPeak = []
-
-sprintSub = []
-sprintConfig = []
-sprintTrial = []
-sprintInitialSTDV = []
-sprintInitialPkP = []
-sprintPeakSTDV = []
-sprintPeakPkP = []
-sprintEndSTDV = []
-sprintEndPkP = []
-sprintOverallHeelSTDV = []
-sprintOverallPeak = []  
-
-pkToeP_Steady = []
-ffDorsalMax = []
-mfDorsalMax = []
-instepMax = []
-
-
-instepEarlyP = []
-
 for fName in entries:
-        try:
-            fName = entries[2] #Load one file at a time
-            dat = pd.read_csv(fPath+fName, sep=',', skiprows = 1, header = 'infer')
-            subName = fName.split(sep = "_")[0]
-            ConfigTmp = fName.split(sep="_")[1]
-            moveTmp = fName.split(sep = "_")[2].split(sep = '.')[0].lower() 
-            
-            tmpDat = createTSmat(fName)
-            tmpDat.plotAvgPressure()
-            
-            plt.figure()
-            plt.plot(tmpDat.RForce, label = 'Right Foot Total Force') 
     
-            print('click the start of as many steady state periods are recorded in the file. Press enter when done')
-            steadyStart = plt.ginput(-1)
-            steadyStart = steadyStart[0]
-            steadyStart= round(steadyStart[0])
+    #fName = entries[2]
+    config = []
+    subject = []
+    ct = []
+    movement = []
+
+    toePmidstance = []
+    toeAreamidstance = []
+    ffAreaLate = []
+    ffPLate = []
+    ffPMaxLate = []
+    heelAreaLate = []
+    heelPLate = []
+    maxmaxToes = []
+    
+    ffAreaMid = []
+    ffPMid = []
+    
+    mfAreaLate = []
+    mfPLate = []
+    mfAreaMid = []
+    mfPMid = []
+
+    latPmidstance = []
+    latAreamidstance = []
+    latPLate = []
+    latAreaLate = []
+    medPmidstance = []
+    medAreamidstance = []
+    medPLate = []
+    medAreaLate = []
+    
+    latPropMid = []
+    medPropMid = []
+    dorsalVar = []
+    maxDorsal = []
+    
+    ffDorsalEarlyP = []
+    ffDorsalMidP = []
+    ffDorsalLateP = []
+    mfDorsalEarlyP = []
+    mfDorsalMidP = []
+    mfDorsalLateP = []
+    instepEarlyP = []
+    instepMidP = []
+    instepLateP = []
+    
+    ffDorsalMax=[]
+    mfDorsalMax=[]
+    instepMax=[]
+    
+
+    try: 
+        
+        subName = fName.split(sep = "_")[0]
+        ConfigTmp = fName.split(sep="_")[1]
+        
+        tmpDat = createTSmat(fName)
+        tmpDat.plotAvgPressure()
+        
+        answer = True # if data check is off. 
+        if data_check == 1:
+            plt.figure()
+            plt.plot(tmpDat.RForce, label = 'Right Foot Total Force')
+            for i in range(len(tmpDat.RHS)):
+
+                plt.axvspan(tmpDat.RHS[i], tmpDat.RTO[i], color = 'lightgray', alpha = 0.5)
+            answer = messagebox.askyesno("Question","Is data clean?")
+        
+        if answer == False:
+            plt.close('all')
+            print('Adding file to bad file list')
+            badFileList.append(fName)
+    
+        if answer == True:
+            print('Select start of sprint')
+            sprintStart = plt.ginput(1)
+            sprintStart = round(sprintStart[0][0])
+            plt.close('all')
+            print('Estimating point estimates')
             
-            print('click the start of as many sprints are recorded in the file. Press enter when done')
-            sprintStart = plt.ginput(-1) 
-            sprintStart = sprintStart[0]
-            sprintStart = round(sprintStart[0])
-            plt.close()
-            
-            
-             
-            
-          
-            
-            steadyLandings = findLandings(tmpDat.RForce[steadyStart:steadyStart+freq*30], fThresh) 
-            
-            
-            steadyTakeoffs = findTakeoffs(tmpDat.RForce[steadyStart:steadyStart+freq*30], fThresh)
-            sprintLandings = findLandings(tmpDat.RForce[sprintStart:sprintStart+freq*10], fThresh)
-            sprintTakeoffs = findTakeoffs(tmpDat.RForce[sprintStart:sprintStart+freq*10], fThresh)
-            
-            steadyTakeoffs = trimTakeoffs(steadyLandings, steadyTakeoffs)
-            steadyLandings = trimLandings(steadyLandings, steadyTakeoffs)
-            
-            sprintTakeoffs = trimTakeoffs(sprintLandings, sprintTakeoffs)
-            sprintLandings = trimLandings(sprintLandings, sprintTakeoffs) 
-            
-            
-            
-            
-            #for i in range(len(steadyLandings)-1):  
-                # for i, steadyLand in enumerate(steadyLandings):
-            for i, steadyLand in enumerate(steadyLandings): 
+
+            for i in range(len(tmpDat.RHS)-1):
+                
+                #i = 5
+                
+                if tmpDat.RHS[i] <sprintStart:
+                    movement.append('Steady')
+                else:
+                    movement.append('Sprint')
+                config.append(tmpDat.config)
+                subject.append(tmpDat.subject)
                
-                # i = 0
-                # tmpForce = (tmpDat.RForce[steadyStart+steadyLand : steadyStart+steadyTakeoffs[i]])
-                # tmpPk = max(tmpForce)
-                # timePk = list(tmpForce).index(tmpPk) #indx of max force applied during that pedal stroke
-                try: 
-                    
-                    frames = tmpDat.RTO[i] - tmpDat.RHS[i]
+                frames = tmpDat.RTO[i] - tmpDat.RHS[i]
+                ct.append(frames/200)
+                pct10 = tmpDat.RHS[i] + round(frames*.1)
+                pct40 = tmpDat.RHS[i] + round(frames*.4)
+                pct50 = tmpDat.RHS[i] + round(frames*.5)
+                pct60 = tmpDat.RHS[i] + round(frames*.6)
+                pct90 = tmpDat.RHS[i] + round(frames*.9)
             
-                   
-                     
-                # steadyOverallHeelSTDV.append(np.std(tmpDat.plantarHeel[steadyStart+steadyLand:steadyStart+steadyLandings[i+1]])) 
-                    
-                    
-                    HeelConArea_Steady.append(np.count_nonzero(tmpDat.plantarHeel[tmpDat.RTO[i],:, : tmpDat.RHS[i]+1])/36*100) # Heel con. area from agility temp.
-                    pkToeP_Steady.append(np.max(tmpDat.plantarToe[tmpDat.RHS[i]:tmpDat.RTO[i]])*6.895)    
-                    
-                # steadyOverallPeak.append(np.nanmax(dat.PeakP_RF[steadyStart+steadyLand:steadyStart+steadyLandings[i+1]])) 
+                maxmaxToes.append(np.max(tmpDat.plantarToe[tmpDat.RHS[i]:tmpDat.RTO[i]])*6.895)
+                toePmidstance.append(np.mean(tmpDat.plantarToe[pct40:pct60,:,:])*6.895)
+                toeAreamidstance.append(np.count_nonzero(tmpDat.plantarToe[pct40:pct60,:,:])/(pct60 - pct40)/47*100)
+                ffAreaLate.append(np.count_nonzero(tmpDat.plantarForefoot[pct90:tmpDat.RTO[i], :,:])/(tmpDat.RTO[i] - pct90)/67*100)
+                ffPLate.append(np.mean(tmpDat.plantarForefoot[pct90:tmpDat.RTO[i], :, :])*6.895)
+                ffPMaxLate.append(np.max(tmpDat.plantarForefoot[pct90:tmpDat.RTO[i], :, :]))
+                ffAreaMid.append(np.count_nonzero(tmpDat.plantarForefoot[pct40:pct60, :,:])/(pct60 - pct40)/67*100)
+                ffPMid.append((np.mean(tmpDat.plantarForefoot[pct40:pct60, :, :]))*6.895)
                 
+                mfAreaLate.append(np.count_nonzero(tmpDat.plantarMidfoot[pct90:tmpDat.RTO[i], :,:])/(tmpDat.RTO[i] - pct90)/70*100)
+                mfPLate.append(np.mean(tmpDat.plantarMidfoot[pct90:tmpDat.RTO[i], :, :])*6.895)
+                mfAreaMid.append(np.count_nonzero(tmpDat.plantarMidfoot[pct40:pct60, :,:])/(pct60 - pct40)/70*100)
+                mfPMid.append((np.mean(tmpDat.plantarMidfoot[pct40:pct60, :, :]))*6.895)
                 
-                    # ffDorsalP.append(np.mean(tmpDat.dorsalForefoot[tmpDat.RHS[i]:, :, :])*6.895)
-                 
-                 
-                    # mfDorsalPEarly.append(np.mean(tmpDat.dorsalMidfoot[tmpDat.RHS[i]:, :, :])*6.895)
-                    # mfDorsalMidP.append(np.mean(tmpDat.dorsalMidfoot[ :, :])*6.895)
-                    # mfDorsalLateP.append(np.mean(tmpDat.dorsalMidfoot[tmpDat.RTO[i], :, :])*6.895)
-                    # instepEarlyP.append(np.mean(tmpDat.dorsalInstep[tmpDat.RHS[i]:, :, :])*6.895)
-                    # instepMidP.append(np.mean(tmpDat.dorsalInstep[ :, :])*6.895)
-                    # instepLateP.append(np.mean(tmpDat.dorsalInstep[tmpDat.RTO[i], :, :])*6.895)
-                    
-                    ffDorsalMax.append(np.max(tmpDat.dorsalForefoot[tmpDat.RHS[i]:tmpDat.RTO[i], :, :])*6.895)
-                    mfDorsalMax.append(np.max(tmpDat.dorsalMidfoot[tmpDat.RHS[i]:tmpDat.RTO[i], :, :])*6.895)
-                    instepMax.append(np.max(tmpDat.dorsalInstep[tmpDat.RHS[i]:tmpDat.RTO[i], :, :])*6.895)
-                    
-                # HeelConArea_Steady.append(np.mean(tmpDat.plantarHeel[steadyTakeoffs[i] : steadyLandings[i]+1])) #Old heel contact area 
-                    
-                    
-                    # steadyInitialSTDV.append( dat.StdDevRF[steadyStart+steadyLand+1])# / RForce[steadyStart+steadyLandings[i]+1] )
-                    # steadyInitialPkP.append( dat.PeakP_RF[steadyStart+steadyLand + 1])
-                    # steadyPeakSTDV.append( dat.StdDevRF[steadyStart+steadyLand + timePk])# / RForce[steadyStart+steadyLandings[i]+timePk] )
-                    # steadyPeakPkP.append( dat.PeakP_RF[steadyStart+steadyLand + timePk])
-                    # steadyEndSTDV.append( dat.StdDevRF[steadyStart+steadyLand-1])# / RForce[steadyTakeoffs[i]-1]  )
-                    # steadyEndPkP.append( dat.PeakP_RF[steadyStart+steadyLand -1])
-                                
-                    steadySub.append( fName.split('_')[0] )
-                    steadyConfig.append( fName.split('_')[1])
-                    steadyTrial.append( fName.split('_')[2][0])
-                except:
-                    print("reached end of landings")
+                heelAreaLate.append(np.count_nonzero(tmpDat.plantarHeel[tmpDat.RTO[i]:tmpDat.RHS[i+1], :, :])/(tmpDat.RTO[i] - pct50)/36*100) # making this from 50% stance time to toe off to match big data. Consider switing to 90% to toe off?
+                heelPLate.append(np.mean(tmpDat.plantarHeel[pct90:tmpDat.RTO[i], :, :])*6.895)
+
+                latPmidstance.append(np.mean(tmpDat.plantarLateral[pct40:pct60, :, :])*6.895)
+                latAreamidstance.append(np.count_nonzero(tmpDat.plantarLateral[pct40:pct60, :, :])/(pct60-pct40)/138*100)
+                latPLate.append(np.mean(tmpDat.plantarLateral[pct90:tmpDat.RTO[i], :, :])*6.895)
+                latAreaLate.append(np.count_nonzero(tmpDat.plantarLateral[pct90:tmpDat.RTO[i], :, :])/(tmpDat.RTO[i] - pct90)/138*100)
+                medPmidstance.append(np.mean(tmpDat.plantarMedial[pct40:pct60, :, :])*6.895)
+                medAreamidstance.append(np.count_nonzero(tmpDat.plantarMedial[pct40:pct60, :, :])/(pct60-pct40)/82*100)
+                medPLate.append(np.mean(tmpDat.plantarMedial[pct90:tmpDat.RTO[i], :, :])*6.895)
+                medAreaLate.append(np.count_nonzero(tmpDat.plantarMedial[pct90:tmpDat.RTO[i], :, :])/(tmpDat.RTO[i]-pct90)/82*100)
                 
-            for i, sprintLand in enumerate(sprintLandings):
+                latPropMid.append(np.sum(tmpDat.plantarLateral[pct40:pct60, :, :])/np.sum(tmpDat.plantarMat[pct40:pct60, :, :]))
+                medPropMid.append(np.sum(tmpDat.plantarMedial[pct40:pct60, :, :])/np.sum(tmpDat.plantarMat[pct40:pct60, :, :]))
                 
-                # i = 0
-                # tmpForce = tmpDat.RForce[sprintStart+sprintLand : sprintStart+sprintTakeoffs[i]]
-                # tmpPk = max(tmpForce)
-                # timePk = list(tmpForce).index(tmpPk) #indx of max force applied during that pedal stroke
-                try:
-                    sprintOverallHeelSTDV.append(np.std(dat.R_Heel_EstLoad[sprintStart+sprintLand:sprintStart+sprintLandings[i+1]]))
-                    sprintOverallPeak.append(np.nanmax(dat.PeakP_RF[sprintStart+sprintLand:sprintStart+sprintLandings[i+1]]))
-                                    
-               #Heel Contact 
-               # 'R_Heel_TotalArea', 'R_Heel_Contact'
-                HeelConArea_Sprint.append(np.mean(([tmpDat.RTO[i],:, : tmpDat.RHS[i]+1])/36*100) )
-                instepEarlyP.append(np.mean(tmpDat.dorsalInstep[tmpDat.RHS[i]:, :, :])*6.895) 
+                dorsalVar.append(np.std(tmpDat.dorsalMat[tmpDat.RHS[i]:tmpDat.RTO[i], :, :])/np.mean(tmpDat.dorsalMat[tmpDat.RHS[i]:tmpDat.RTO[i], :, :])*6.895)
+                maxDorsal.append(np.max(tmpDat.dorsalMat[tmpDat.RHS[i]:tmpDat.RTO[i], :, :])*6.895)
                 
+                ffDorsalEarlyP.append(np.mean(tmpDat.dorsalForefoot[tmpDat.RHS[i]:pct10, :, :])*6.895)
+                ffDorsalMidP.append(np.mean(tmpDat.dorsalForefoot[pct40:pct60, :, :])*6.895)
+                ffDorsalLateP.append(np.mean(tmpDat.dorsalForefoot[pct90:tmpDat.RTO[i], :, :])*6.895)
+                mfDorsalEarlyP.append(np.mean(tmpDat.dorsalMidfoot[tmpDat.RHS[i]:pct10, :, :])*6.895)
+                mfDorsalMidP.append(np.mean(tmpDat.dorsalMidfoot[pct40:pct60, :, :])*6.895)
+                mfDorsalLateP.append(np.mean(tmpDat.dorsalMidfoot[pct90:tmpDat.RTO[i], :, :])*6.895)
+                instepEarlyP.append(np.mean(tmpDat.dorsalInstep[tmpDat.RHS[i]:pct10, :, :])*6.895)
+                instepMidP.append(np.mean(tmpDat.dorsalInstep[pct40:pct60, :, :])*6.895)
+                instepLateP.append(np.mean(tmpDat.dorsalInstep[pct90:tmpDat.RTO[i], :, :])*6.895)
                 
-                
-                    # sprintSub.append( fName.split('_')[0] )
-                    # sprintConfig.append( fName.split('_')[1])
-                    # sprintTrial.append( fName.split('_')[2][0]) 
-                    
-                    
-                    sprintInitialSTDV.append( dat.StdDevRF[sprintStart+sprintLand+1])# / RForce[steadyStart+steadyLandings[i]+1] )
-               sprintInitialPkP.append( np.max(tmpDat.plantarMat[sprintStart+sprintLand + 1]))
-                    sprintPeakSTDV.append( dat.StdDevRF[sprintStart+sprintLand + timePk])# / RForce[steadyStart+steadyLandings[i]+timePk] )
-                    sprintPeakPkP.append( dat.PeakP_RF[sprintStart+sprintLand + timePk])
-                    sprintEndSTDV.append( dat.StdDevRF[sprintStart+sprintLand-1])# / RForce[steadyTakeoffs[i]-1]  )
-                    sprintEndPkP.append( dat.PeakP_RF[sprintStart+sprintLand -1])
-                except:
-                    print("reached end of sprint landings")
-                
+                ffDorsalMax.append(np.max(tmpDat.dorsalForefoot[tmpDat.RHS[i]:tmpDat.RTO[i], :, :])*6.895)
+                mfDorsalMax.append(np.max(tmpDat.dorsalMidfoot[tmpDat.RHS[i]:tmpDat.RTO[i], :, :])*6.895)
+                instepMax.append(np.max(tmpDat.dorsalInstep[tmpDat.RHS[i]:tmpDat.RTO[i], :, :])*6.895)
             
+
+            outcomes = pd.DataFrame({'Subject': list(subject), 'Movement':list(movement), 'Config':list(config), 'ContactTime':list(ct),
+                                     'toeP_mid':list(toePmidstance),'toeArea_mid':list(toeAreamidstance), 'maxmaxToes':list(maxmaxToes),
+                                     'ffP_late':list(ffPLate), 'ffArea_late':list(ffAreaLate), 'ffP_Mid':list(ffPMid), 'ffArea_Mid':list(ffAreaMid), 'ffPMax_late':list(ffPMaxLate),
+                                     'mfP_late':list(mfPLate), 'mfArea_late':list(mfAreaLate), 'mfP_Mid':list(mfPMid), 'mfArea_Mid':list(mfAreaMid),
+                                     'heelPressure_late':list(heelPLate), 'heelAreaP':list(heelAreaLate),  
+                                     'latP_mid':list(latPmidstance), 'latArea_mid':list(latAreamidstance), 'latP_late':list(latPLate), 'latArea_late':list(latAreaLate), 'latPropMid':list(latPropMid),
+                                     'medP_mid':list(medPmidstance), 'medArea_mid':list(medAreamidstance), 'medP_late':list(medPLate), 'medArea_late':list(medAreaLate), 'medPropMid':list(medPropMid),
+                                     'dorsalVar':list(dorsalVar), 'maxDorsalP':list(maxDorsal),
+                                     'ffDorsalEarlyP':list(ffDorsalEarlyP), 'ffDorsalMidP':list(ffDorsalMidP), 'ffDorsalLateP':list(ffDorsalLateP),
+                                     'mfDorsalEarlyP':list(mfDorsalEarlyP), 'mfDorsalMidP':list(mfDorsalMidP), 'mfDorsalLateP':list(mfDorsalLateP),
+
+                                     'instepEarlyP':list(instepEarlyP), 'instepMidP':list(instepMidP), 'instepLateP':list(instepLateP),
+                                     'ffDorsalMax':list(ffDorsalMax), 'mfDorsalMax':list(mfDorsalMax), 'instepMax':list(instepMax)
+                                     
+                                     })
+
+            outfileName = fPath + '0_CompiledResults1.csv'
+            if save_on == 1:
+                if os.path.exists(outfileName) == False:
                 
-        except:
-            print(fName) 
+                    outcomes.to_csv(outfileName, header=True, index = False)
+            
+                else:
+                    outcomes.to_csv(outfileName, mode='a', header=False, index = False) 
+                
+        
+        
+    except:
+            print('Not usable data')             
+            
+            
+            
+            
+            
+        
+
+
