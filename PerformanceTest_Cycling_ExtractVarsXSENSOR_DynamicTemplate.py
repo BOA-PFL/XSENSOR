@@ -563,7 +563,7 @@ for fName in entries:
                 mfAreaMid.append(np.count_nonzero(tmpDat.plantarMidfoot[pct40:pct60, :,:])/(pct60 - pct40)/70*100)
                 mfPMid.append((np.mean(tmpDat.plantarMidfoot[pct40:pct60, :, :]))*6.895)
                 
-                heelAreaLate.append(np.count_nonzero(tmpDat.plantarHeel[tmpDat.RTO[i]:tmpDat.RHS[i+1], :, :])/(tmpDat.RTO[i] - pct50)/36*100) # making this from 50% stance time to toe off to match big data. Consider switing to 90% to toe off?
+                heelAreaLate.append(np.count_nonzero(tmpDat.plantarHeel[tmpDat.RTO[i]:tmpDat.RHS[i+1], :, :])/(tmpDat.RTO[i] - pct50)/54*100) # making this from 50% stance time to toe off to match big data. Consider switing to 90% to toe off?
                 heelPLate.append(np.mean(tmpDat.plantarHeel[pct90:tmpDat.RTO[i], :, :])*6.895)
 
                 latPmidstance.append(np.mean(tmpDat.plantarLateral[pct40:pct60, :, :])*6.895)
