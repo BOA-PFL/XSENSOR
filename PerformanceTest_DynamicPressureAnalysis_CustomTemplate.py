@@ -67,7 +67,7 @@ def delimitTrial(inputDF,FName):
     else: 
         fig, ax = plt.subplots()
 
-        totForce = np.mean(inputDF.iloc[:,214:425], axis = 1)*6895*0.014699
+        totForce = np.mean(inputDF.iloc[:,210:430], axis = 1)*6895*0.014699
         print('Select a point on the plot to represent the beginning & end of trial')
 
 
@@ -353,8 +353,8 @@ def createTSmat(inputName):
     subj = inputName.split(sep="_")[0]
     config = inputName.split(sep="_")[1]
     movement = inputName.split(sep = '_')[2]
-    dorsalSensel = dat.iloc[:,17:197]
-    plantarSensel = dat.iloc[:,214:429]
+    dorsalSensel = dat.iloc[:,18:198]
+    plantarSensel = dat.iloc[:,210:430]
     
     
     headers = plantarSensel.columns
@@ -367,7 +367,7 @@ def createTSmat(inputName):
     
     plantarMat = np.zeros((dat.shape[0], np.max(store_r)+1,np.max(store_c)+1))
     
-    for ii in range(len(headers)-1):
+    for ii in range(len(headers)):
         plantarMat[:, store_r[ii],store_c[ii]] = plantarSensel.iloc[:,ii]
     
     plantarMat[plantarMat < 1] = 0
@@ -377,13 +377,13 @@ def createTSmat(inputName):
     store_r = []
     store_c = []
 
-    for name in headers[1:]:
+    for name in headers:
         store_r.append(int(name.split(sep = "_")[1])-1)
         store_c.append(int(name.split(sep = "_")[2].split(sep=".")[0])-1)
     
     dorsalMat = np.zeros((dat.shape[0], np.max(store_r)+1,np.max(store_c)+1))
     
-    for ii in range(len(headers)-1):
+    for ii in range(len(headers)):
         dorsalMat[:, store_r[ii],store_c[ii]] = dorsalSensel.iloc[:,ii]
     
     
@@ -552,11 +552,11 @@ for fName in entries:
                     
                     maxmaxToes.append(np.max(tmpDat.plantarToe[tmpDat.RHS[i]:tmpDat.RTO[i]])*6.895)
                     toePmidstance.append(np.mean(tmpDat.plantarToe[pct40:pct60,:,:])*6.895)
-                    toeAreamidstance.append(np.count_nonzero(tmpDat.plantarToe[pct40:pct60,:,:])/(pct60 - pct40)/47*100)
-                    ffAreaLate.append(np.count_nonzero(tmpDat.plantarForefoot[pct90:tmpDat.RTO[i], :,:])/(tmpDat.RTO[i] - pct90)/67*100)
+                    toeAreamidstance.append(np.count_nonzero(tmpDat.plantarToe[pct40:pct60,:,:])/(pct60 - pct40)/39*100)
+                    ffAreaLate.append(np.count_nonzero(tmpDat.plantarForefoot[pct90:tmpDat.RTO[i], :,:])/(tmpDat.RTO[i] - pct90)/68*100)
                     ffPLate.append(np.mean(tmpDat.plantarForefoot[pct90:tmpDat.RTO[i], :, :])*6.895)
                     ffPMaxLate.append(np.max(tmpDat.plantarForefoot[pct90:tmpDat.RTO[i], :, :]))
-                    ffAreaMid.append(np.count_nonzero(tmpDat.plantarForefoot[pct40:pct60, :,:])/(pct60 - pct40)/67*100)
+                    ffAreaMid.append(np.count_nonzero(tmpDat.plantarForefoot[pct40:pct60, :,:])/(pct60 - pct40)/68*100)
                     ffPMid.append((np.mean(tmpDat.plantarForefoot[pct40:pct60, :, :]))*6.895)
                     
                     mfAreaLate.append(np.count_nonzero(tmpDat.plantarMidfoot[pct90:tmpDat.RTO[i], :,:])/(tmpDat.RTO[i] - pct90)/70*100)
@@ -564,7 +564,7 @@ for fName in entries:
                     mfAreaMid.append(np.count_nonzero(tmpDat.plantarMidfoot[pct40:pct60, :,:])/(pct60 - pct40)/70*100)
                     mfPMid.append((np.mean(tmpDat.plantarMidfoot[pct40:pct60, :, :]))*6.895)
                     
-                    heelAreaLate.append(np.count_nonzero(tmpDat.plantarHeel[pct50:tmpDat.RTO[i], :, :])/(tmpDat.RTO[i] - pct50)/36*100) # making this from 50% stance time to toe off to match big data. Consider switing to 90% to toe off?
+                    heelAreaLate.append(np.count_nonzero(tmpDat.plantarHeel[pct50:tmpDat.RTO[i], :, :])/(tmpDat.RTO[i] - pct50)/43*100) # making this from 50% stance time to toe off to match big data. Consider switing to 90% to toe off?
                     heelPLate.append(np.mean(tmpDat.plantarHeel[pct90:tmpDat.RTO[i], :, :])*6.895)
     
                     latPmidstance.append(np.mean(tmpDat.plantarLateral[pct40:pct60, :, :])*6.895)
