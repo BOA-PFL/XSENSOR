@@ -55,7 +55,8 @@ def delimitTrial(inputDF,FName):
     outputDat: dataframe subset to the beginning and end of jumps.
 
     """
-
+    
+    #inputDF = dat
     # generic function to plot and start/end trial #
     if os.path.exists(fPath+FName+'TrialSeg.npy'):
         trial_segment_old = np.load(fPath+FName+'TrialSeg.npy', allow_pickle =True)
@@ -347,50 +348,8 @@ def createTSmat(inputName):
     """
     
     
-    #inputName = entries[205]
-    columns = ['Frame', 'Date', 'Time', 'Units', 'Threshold', 'Note', 'Sensor', 'Insole Side', 'Rows', 'Columns', 'Average Pressure (PSI)', 
-               'Minimum Pressure (PSI)', 'Peak Pressure (PSI)', 'Contact Area (cm²)', 'Total Area (cm²)', 'Contact %', 'Est. Load (lbf)', 'Std Dev.', 
-               'S_1_1', 'S_1_2', 'S_1_3', 'S_1_4', 'S_1_5', 'S_1_6', 'S_1_7', 'S_1_8', 'S_1_9', 'S_1_10', 
-               'S_2_1', 'S_2_2', 'S_2_3', 'S_2_4', 'S_2_5', 'S_2_6', 'S_2_7', 'S_2_8', 'S_2_9', 'S_2_10', 
-               'S_3_1', 'S_3_2', 'S_3_3', 'S_3_4', 'S_3_5', 'S_3_6', 'S_3_7', 'S_3_8', 'S_3_9', 'S_3_10', 
-               'S_4_1', 'S_4_2', 'S_4_3', 'S_4_4', 'S_4_5', 'S_4_6', 'S_4_7', 'S_4_8', 'S_4_9', 'S_4_10', 
-               'S_5_1', 'S_5_2', 'S_5_3', 'S_5_4', 'S_5_5', 'S_5_6', 'S_5_7', 'S_5_8', 'S_5_9', 'S_5_10', 
-               'S_6_1', 'S_6_2', 'S_6_3', 'S_6_4', 'S_6_5', 'S_6_6', 'S_6_7', 'S_6_8', 'S_6_9', 'S_6_10', 
-               'S_7_1', 'S_7_2', 'S_7_3', 'S_7_4', 'S_7_5', 'S_7_6', 'S_7_7', 'S_7_8', 'S_7_9', 'S_7_10', 
-               'S_8_1', 'S_8_2', 'S_8_3', 'S_8_4', 'S_8_5', 'S_8_6', 'S_8_7', 'S_8_8', 'S_8_9', 'S_8_10', 
-               'S_9_1', 'S_9_2', 'S_9_3', 'S_9_4', 'S_9_5', 'S_9_6', 'S_9_7', 'S_9_8', 'S_9_9', 'S_9_10', 
-               'S_10_1', 'S_10_2', 'S_10_3', 'S_10_4', 'S_10_5', 'S_10_6', 'S_10_7', 'S_10_8', 'S_10_9', 'S_10_10', 
-               'S_11_1', 'S_11_2', 'S_11_3', 'S_11_4', 'S_11_5', 'S_11_6', 'S_11_7', 'S_11_8', 'S_11_9', 'S_11_10', 
-               'S_12_1', 'S_12_2', 'S_12_3', 'S_12_4', 'S_12_5', 'S_12_6', 'S_12_7', 'S_12_8', 'S_12_9', 'S_12_10', 
-               'S_13_1', 'S_13_2', 'S_13_3', 'S_13_4', 'S_13_5', 'S_13_6', 'S_13_7', 'S_13_8', 'S_13_9', 'S_13_10', 
-               'S_14_1', 'S_14_2', 'S_14_3', 'S_14_4', 'S_14_5', 'S_14_6', 'S_14_7', 'S_14_8', 'S_14_9', 'S_14_10', 
-               'S_15_1', 'S_15_2', 'S_15_3', 'S_15_4', 'S_15_5', 'S_15_6', 'S_15_7', 'S_15_8', 'S_15_9', 'S_15_10', 
-               'S_16_1', 'S_16_2', 'S_16_3', 'S_16_4', 'S_16_5', 'S_16_6', 'S_16_7', 'S_16_8', 'S_16_9', 'S_16_10', 
-               'S_17_1', 'S_17_2', 'S_17_3', 'S_17_4', 'S_17_5', 'S_17_6', 'S_17_7', 'S_17_8', 'S_17_9', 'S_17_10', 
-               'S_18_1', 'S_18_2', 'S_18_3', 'S_18_4', 'S_18_5', 'S_18_6', 'S_18_7', 'S_18_8', 'S_18_9', 'S_18_10', 
-               'Sensor.1', 'Insole Side.1', 'Rows.1', 'Columns.1', 'Average Pressure (PSI).1', 'Minimum Pressure (PSI).1', 'Peak Pressure (PSI).1', 'Contact Area (cm²).1', 
-               'Total Area (cm²).1', 'Contact %.1', 'Est. Load (lbf).1', 'Std Dev..1', 
-               'S_1_2.1', 'S_1_3.1', 'S_1_4.1', 'S_1_5.1', 'S_2_2.1', 'S_2_3.1', 'S_2_4.1', 'S_2_5.1', 'S_2_6.1', 'S_3_1.1', 'S_3_2.1', 'S_3_3.1', 'S_3_4.1', 'S_3_5.1', 
-               'S_3_6.1', 'S_3_7.1', 'S_4_1.1', 'S_4_2.1', 'S_4_3.1', 'S_4_4.1', 'S_4_5.1', 'S_4_6.1', 'S_4_7.1', 'S_5_1.1', 'S_5_2.1', 'S_5_3.1', 'S_5_4.1', 'S_5_5.1', 
-               'S_5_6.1', 'S_5_7.1', 'S_5_8.1', 'S_6_1.1', 'S_6_2.1', 'S_6_3.1', 'S_6_4.1', 'S_6_5.1', 'S_6_6.1', 'S_6_7.1', 'S_6_8.1', 'S_7_1.1', 'S_7_2.1', 'S_7_3.1', 
-               'S_7_4.1', 'S_7_5.1', 'S_7_6.1', 'S_7_7.1', 'S_7_8.1', 'S_8_1.1', 'S_8_2.1', 'S_8_3.1', 'S_8_4.1', 'S_8_5.1', 'S_8_6.1', 'S_8_7.1', 'S_8_8.1', 'S_8_9.1', 
-               'S_9_1.1', 'S_9_2.1', 'S_9_3.1', 'S_9_4.1', 'S_9_5.1', 'S_9_6.1', 'S_9_7.1', 'S_9_8.1', 'S_9_9.1', 'S_10_1.1', 'S_10_2.1', 'S_10_3.1', 'S_10_4.1', 'S_10_5.1', 
-               'S_10_6.1', 'S_10_7.1', 'S_10_8.1', 'S_10_9.1', 'S_11_1.1', 'S_11_2.1', 'S_11_3.1', 'S_11_4.1', 'S_11_5.1', 'S_11_6.1', 'S_11_7.1', 'S_11_8.1', 'S_11_9.1', 
-               'S_12_2.1', 'S_12_3.1', 'S_12_4.1', 'S_12_5.1', 'S_12_6.1', 'S_12_7.1', 'S_12_8.1', 'S_12_9.1', 'S_13_2.1', 'S_13_3.1', 'S_13_4.1', 'S_13_5.1', 'S_13_6.1', 
-               'S_13_7.1', 'S_13_8.1', 'S_13_9.1', 'S_14_2.1', 'S_14_3.1', 'S_14_4.1', 'S_14_5.1', 'S_14_6.1', 'S_14_7.1', 'S_14_8.1', 'S_14_9.1', 'S_15_3.1', 'S_15_4.1', 
-               'S_15_5.1', 'S_15_6.1', 'S_15_7.1', 'S_15_8.1', 'S_15_9.1', 'S_16_3.1', 'S_16_4.1', 'S_16_5.1', 'S_16_6.1', 'S_16_7.1', 'S_16_8.1', 'S_16_9.1', 'S_17_3.1', 
-               'S_17_4.1', 'S_17_5.1', 'S_17_6.1', 'S_17_7.1', 'S_17_8.1', 'S_17_9.1', 'S_18_3.1', 'S_18_4.1', 'S_18_5.1', 'S_18_6.1', 'S_18_7.1', 'S_18_8.1', 'S_18_9.1', 
-               'S_19_3', 'S_19_4', 'S_19_5', 'S_19_6', 'S_19_7', 'S_19_8', 'S_19_9', 'S_20_3', 'S_20_4', 'S_20_5', 'S_20_6', 'S_20_7', 'S_20_8', 'S_20_9', 'S_21_3', 'S_21_4', 
-               'S_21_5', 'S_21_6', 'S_21_7', 'S_21_8', 'S_21_9', 'S_22_3', 'S_22_4', 'S_22_5', 'S_22_6', 'S_22_7', 'S_22_8', 'S_22_9', 'S_23_3', 'S_23_4', 'S_23_5', 'S_23_6', 
-               'S_23_7', 'S_23_8', 'S_23_9', 'S_24_3', 'S_24_4', 'S_24_5', 'S_24_6', 'S_24_7', 'S_24_8', 'S_24_9', 'S_25_3', 'S_25_4', 'S_25_5', 'S_25_6', 'S_25_7', 'S_25_8', 
-               'S_25_9', 'S_26_3', 'S_26_4', 'S_26_5', 'S_26_6', 'S_26_7', 'S_26_8', 'S_26_9', 'S_27_3', 'S_27_4', 'S_27_5', 'S_27_6', 'S_27_7', 'S_27_8', 'S_27_9', 'S_28_3', 
-               'S_28_4', 'S_28_5', 'S_28_6', 'S_28_7', 'S_28_8', 'S_28_9', 'S_29_3', 'S_29_4', 'S_29_5', 'S_29_6', 'S_29_7', 'S_29_8', 'S_29_9', 'S_30_4', 'S_30_5', 'S_30_6', 
-               'S_30_7', 'S_30_8', 'S_31_5', 'S_31_6', 'S_31_7']
-        
-        
-        
-        
-    dat = pd.read_csv(fPath+inputName, sep=',', usecols=(columns) )
+    #inputName = entries[0]
+    dat = pd.read_csv(fPath+inputName, sep=',', skiprows = 1, header = 'infer')
     dat = delimitTrial(dat, inputName)
     subj = inputName.split(sep="_")[0]
     config = inputName.split(sep="_")[1]
@@ -479,7 +438,7 @@ def createTSmat(inputName):
 
 # Read in files
 # only read .asc files for this work
-fPath = 'C:/Users/milena.singletary/Boa Technology Inc/PFL Team - Documents/General/Testing Segments/WorkWear_Performance/EH_Workwear_MidCutStabilityI_CPDMech_June23/Pressure/'
+fPath = 'C:/Users/Kate.Harrison/Boa Technology Inc/PFL Team - General/Testing Segments/Cycling Performance Tests/PP_Cycling_PFSBoundary_Mech_May23/Xsensor/'
 fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
 
@@ -490,7 +449,7 @@ badFileList = []
 
 for fName in entries:
     
-    
+    #fName = entries[5]
     config = []
     subject = []
     ct = []
@@ -541,58 +500,57 @@ for fName in entries:
     mfDorsalMax=[]
     instepMax=[]
     
+    subName = fName.split(sep = "_")[0]
+    ConfigTmp = fName.split(sep="_")[1]
+    
+    tmpDat = createTSmat(fName)
+    tmpDat.plotAvgPressure()
+    
+    plt.figure()
+    plt.plot(tmpDat.RForce, label = 'Right Foot Total Force')
+    for i in range(len(tmpDat.RHS)):
+        plt.axvspan(tmpDat.RHS[i], tmpDat.RTO[i], color = 'lightgray', alpha = 0.5)
+        
+    answer = True # if data check is off. 
+    if data_check == 1:
+        
+        answer = messagebox.askyesno("Question","Is data clean?")
+    
+    if answer == False:
+        plt.close('all')
+        print('Adding file to bad file list')
+        badFileList.append(fName)
 
-    try: 
-        #fName = entries[205]
-        subName = fName.split(sep = "_")[0]
-        ConfigTmp = fName.split(sep="_")[1]
-        moveTmp = fName.split(sep = "_")[2].split(sep = '.')[0].lower()
+    if answer == True:
+        print('Select start of sprint')
+        sprintStart = plt.ginput(1)
+        sprintStart = round(sprintStart[0][0])
+        plt.close('all')
+        print('Estimating point estimates')
         
-        # Make sure the files are named FirstLast_Config_Movement_Trial# - The "if" statement won't work if there isn't a trial number next to the movement
-        if ('skate' in moveTmp) or ('cmj' in moveTmp) or ('run' in moveTmp) or ('walk' in moveTmp):
-            #dat = pd.read_csv(fPath+fName, sep=',', skiprows = 1, header = 'infer')
-        
-            tmpDat = createTSmat(fName)
-            tmpDat.plotAvgPressure()
+
+        for i in range(len(tmpDat.RHS)-1):
             
-            answer = True # if data check is off. 
-            if data_check == 1:
-                plt.figure()
-                plt.plot(tmpDat.RForce, label = 'Right Foot Total Force')
-                for i in range(len(tmpDat.RHS)):
-    
-                    plt.axvspan(tmpDat.RHS[i], tmpDat.RTO[i], color = 'lightgray', alpha = 0.5)
-                answer = messagebox.askyesno("Question","Is data clean?")
+            frames = tmpDat.RTO[i] - tmpDat.RHS[i]
             
-            
-            
-            if answer == False:
-                plt.close('all')
-                print('Adding file to bad file list')
-                badFileList.append(fName)
-        
-            if answer == True:
-                plt.close('all')
-                print('Estimating point estimates')
-                tmpDat.plotAvgPressure()
-    
-                for i in range(len(tmpDat.RHS)):
+            if (frames > 20) & ((tmpDat.RHS[i+1]-tmpDat.RTO[i]) > 5):
+                try: 
+                    #i = 326
                     
-                    #i = 5
-                    config.append(tmpDat.config)
-                    subject.append(tmpDat.subject)
-                    movement.append(moveTmp)
-                    frames = tmpDat.RTO[i] - tmpDat.RHS[i]
+                    
+                    heelArea = np.count_nonzero(tmpDat.plantarHeel[tmpDat.RTO[i]:tmpDat.RHS[i+1], :, :], axis = (1,2))
+                    heelAreaLate.append(np.mean(heelArea)/43*100) 
+                    maxmaxToes.append(np.max(tmpDat.plantarToe[tmpDat.RHS[i]:tmpDat.RTO[i]])*6.895)
+                    
+                        
                     ct.append(frames/200)
                     pct10 = tmpDat.RHS[i] + round(frames*.1)
                     pct40 = tmpDat.RHS[i] + round(frames*.4)
                     pct50 = tmpDat.RHS[i] + round(frames*.5)
                     pct60 = tmpDat.RHS[i] + round(frames*.6)
                     pct90 = tmpDat.RHS[i] + round(frames*.9)
+                
                     
-
-                    
-                    maxmaxToes.append(np.max(tmpDat.plantarToe[tmpDat.RHS[i]:tmpDat.RTO[i]])*6.895)
                     toePmidstance.append(np.mean(tmpDat.plantarToe[pct40:pct60,:,:])*6.895)
                     toeAreamidstance.append(np.count_nonzero(tmpDat.plantarToe[pct40:pct60,:,:])/(pct60 - pct40)/39*100)
                     ffAreaLate.append(np.count_nonzero(tmpDat.plantarForefoot[pct90:tmpDat.RTO[i], :,:])/(tmpDat.RTO[i] - pct90)/68*100)
@@ -606,7 +564,7 @@ for fName in entries:
                     mfAreaMid.append(np.count_nonzero(tmpDat.plantarMidfoot[pct40:pct60, :,:])/(pct60 - pct40)/70*100)
                     mfPMid.append((np.mean(tmpDat.plantarMidfoot[pct40:pct60, :, :]))*6.895)
                     
-                    heelAreaLate.append(np.count_nonzero(tmpDat.plantarHeel[pct50:tmpDat.RTO[i], :, :])/(tmpDat.RTO[i] - pct50)/43*100) # making this from 50% stance time to toe off to match big data. Consider switing to 90% to toe off?
+                                           
                     heelPLate.append(np.mean(tmpDat.plantarHeel[pct90:tmpDat.RTO[i], :, :])*6.895)
     
                     latPmidstance.append(np.mean(tmpDat.plantarLateral[pct40:pct60, :, :])*6.895)
@@ -638,40 +596,44 @@ for fName in entries:
                     mfDorsalMax.append(np.max(tmpDat.dorsalMidfoot[tmpDat.RHS[i]:tmpDat.RTO[i], :, :])*6.895)
                     instepMax.append(np.max(tmpDat.dorsalInstep[tmpDat.RHS[i]:tmpDat.RTO[i], :, :])*6.895)
                     
-    
-                    
-    
-            
-
-                outcomes = pd.DataFrame({'Subject': list(subject), 'Movement':list(movement), 'Config':list(config), 'ContactTime':list(ct),
-                                         'toeP_mid':list(toePmidstance),'toeArea_mid':list(toeAreamidstance), 'maxmaxToes':list(maxmaxToes),
-                                         'ffP_late':list(ffPLate), 'ffArea_late':list(ffAreaLate), 'ffP_Mid':list(ffPMid), 'ffArea_Mid':list(ffAreaMid), 'ffPMax_late':list(ffPMaxLate),
-                                         'mfP_late':list(mfPLate), 'mfArea_late':list(mfAreaLate), 'mfP_Mid':list(mfPMid), 'mfArea_Mid':list(mfAreaMid),
-                                         'heelPressure_late':list(heelPLate), 'heelAreaP':list(heelAreaLate),  
-                                         'latP_mid':list(latPmidstance), 'latArea_mid':list(latAreamidstance), 'latP_late':list(latPLate), 'latArea_late':list(latAreaLate), 'latPropMid':list(latPropMid),
-                                         'medP_mid':list(medPmidstance), 'medArea_mid':list(medAreamidstance), 'medP_late':list(medPLate), 'medArea_late':list(medAreaLate), 'medPropMid':list(medPropMid),
-                                         'dorsalVar':list(dorsalVar), 'maxDorsalP':list(maxDorsal),
-                                         'ffDorsalEarlyP':list(ffDorsalEarlyP), 'ffDorsalMidP':list(ffDorsalMidP), 'ffDorsalLateP':list(ffDorsalLateP),
-                                         'mfDorsalEarlyP':list(mfDorsalEarlyP), 'mfDorsalMidP':list(mfDorsalMidP), 'mfDorsalLateP':list(mfDorsalLateP),
-
-                                         'instepEarlyP':list(instepEarlyP), 'instepMidP':list(instepMidP), 'instepLateP':list(instepLateP),
-                                         'ffDorsalMax':list(ffDorsalMax), 'mfDorsalMax':list(mfDorsalMax), 'instepMax':list(instepMax)
-                                         
-                                         })
-
-                outfileName = fPath + '0_CompiledResults1.csv'
-                if save_on == 1:
-                    if os.path.exists(outfileName) == False:
-                    
-                        outcomes.to_csv(outfileName, header=True, index = False)
-                
+                    if tmpDat.RHS[i] <sprintStart:
+                        movement.append('Steady')
                     else:
-                        outcomes.to_csv(outfileName, mode='a', header=False, index = False) 
+                        movement.append('Sprint')
+                    config.append(tmpDat.config)
+                    subject.append(tmpDat.subject)
+                    
+            
+                except: print(fName + 'Bad stroke ' + str(i))
+            
+    outcomes = pd.DataFrame({'Subject': list(subject), 'Movement':list(movement), 'Config':list(config), 'ContactTime':list(ct),
+                             'toeP_mid':list(toePmidstance),'toeArea_mid':list(toeAreamidstance), 'maxmaxToes':list(maxmaxToes),
+                             'ffP_late':list(ffPLate), 'ffArea_late':list(ffAreaLate), 'ffP_Mid':list(ffPMid), 'ffArea_Mid':list(ffAreaMid), 'ffPMax_late':list(ffPMaxLate),
+                             'mfP_late':list(mfPLate), 'mfArea_late':list(mfAreaLate), 'mfP_Mid':list(mfPMid), 'mfArea_Mid':list(mfAreaMid),
+                             'heelPressure_late':list(heelPLate), 'heelAreaP':list(heelAreaLate),  
+                             'latP_mid':list(latPmidstance), 'latArea_mid':list(latAreamidstance), 'latP_late':list(latPLate), 'latArea_late':list(latAreaLate), 'latPropMid':list(latPropMid),
+                             'medP_mid':list(medPmidstance), 'medArea_mid':list(medAreamidstance), 'medP_late':list(medPLate), 'medArea_late':list(medAreaLate), 'medPropMid':list(medPropMid),
+                             'dorsalVar':list(dorsalVar), 'maxDorsalP':list(maxDorsal),
+                             'ffDorsalEarlyP':list(ffDorsalEarlyP), 'ffDorsalMidP':list(ffDorsalMidP), 'ffDorsalLateP':list(ffDorsalLateP),
+                             'mfDorsalEarlyP':list(mfDorsalEarlyP), 'mfDorsalMidP':list(mfDorsalMidP), 'mfDorsalLateP':list(mfDorsalLateP),
+
+                             'instepEarlyP':list(instepEarlyP), 'instepMidP':list(instepMidP), 'instepLateP':list(instepLateP),
+                             'ffDorsalMax':list(ffDorsalMax), 'mfDorsalMax':list(mfDorsalMax), 'instepMax':list(instepMax)
+                             
+                             })
+
+    outfileName = fPath + '0_CompiledResults1.csv'
+    if save_on == 1:
+        if os.path.exists(outfileName) == False:
+        
+            outcomes.to_csv(outfileName, header=True, index = False)
+    
+        else:
+            outcomes.to_csv(outfileName, mode='a', header=False, index = False) 
                 
         
         
-    except:
-            print('Not usable data')             
+               
             
             
             
