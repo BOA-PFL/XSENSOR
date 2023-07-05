@@ -360,14 +360,16 @@ def createTSmat(inputName):
     
     
     
-    if ('Insole Side' == 'Right'): 
-        dorsalSensel = dat.iloc[:,18:198]
-        plantarSensel = dat.iloc[:,210:430] 
-    else:  
+    insoleSide = dat['Insole Side'][0]
+    
+    if (insoleSide == 'Left'): 
+        
         # Left side
         plantarSensel = dat.iloc[:,18:238]
         dorsalSensel = dat.iloc[:,250:430]
-    
+    else:  
+        dorsalSensel = dat.iloc[:,18:198]
+        plantarSensel = dat.iloc[:,210:430] 
 
         
    
@@ -504,7 +506,7 @@ def createTSmat(inputName):
 
 # Read in files
 # only read .asc files for this work
-fPath = 'C:/Users/bethany.kilpatrick/Boa Technology Inc/PFL - General/Testing Segments/AgilityPerformanceData/AS_Trail_DorsalPressureVariationII_PFLMech_June2023/Xsensor/'
+fPath = 'C:/Users/Kate.Harrison/Boa Technology Inc/PFL Team - General/Testing Segments/AgilityPerformanceData/AS_Trail_DorsalPressureVariationII_PFLMech_June2023/Xsensor/'
 fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
 
@@ -568,7 +570,7 @@ for fName in entries:
     
 
     try: 
-        #fName = entries[205]
+        fName = entries[1]
         subName = fName.split(sep = "_")[0]
         ConfigTmp = fName.split(sep="_")[1]
         moveTmp = fName.split(sep = "_")[2].split(sep = '.')[0].lower()
