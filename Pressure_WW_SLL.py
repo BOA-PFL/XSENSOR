@@ -325,16 +325,54 @@ def createTSmat(inputName):
     Reads in file, creates 3D time series matrix (foot length, foot width, time) to be plotted and features
     are extracted. The result is a dataclass which can be used for further plotting. Requires findGaitEvents function.
     """
-    
+    columns = ['Frame', 'Date', 'Time', 'Units', 'Threshold', 'Note', 'Sensor', 'Insole Side', 'Rows', 'Columns', 'Average Pressure (PSI)', 
+                 'Minimum Pressure (PSI)', 'Peak Pressure (PSI)', 'Contact Area (cm²)', 'Total Area (cm²)', 'Contact %', 'Est. Load (lbf)', 'Std Dev.', 
+                 'S_1_1', 'S_1_2', 'S_1_3', 'S_1_4', 'S_1_5', 'S_1_6', 'S_1_7', 'S_1_8', 'S_1_9', 'S_1_10', 
+                 'S_2_1', 'S_2_2', 'S_2_3', 'S_2_4', 'S_2_5', 'S_2_6', 'S_2_7', 'S_2_8', 'S_2_9', 'S_2_10', 
+                 'S_3_1', 'S_3_2', 'S_3_3', 'S_3_4', 'S_3_5', 'S_3_6', 'S_3_7', 'S_3_8', 'S_3_9', 'S_3_10', 
+                 'S_4_1', 'S_4_2', 'S_4_3', 'S_4_4', 'S_4_5', 'S_4_6', 'S_4_7', 'S_4_8', 'S_4_9', 'S_4_10', 
+                 'S_5_1', 'S_5_2', 'S_5_3', 'S_5_4', 'S_5_5', 'S_5_6', 'S_5_7', 'S_5_8', 'S_5_9', 'S_5_10', 
+                 'S_6_1', 'S_6_2', 'S_6_3', 'S_6_4', 'S_6_5', 'S_6_6', 'S_6_7', 'S_6_8', 'S_6_9', 'S_6_10', 
+                 'S_7_1', 'S_7_2', 'S_7_3', 'S_7_4', 'S_7_5', 'S_7_6', 'S_7_7', 'S_7_8', 'S_7_9', 'S_7_10', 
+                 'S_8_1', 'S_8_2', 'S_8_3', 'S_8_4', 'S_8_5', 'S_8_6', 'S_8_7', 'S_8_8', 'S_8_9', 'S_8_10', 
+                 'S_9_1', 'S_9_2', 'S_9_3', 'S_9_4', 'S_9_5', 'S_9_6', 'S_9_7', 'S_9_8', 'S_9_9', 'S_9_10', 
+                 'S_10_1', 'S_10_2', 'S_10_3', 'S_10_4', 'S_10_5', 'S_10_6', 'S_10_7', 'S_10_8', 'S_10_9', 'S_10_10', 
+                 'S_11_1', 'S_11_2', 'S_11_3', 'S_11_4', 'S_11_5', 'S_11_6', 'S_11_7', 'S_11_8', 'S_11_9', 'S_11_10', 
+                 'S_12_1', 'S_12_2', 'S_12_3', 'S_12_4', 'S_12_5', 'S_12_6', 'S_12_7', 'S_12_8', 'S_12_9', 'S_12_10', 
+                 'S_13_1', 'S_13_2', 'S_13_3', 'S_13_4', 'S_13_5', 'S_13_6', 'S_13_7', 'S_13_8', 'S_13_9', 'S_13_10', 
+                 'S_14_1', 'S_14_2', 'S_14_3', 'S_14_4', 'S_14_5', 'S_14_6', 'S_14_7', 'S_14_8', 'S_14_9', 'S_14_10', 
+                 'S_15_1', 'S_15_2', 'S_15_3', 'S_15_4', 'S_15_5', 'S_15_6', 'S_15_7', 'S_15_8', 'S_15_9', 'S_15_10', 
+                 'S_16_1', 'S_16_2', 'S_16_3', 'S_16_4', 'S_16_5', 'S_16_6', 'S_16_7', 'S_16_8', 'S_16_9', 'S_16_10', 
+                 'S_17_1', 'S_17_2', 'S_17_3', 'S_17_4', 'S_17_5', 'S_17_6', 'S_17_7', 'S_17_8', 'S_17_9', 'S_17_10', 
+                 'S_18_1', 'S_18_2', 'S_18_3', 'S_18_4', 'S_18_5', 'S_18_6', 'S_18_7', 'S_18_8', 'S_18_9', 'S_18_10', 
+                 'Sensor.1', 'Insole Side.1', 'Rows.1', 'Columns.1', 'Average Pressure (PSI).1', 'Minimum Pressure (PSI).1', 'Peak Pressure (PSI).1', 'Contact Area (cm²).1', 
+                 'Total Area (cm²).1', 'Contact %.1', 'Est. Load (lbf).1', 'Std Dev..1', 
+                 'S_1_2.1', 'S_1_3.1', 'S_1_4.1', 'S_1_5.1', 'S_2_2.1', 'S_2_3.1', 'S_2_4.1', 'S_2_5.1', 'S_2_6.1', 'S_3_1.1', 'S_3_2.1', 'S_3_3.1', 'S_3_4.1', 'S_3_5.1', 
+                 'S_3_6.1', 'S_3_7.1', 'S_4_1.1', 'S_4_2.1', 'S_4_3.1', 'S_4_4.1', 'S_4_5.1', 'S_4_6.1', 'S_4_7.1', 'S_5_1.1', 'S_5_2.1', 'S_5_3.1', 'S_5_4.1', 'S_5_5.1', 
+                 'S_5_6.1', 'S_5_7.1', 'S_5_8.1', 'S_6_1.1', 'S_6_2.1', 'S_6_3.1', 'S_6_4.1', 'S_6_5.1', 'S_6_6.1', 'S_6_7.1', 'S_6_8.1', 'S_7_1.1', 'S_7_2.1', 'S_7_3.1', 
+                 'S_7_4.1', 'S_7_5.1', 'S_7_6.1', 'S_7_7.1', 'S_7_8.1', 'S_8_1.1', 'S_8_2.1', 'S_8_3.1', 'S_8_4.1', 'S_8_5.1', 'S_8_6.1', 'S_8_7.1', 'S_8_8.1', 'S_8_9.1', 
+                 'S_9_1.1', 'S_9_2.1', 'S_9_3.1', 'S_9_4.1', 'S_9_5.1', 'S_9_6.1', 'S_9_7.1', 'S_9_8.1', 'S_9_9.1', 'S_10_1.1', 'S_10_2.1', 'S_10_3.1', 'S_10_4.1', 'S_10_5.1', 
+                 'S_10_6.1', 'S_10_7.1', 'S_10_8.1', 'S_10_9.1', 'S_11_1.1', 'S_11_2.1', 'S_11_3.1', 'S_11_4.1', 'S_11_5.1', 'S_11_6.1', 'S_11_7.1', 'S_11_8.1', 'S_11_9.1', 
+                 'S_12_2.1', 'S_12_3.1', 'S_12_4.1', 'S_12_5.1', 'S_12_6.1', 'S_12_7.1', 'S_12_8.1', 'S_12_9.1', 'S_13_2.1', 'S_13_3.1', 'S_13_4.1', 'S_13_5.1', 'S_13_6.1', 
+                 'S_13_7.1', 'S_13_8.1', 'S_13_9.1', 'S_14_2.1', 'S_14_3.1', 'S_14_4.1', 'S_14_5.1', 'S_14_6.1', 'S_14_7.1', 'S_14_8.1', 'S_14_9.1', 'S_15_3.1', 'S_15_4.1', 
+                 'S_15_5.1', 'S_15_6.1', 'S_15_7.1', 'S_15_8.1', 'S_15_9.1', 'S_16_3.1', 'S_16_4.1', 'S_16_5.1', 'S_16_6.1', 'S_16_7.1', 'S_16_8.1', 'S_16_9.1', 'S_17_3.1', 
+                 'S_17_4.1', 'S_17_5.1', 'S_17_6.1', 'S_17_7.1', 'S_17_8.1', 'S_17_9.1', 'S_18_3.1', 'S_18_4.1', 'S_18_5.1', 'S_18_6.1', 'S_18_7.1', 'S_18_8.1', 'S_18_9.1', 
+                 'S_19_3', 'S_19_4', 'S_19_5', 'S_19_6', 'S_19_7', 'S_19_8', 'S_19_9', 'S_20_3', 'S_20_4', 'S_20_5', 'S_20_6', 'S_20_7', 'S_20_8', 'S_20_9', 'S_21_3', 'S_21_4', 
+                 'S_21_5', 'S_21_6', 'S_21_7', 'S_21_8', 'S_21_9', 'S_22_3', 'S_22_4', 'S_22_5', 'S_22_6', 'S_22_7', 'S_22_8', 'S_22_9', 'S_23_3', 'S_23_4', 'S_23_5', 'S_23_6', 
+                 'S_23_7', 'S_23_8', 'S_23_9', 'S_24_3', 'S_24_4', 'S_24_5', 'S_24_6', 'S_24_7', 'S_24_8', 'S_24_9', 'S_25_3', 'S_25_4', 'S_25_5', 'S_25_6', 'S_25_7', 'S_25_8', 
+                 'S_25_9', 'S_26_3', 'S_26_4', 'S_26_5', 'S_26_6', 'S_26_7', 'S_26_8', 'S_26_9', 'S_27_3', 'S_27_4', 'S_27_5', 'S_27_6', 'S_27_7', 'S_27_8', 'S_27_9', 'S_28_3', 
+                 'S_28_4', 'S_28_5', 'S_28_6', 'S_28_7', 'S_28_8', 'S_28_9', 'S_29_3', 'S_29_4', 'S_29_5', 'S_29_6', 'S_29_7', 'S_29_8', 'S_29_9', 'S_30_4', 'S_30_5', 'S_30_6', 
+                 'S_30_7', 'S_30_8', 'S_31_5', 'S_31_6', 'S_31_7']
     
     #inputName = entries[1]
-    dat = pd.read_csv(fPath+inputName, sep=',', skiprows = 1, header = 'infer')
+    #dat = pd.read_csv(fPath+inputName, sep=',', skiprows = 1, header = 'infer')
+    dat = pd.read_csv(fPath+inputName, sep=',', usecols = columns)
     dat = delimitTrial(dat, inputName)
     subj = inputName.split(sep="_")[0]
     config = inputName.split(sep="_")[1]
     movement = inputName.split(sep = '_')[2]
-    dorsalSensel = dat.iloc[:,17:197]
-    plantarSensel = dat.iloc[:,214:425]
+    dorsalSensel = dat.iloc[:,18:198]
+    plantarSensel = dat.iloc[:,210:430]
     
     headers = plantarSensel.columns
     store_r = []
@@ -349,6 +387,7 @@ def createTSmat(inputName):
     for ii in range(len(headers)-1):
         plantarMat[:, store_r[ii],store_c[ii]] = plantarSensel.iloc[:,ii]
 
+    plantarMat[plantarMat < 1 ] = 0
     
     headers = dorsalSensel.columns
     store_r = []
@@ -364,7 +403,10 @@ def createTSmat(inputName):
         dorsalMat[:, store_r[ii],store_c[ii]] = dorsalSensel.iloc[:,ii]
     
     dorsalMat = np.flip(dorsalMat, axis = 1)
-        
+    dorsalMat[dorsalMat < 1 ] = 0
+
+
+    
     plantarToe = plantarMat[:,:7,:]
     plantarToeLat = plantarMat[:,:7,4:]
     plantarToeMed = plantarMat[:,:7,:4]
@@ -414,7 +456,7 @@ def createTSmat(inputName):
 
 # Read in files
 # only read .asc files for this work
-fPath = 'C:/Users/milena.singletary/Boa Technology Inc/PFL Team - Documents/General/Testing Segments/WorkWear_Performance/EH_Workwear_DualDialZonal_Performance_Feb2023/Pressure/'
+fPath = 'C:/Users/milena.singletary/Boa Technology Inc/PFL Team - Documents/General/Testing Segments/WorkWear_Performance/EH_Workwear_MidCutStabilityII_CPDMech_Sept23/XSENSOR/cropped/'
 fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
 
@@ -457,7 +499,7 @@ for fName in entries:
         
         # Make sure the files are named FirstLast_Config_Movement_Trial# - The "if" statement won't work if there isn't a trial number next to the movement
         #if ('SLL' in moveTmp):# or ('SLLT' in moveTmp): # or ('Trail' in moveTmp):
-        if (moveTmp == 'SLLT'):
+        if (moveTmp == 'SLL'):
             #dat = pd.read_csv(fPath+fName, sep=',', skiprows = 1, header = 'infer')
             
   
