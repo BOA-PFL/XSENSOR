@@ -558,7 +558,7 @@ for fName in entries:
         
         
                 
-                # toe 63 ; fft 72 ; heel 45
+                # toe 39 ; fft 68 ; heel 43
                 for ii in range(len(land)):
                     toeClawAvg.append(np.mean(tmpDat.plantarToe[land[ii]: land[ii]+100]))
                     toeClawPk.append(np.max(tmpDat.plantarToe[land[ii]: land[ii]+100]))
@@ -569,13 +569,13 @@ for fName in entries:
             
                     ffAvg.append(np.mean(tmpDat.plantarForefoot[land[ii]: land[ii]+100]))
                     ffPk.append(np.max(tmpDat.plantarForefoot[land[ii]: land[ii]+100]))
-                    ffConArea.append(np.count_nonzero(tmpDat.plantarForefoot[land[ii]: land[ii]+100])/72*100)
+                    ffConArea.append(np.count_nonzero(tmpDat.plantarForefoot[land[ii]: land[ii]+100])/100/68*100) # divided by 100 frames
                     ffLatAvg.append(np.mean(tmpDat.plantarForefootLat[land[ii]: land[ii]+100]))
                     ffLatPk.append(np.max(tmpDat.plantarForefootLat[land[ii]: land[ii]+100]))
                     ffMedAvg.append(np.mean(tmpDat.plantarForefootMed[land[ii]: land[ii]+100]))
                     ffMedPk.append(np.max(tmpDat.plantarForefootMed[land[ii]: land[ii]+100]))
             
-                    heelArea.append(np.count_nonzero(tmpDat.plantarHeel[land[ii]: land[ii]+100])/ 45*100)
+                    heelArea.append(np.count_nonzero(tmpDat.plantarHeel[land[ii]: land[ii]+100])/ 100/ 43*100) # divided by 100 frames
                     heelPres.append(np.mean(tmpDat.plantarHeel[land[ii]: land[ii]+100]))
                     
                     config.append(tmpDat.config)
