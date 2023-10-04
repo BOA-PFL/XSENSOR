@@ -55,7 +55,8 @@ def delimitTrial(inputDF,FName):
     outputDat: dataframe subset to the beginning and end of jumps.
 
     """
-
+    
+    #inputDF = dat
     # generic function to plot and start/end trial #
     if os.path.exists(fPath+FName+'TrialSeg.npy'):
         trial_segment_old = np.load(fPath+FName+'TrialSeg.npy', allow_pickle =True)
@@ -67,7 +68,7 @@ def delimitTrial(inputDF,FName):
     else: 
         fig, ax = plt.subplots()
 
-        totForce = np.mean(inputDF.iloc[:,214:425], axis = 1)*6895*0.014699
+        totForce = np.mean(inputDF.iloc[:,210:430], axis = 1)*6895*0.014699
         print('Select a point on the plot to represent the beginning & end of trial')
 
 
@@ -347,14 +348,14 @@ def createTSmat(inputName):
     """
     
     
-    #inputName = entries[205]
+    #inputName = entries[0]
     dat = pd.read_csv(fPath+inputName, sep=',', skiprows = 1, header = 'infer')
     dat = delimitTrial(dat, inputName)
     subj = inputName.split(sep="_")[0]
     config = inputName.split(sep="_")[1]
     movement = inputName.split(sep = '_')[2]
-    dorsalSensel = dat.iloc[:,17:197]
-    plantarSensel = dat.iloc[:,214:429]
+    dorsalSensel = dat.iloc[:,18:198]
+    plantarSensel = dat.iloc[:,210:430]
     
     
     headers = plantarSensel.columns
@@ -367,7 +368,7 @@ def createTSmat(inputName):
     
     plantarMat = np.zeros((dat.shape[0], np.max(store_r)+1,np.max(store_c)+1))
     
-    for ii in range(len(headers)-1):
+    for ii in range(len(headers)):
         plantarMat[:, store_r[ii],store_c[ii]] = plantarSensel.iloc[:,ii]
     
     plantarMat[plantarMat < 1] = 0
@@ -377,13 +378,13 @@ def createTSmat(inputName):
     store_r = []
     store_c = []
 
-    for name in headers[1:]:
+    for name in headers:
         store_r.append(int(name.split(sep = "_")[1])-1)
         store_c.append(int(name.split(sep = "_")[2].split(sep=".")[0])-1)
     
     dorsalMat = np.zeros((dat.shape[0], np.max(store_r)+1,np.max(store_c)+1))
     
-    for ii in range(len(headers)-1):
+    for ii in range(len(headers)):
         dorsalMat[:, store_r[ii],store_c[ii]] = dorsalSensel.iloc[:,ii]
     
     
@@ -437,7 +438,7 @@ def createTSmat(inputName):
 
 # Read in files
 # only read .asc files for this work
-fPath = 'C:/Users/Kate.Harrison/Boa Technology Inc/PFL Team - General/Testing Segments/AgilityPerformanceData/AS_Train_TongueDialLocationII_Mech_Jan23/Xsensor/'
+fPath = 'C:/Users/Kate.Harrison/Boa Technology Inc/PFL Team - General/Testing Segments/Cycling Performance Tests/PP_Cycling_PFSBoundary_Mech_May23/Xsensor/'
 fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
 
@@ -448,7 +449,7 @@ badFileList = []
 
 for fName in entries:
     
-    
+    #fName = entries[5]
     config = []
     subject = []
     ct = []
@@ -499,64 +500,63 @@ for fName in entries:
     mfDorsalMax=[]
     instepMax=[]
     
+    subName = fName.split(sep = "_")[0]
+    ConfigTmp = fName.split(sep="_")[1]
+    
+    tmpDat = createTSmat(fName)
+    tmpDat.plotAvgPressure()
+    
+    plt.figure()
+    plt.plot(tmpDat.RForce, label = 'Right Foot Total Force')
+    for i in range(len(tmpDat.RHS)):
+        plt.axvspan(tmpDat.RHS[i], tmpDat.RTO[i], color = 'lightgray', alpha = 0.5)
+        
+    answer = True # if data check is off. 
+    if data_check == 1:
+        
+        answer = messagebox.askyesno("Question","Is data clean?")
+    
+    if answer == False:
+        plt.close('all')
+        print('Adding file to bad file list')
+        badFileList.append(fName)
 
-    try: 
-        #fName = entries[205]
-        subName = fName.split(sep = "_")[0]
-        ConfigTmp = fName.split(sep="_")[1]
-        moveTmp = fName.split(sep = "_")[2].split(sep = '.')[0].lower()
+    if answer == True:
+        print('Select start of sprint')
+        sprintStart = plt.ginput(1)
+        sprintStart = round(sprintStart[0][0])
+        plt.close('all')
+        print('Estimating point estimates')
         
-        # Make sure the files are named FirstLast_Config_Movement_Trial# - The "if" statement won't work if there isn't a trial number next to the movement
-        if ('skate' in moveTmp) or ('cmj' in moveTmp) or ('run' in moveTmp) or ('walk' in moveTmp):
-            #dat = pd.read_csv(fPath+fName, sep=',', skiprows = 1, header = 'infer')
-        
-            tmpDat = createTSmat(fName)
-            tmpDat.plotAvgPressure()
+
+        for i in range(len(tmpDat.RHS)-1):
             
-            answer = True # if data check is off. 
-            if data_check == 1:
-                plt.figure()
-                plt.plot(tmpDat.RForce, label = 'Right Foot Total Force')
-                for i in range(len(tmpDat.RHS)):
-    
-                    plt.axvspan(tmpDat.RHS[i], tmpDat.RTO[i], color = 'lightgray', alpha = 0.5)
-                answer = messagebox.askyesno("Question","Is data clean?")
+            frames = tmpDat.RTO[i] - tmpDat.RHS[i]
             
-            
-            
-            if answer == False:
-                plt.close('all')
-                print('Adding file to bad file list')
-                badFileList.append(fName)
-        
-            if answer == True:
-                plt.close('all')
-                print('Estimating point estimates')
-                tmpDat.plotAvgPressure()
-    
-                for i in range(len(tmpDat.RHS)):
+            if (frames > 20) & ((tmpDat.RHS[i+1]-tmpDat.RTO[i]) > 5):
+                try: 
+                    #i = 326
                     
-                    #i = 5
-                    config.append(tmpDat.config)
-                    subject.append(tmpDat.subject)
-                    movement.append(moveTmp)
-                    frames = tmpDat.RTO[i] - tmpDat.RHS[i]
+                    
+                    heelArea = np.count_nonzero(tmpDat.plantarHeel[tmpDat.RTO[i]:tmpDat.RHS[i+1], :, :], axis = (1,2))
+                    heelAreaLate.append(np.mean(heelArea)/43*100) 
+                    maxmaxToes.append(np.max(tmpDat.plantarToe[tmpDat.RHS[i]:tmpDat.RTO[i]])*6.895)
+                    
+                        
                     ct.append(frames/200)
                     pct10 = tmpDat.RHS[i] + round(frames*.1)
                     pct40 = tmpDat.RHS[i] + round(frames*.4)
                     pct50 = tmpDat.RHS[i] + round(frames*.5)
                     pct60 = tmpDat.RHS[i] + round(frames*.6)
                     pct90 = tmpDat.RHS[i] + round(frames*.9)
+                
                     
-
-                    
-                    maxmaxToes.append(np.max(tmpDat.plantarToe[tmpDat.RHS[i]:tmpDat.RTO[i]])*6.895)
                     toePmidstance.append(np.mean(tmpDat.plantarToe[pct40:pct60,:,:])*6.895)
-                    toeAreamidstance.append(np.count_nonzero(tmpDat.plantarToe[pct40:pct60,:,:])/(pct60 - pct40)/47*100)
-                    ffAreaLate.append(np.count_nonzero(tmpDat.plantarForefoot[pct90:tmpDat.RTO[i], :,:])/(tmpDat.RTO[i] - pct90)/67*100)
+                    toeAreamidstance.append(np.count_nonzero(tmpDat.plantarToe[pct40:pct60,:,:])/(pct60 - pct40)/39*100)
+                    ffAreaLate.append(np.count_nonzero(tmpDat.plantarForefoot[pct90:tmpDat.RTO[i], :,:])/(tmpDat.RTO[i] - pct90)/68*100)
                     ffPLate.append(np.mean(tmpDat.plantarForefoot[pct90:tmpDat.RTO[i], :, :])*6.895)
                     ffPMaxLate.append(np.max(tmpDat.plantarForefoot[pct90:tmpDat.RTO[i], :, :]))
-                    ffAreaMid.append(np.count_nonzero(tmpDat.plantarForefoot[pct40:pct60, :,:])/(pct60 - pct40)/67*100)
+                    ffAreaMid.append(np.count_nonzero(tmpDat.plantarForefoot[pct40:pct60, :,:])/(pct60 - pct40)/68*100)
                     ffPMid.append((np.mean(tmpDat.plantarForefoot[pct40:pct60, :, :]))*6.895)
                     
                     mfAreaLate.append(np.count_nonzero(tmpDat.plantarMidfoot[pct90:tmpDat.RTO[i], :,:])/(tmpDat.RTO[i] - pct90)/70*100)
@@ -564,7 +564,7 @@ for fName in entries:
                     mfAreaMid.append(np.count_nonzero(tmpDat.plantarMidfoot[pct40:pct60, :,:])/(pct60 - pct40)/70*100)
                     mfPMid.append((np.mean(tmpDat.plantarMidfoot[pct40:pct60, :, :]))*6.895)
                     
-                    heelAreaLate.append(np.count_nonzero(tmpDat.plantarHeel[pct50:tmpDat.RTO[i], :, :])/(tmpDat.RTO[i] - pct50)/36*100) # making this from 50% stance time to toe off to match big data. Consider switing to 90% to toe off?
+                                           
                     heelPLate.append(np.mean(tmpDat.plantarHeel[pct90:tmpDat.RTO[i], :, :])*6.895)
     
                     latPmidstance.append(np.mean(tmpDat.plantarLateral[pct40:pct60, :, :])*6.895)
@@ -596,40 +596,44 @@ for fName in entries:
                     mfDorsalMax.append(np.max(tmpDat.dorsalMidfoot[tmpDat.RHS[i]:tmpDat.RTO[i], :, :])*6.895)
                     instepMax.append(np.max(tmpDat.dorsalInstep[tmpDat.RHS[i]:tmpDat.RTO[i], :, :])*6.895)
                     
-    
-                    
-    
-            
-
-                outcomes = pd.DataFrame({'Subject': list(subject), 'Movement':list(movement), 'Config':list(config), 'ContactTime':list(ct),
-                                         'toeP_mid':list(toePmidstance),'toeArea_mid':list(toeAreamidstance), 'maxmaxToes':list(maxmaxToes),
-                                         'ffP_late':list(ffPLate), 'ffArea_late':list(ffAreaLate), 'ffP_Mid':list(ffPMid), 'ffArea_Mid':list(ffAreaMid), 'ffPMax_late':list(ffPMaxLate),
-                                         'mfP_late':list(mfPLate), 'mfArea_late':list(mfAreaLate), 'mfP_Mid':list(mfPMid), 'mfArea_Mid':list(mfAreaMid),
-                                         'heelPressure_late':list(heelPLate), 'heelAreaP':list(heelAreaLate),  
-                                         'latP_mid':list(latPmidstance), 'latArea_mid':list(latAreamidstance), 'latP_late':list(latPLate), 'latArea_late':list(latAreaLate), 'latPropMid':list(latPropMid),
-                                         'medP_mid':list(medPmidstance), 'medArea_mid':list(medAreamidstance), 'medP_late':list(medPLate), 'medArea_late':list(medAreaLate), 'medPropMid':list(medPropMid),
-                                         'dorsalVar':list(dorsalVar), 'maxDorsalP':list(maxDorsal),
-                                         'ffDorsalEarlyP':list(ffDorsalEarlyP), 'ffDorsalMidP':list(ffDorsalMidP), 'ffDorsalLateP':list(ffDorsalLateP),
-                                         'mfDorsalEarlyP':list(mfDorsalEarlyP), 'mfDorsalMidP':list(mfDorsalMidP), 'mfDorsalLateP':list(mfDorsalLateP),
-
-                                         'instepEarlyP':list(instepEarlyP), 'instepMidP':list(instepMidP), 'instepLateP':list(instepLateP),
-                                         'ffDorsalMax':list(ffDorsalMax), 'mfDorsalMax':list(mfDorsalMax), 'instepMax':list(instepMax)
-                                         
-                                         })
-
-                outfileName = fPath + '0_CompiledResults1.csv'
-                if save_on == 1:
-                    if os.path.exists(outfileName) == False:
-                    
-                        outcomes.to_csv(outfileName, header=True, index = False)
-                
+                    if tmpDat.RHS[i] <sprintStart:
+                        movement.append('Steady')
                     else:
-                        outcomes.to_csv(outfileName, mode='a', header=False, index = False) 
+                        movement.append('Sprint')
+                    config.append(tmpDat.config)
+                    subject.append(tmpDat.subject)
+                    
+            
+                except: print(fName + 'Bad stroke ' + str(i))
+            
+    outcomes = pd.DataFrame({'Subject': list(subject), 'Movement':list(movement), 'Config':list(config), 'ContactTime':list(ct),
+                             'toeP_mid':list(toePmidstance),'toeArea_mid':list(toeAreamidstance), 'maxmaxToes':list(maxmaxToes),
+                             'ffP_late':list(ffPLate), 'ffArea_late':list(ffAreaLate), 'ffP_Mid':list(ffPMid), 'ffArea_Mid':list(ffAreaMid), 'ffPMax_late':list(ffPMaxLate),
+                             'mfP_late':list(mfPLate), 'mfArea_late':list(mfAreaLate), 'mfP_Mid':list(mfPMid), 'mfArea_Mid':list(mfAreaMid),
+                             'heelPressure_late':list(heelPLate), 'heelAreaP':list(heelAreaLate),  
+                             'latP_mid':list(latPmidstance), 'latArea_mid':list(latAreamidstance), 'latP_late':list(latPLate), 'latArea_late':list(latAreaLate), 'latPropMid':list(latPropMid),
+                             'medP_mid':list(medPmidstance), 'medArea_mid':list(medAreamidstance), 'medP_late':list(medPLate), 'medArea_late':list(medAreaLate), 'medPropMid':list(medPropMid),
+                             'dorsalVar':list(dorsalVar), 'maxDorsalP':list(maxDorsal),
+                             'ffDorsalEarlyP':list(ffDorsalEarlyP), 'ffDorsalMidP':list(ffDorsalMidP), 'ffDorsalLateP':list(ffDorsalLateP),
+                             'mfDorsalEarlyP':list(mfDorsalEarlyP), 'mfDorsalMidP':list(mfDorsalMidP), 'mfDorsalLateP':list(mfDorsalLateP),
+
+                             'instepEarlyP':list(instepEarlyP), 'instepMidP':list(instepMidP), 'instepLateP':list(instepLateP),
+                             'ffDorsalMax':list(ffDorsalMax), 'mfDorsalMax':list(mfDorsalMax), 'instepMax':list(instepMax)
+                             
+                             })
+
+    outfileName = fPath + '0_CompiledResults1.csv'
+    if save_on == 1:
+        if os.path.exists(outfileName) == False:
+        
+            outcomes.to_csv(outfileName, header=True, index = False)
+    
+        else:
+            outcomes.to_csv(outfileName, mode='a', header=False, index = False) 
                 
         
         
-    except:
-            print('Not usable data')             
+               
             
             
             

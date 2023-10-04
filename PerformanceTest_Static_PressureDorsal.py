@@ -18,7 +18,7 @@ save_on = 1
 # Read in files
 # only read .asc files for this work
 
-#fPath = 'C:\\Users\\kate.harrison\\Boa Technology Inc\\PFL Team - General\\Testing Segments\\Snow Performance\\2022\\AlpinePressureMapping_Dec2022\\Pressure\\'
+fPath = 'C:/Users/Kate.Harrison/Boa Technology Inc/PFL Team - General/Testing Segments/AgilityPerformanceData/AS_Trail_DorsalPressureVariationII_PFLMech_June2023/Xsensor/Static/'
 
 
 fileExt = r".csv"
@@ -75,11 +75,25 @@ def createAvgMat(inputName):
     Reads in file, creates average matrix data to be plotted and features
     are extracted. The result is a dataclass which can be used for further plotting
     """
-    dat = pd.read_csv(fPath+inputName, sep=',', skiprows = 1, header = 'infer')
+   
+        
+    #inputName = entries[14]
+    dat = pd.read_csv(fPath+inputName, sep=',', header = 'infer')
     subj = inputName.split(sep="_")[0]
     config = inputName.split(sep="_")[1].split(sep=".")[0]
-    sensel = dat.iloc[:,17:197]
-    plantarSensel = dat.iloc[:,214:]
+    
+    insoleSide = dat['Insole Side'][0]
+    
+    if (insoleSide == 'Left'): 
+        
+        # Left side
+        plantarSensel = dat.iloc[:,18:238]
+        dorsalSensel = dat.iloc[:,250:430]
+    else:  
+        dorsalSensel = dat.iloc[:,18:198]
+        plantarSensel = dat.iloc[:,210:430] 
+        
+    
     
     headers = plantarSensel.columns
     store_r = []
@@ -95,7 +109,7 @@ def createAvgMat(inputName):
         con_press[store_r[ii],store_c[ii]] = np.mean(plantarSensel.iloc[:,ii])
         
    
-    avgDorsalMat = np.array(np.mean(sensel, axis = 0)).reshape((18,10))
+    avgDorsalMat = np.array(np.mean(dorsalSensel, axis = 0)).reshape((18,10))
    
     avgDorsalMat = np.flip(avgDorsalMat, axis = 0)
     avgPlantarMat = np.array(con_press)
@@ -121,11 +135,11 @@ def createAvgMat(inputName):
 
 
 
-for entry in entries[2:]:
+for entry in entries:
     
 
 
-    #entry = entries[1]
+    #entry = entries[7]
     if 'tanding' in entry:
         Movement ='Standing'
     elif 'itting' in entry: 
