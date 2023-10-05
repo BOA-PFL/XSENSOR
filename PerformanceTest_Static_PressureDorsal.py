@@ -45,7 +45,7 @@ class avgData:
     config: str
     subject: str
     fullDat: pd.DataFrame #entire stored dataframe. 
-    #this class is useful for plotting and subsequent analysis
+    #this class is useful for plotting and subsequent analysis. 
     
     # below is a method of the dataclass
     def plotAvgPressure(self):
@@ -72,8 +72,11 @@ class avgData:
 
 def createAvgMat(inputName):
     """ 
-    Reads in file, creates average matrix data to be plotted and features
+    Reads in file, creates average matrix data, in the shape of the pressure sensor(s), to be plotted and features
     are extracted. The result is a dataclass which can be used for further plotting
+    
+    inputName: string
+        filename of data static trial you are processing. 
     """
    
         
@@ -149,7 +152,7 @@ for entry in entries:
 
     tmpAvgMat = createAvgMat(entry)
     tmpAvgMat.plotAvgPressure()
-    answer = messagebox.askyesno("Question","Is data clean?")
+    answer = messagebox.askyesno("Question","Is data clean?") # If entire rows of sensels are blank, its not clean!
     
     plantar = tmpAvgMat.avgPlantar
     
