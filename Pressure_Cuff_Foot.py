@@ -3,6 +3,8 @@
 Created on Mon Nov 21 15:35:44 2022
 
 @author: Dan.Feeney
+
+This code analyzes data collected from the plantar (insole) and dorsal surfaces of the foot when testing boots. 
 """
 
 import pandas as pd
@@ -68,6 +70,11 @@ def createAvgMat(inputName):
     """ 
     Reads in file, creates average matrix data to be plotted and features
     are extracted. The result is a dataclass which can be used for further plotting
+    
+    inputName: string
+        filename of the data you are analyzing, extracted from the 'entries' list
+        
+    result: avgData (see dataclass above)
     """
     dat = pd.read_csv(fPath+inputName, sep=',', skiprows = 1, header = 'infer')
     subj = inputName.split(sep="_")[0]
@@ -100,6 +107,7 @@ def subsetMat(inputDF):
     """ 
     Input an instance of class avgData with regions of the foot separated
     with masks from XSENSOR
+    
     Outputs an instance of class footLocData with each region separated out 
     """
     
@@ -125,6 +133,10 @@ def calcSummaryStats(inputDF):
     """ 
     Calculates mean, peak, and contact % from an input DF
     4,6,and 9 are mean, peak, and contact% from XSENSOR output
+    
+    input: avgData (see dataclass above)
+    
+    output: outcome variables described above
     """
     colsInterest = list((4,6,9))
     outVal = []
@@ -143,7 +155,7 @@ subject = []
 
 for entry in entries:
     
-    if entry == 'CompiledResults2.csv':
+    if entry == 'CompiledResults2.csv': # don't try to process compiled data csv if it already exists
         print('Compiled results csv exists & will be added to')
     
     else:
