@@ -51,10 +51,10 @@ def reformat_sensels(dat_sensels):
     dat_sensels : dataframe with one average pressure entry for each sensel
         Average pressure from the selected task
 
-    Returns : dataframe reformatted into a matrix in the shape of the pressure sensors. 
+    Returns : 
     -------
     updated_sensels : numpy array
-        Average pressure reformated into an array. Note: in cases where there
+        Average pressure reformated into an array in the shape of the pressure sensor. Note: in cases where there
         is not an entry, the sensel pressure will be zero.
 
     """

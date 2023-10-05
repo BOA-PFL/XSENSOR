@@ -24,11 +24,11 @@ fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
 cropped_entries = [fName for fName in os.listdir(fSave) if fName.endswith(fileExt)]
 
-# Index through the raw data files
+# Index through the raw uncropped data files
 for entry in entries:
     subject = entry.split('_')[0]
     tmpConfig = entry.split('_')[1]
-    # Don't redo cropping
+    # Don't redo cropping, check if it has already been cropped
     cropped_count = 0
     for sub_entry in cropped_entries:
         if str(subject + '_' + tmpConfig) in sub_entry:
@@ -40,15 +40,15 @@ for entry in entries:
         dat = pd.read_csv(fPath+entry, sep=',', skiprows = 1, header = 'infer')
         dat.Note = dat['Note'].fillna(0)
         Notes  = np.array(dat.Note)
-        idx = np.where(Notes != 0)[0]
+        idx = np.where(Notes != 0)[0] # Find rows where there was a note indicating end of one activity
         
         prev_note = 0
         for ii in idx:
-            if ii-prev_note > 5:
+            if ii-prev_note > 5: #Must have at least 5 frames between activies
                 print(Notes[ii])
                 portion = dat.iloc[prev_note:ii,:]
                 if "\r" in Notes[ii]:
-                    # If there is a space in the note name
+                    # If there is a space in the note name, remove it.
                     tmpTrial = Notes[ii].split('\r')[0].replace(" ","")
                 else:
                     tmpTrial = Notes[ii].replace(" ","")

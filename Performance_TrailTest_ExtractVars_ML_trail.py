@@ -4,6 +4,8 @@ Created on Fri May  6 15:44:05 2022
 Script to process trail running plantar pressure
 
 @author: Eric.Honert
+
+Analyze pressure data collected on trail. Aligns with GPS data to separate uphill, level, and downhill portions. 
 """
 
 import pandas as pd
@@ -32,38 +34,26 @@ entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) and f
 
 # list of functions 
 # finding landings on the force plate once the filtered force exceeds the force threshold
-def findLandings(force, fThreshold):
-    ric = []
-    for step in range(len(force)-1):
-        if force[step] < fThreshold and force[step + 1] >= fThreshold:
-            ric.append(step)
-    return ric
 
-#Find takeoff from FP when force goes from above thresh to 0
-def findTakeoffs(force, fThreshold):
-    rto = []
-    for step in range(len(force)-1):
-        if force[step] >= fThreshold and force[step + 1] < fThreshold:
-            rto.append(step + 1)
-    return rto
 
-def trimTakeoffs(landings, takeoffs):
-    if takeoffs[0] < landings[0]:
-        del(takeoffs[0])
-    return(takeoffs)
-
-def trimLandings(landings, trimmedTakeoffs):
-    if landings[len(landings)-1] > trimmedTakeoffs[len(trimmedTakeoffs)-1]:
-        del(landings[-1])
-    return(landings)
-
-def trimForce(inputDFCol, threshForce):
-    forceTot = inputDFCol
-    forceTot[forceTot<threshForce] = 0
-    forceTot = np.array(forceTot)
-    return(forceTot)
 
 def zeroInsoleForce(vForce,freq):
+    """
+    Ensures the min insole force is 0, and sets all values below gait event detection threshodl to 0.
+
+    Parameters
+    ----------
+    vForce : array
+        force time series
+    freq : int
+        sampling frequency 
+
+    Returns
+    -------
+    vForce: array
+        zeroed force time series
+
+    """
     newForce = vForce
     # Quasi-constants
     zcoeff = 0.7
@@ -108,6 +98,26 @@ def zeroInsoleForce(vForce,freq):
     return(newForce)
     
 def findGaitEvents(vForce,freq):
+    """
+    Find indices of landing and takeoff
+
+    Parameters
+    ----------
+    vForce : array
+        force time series
+    freq : int
+        force sampling frequency
+        
+    Returns
+    -------
+    HS: array
+        indices of HS events
+    
+    TO: array
+        indices of TO events
+
+    """
+    
     # Quasi-constants
     zcoeff = 0.9
     
