@@ -40,7 +40,7 @@ freq = 100 # sampling frequency
 
 def delimitTrial(inputDF,FName):
     """
-     This function uses ginput to delimit the start and end of a trial
+    This function uses ginput to delimit the start and end of a trial
     You will need to indicate on the plot when to start/end the trial. 
     You must use tkinter or plotting outside the console to use this function
     Parameters
@@ -438,7 +438,7 @@ def createTSmat(inputName):
 
 # Read in files
 # only read .asc files for this work
-fPath = 'C:/Users/Kate.Harrison/Boa Technology Inc/PFL Team - General/Testing Segments/Cycling Performance Tests/PP_Cycling_PFSBoundary_Mech_May23/Xsensor/'
+fPath = 'C:/Users/Kate.Harrison/Boa Technology Inc/PFL Team - General/Testing Segments/Cycling Performance Tests/PP_Cycling_PFS-SD_DD_DD-HeelLock_Mech_Sept23/Xsensor/'
 fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
 
@@ -447,20 +447,22 @@ entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
 
 badFileList = []
 
-for fName in entries:
+for fName in entries[3:]:
     
-    #fName = entries[5]
+    fName = entries[5]
     config = []
     subject = []
     ct = []
     movement = []
+    trial = []
 
     toePmidstance = []
     toeAreamidstance = []
     ffAreaLate = []
     ffPLate = []
     ffPMaxLate = []
-    heelAreaLate = []
+    heelAreaUp = []
+    heelAreaDown = []
     heelPLate = []
     maxmaxToes = []
     
@@ -502,6 +504,7 @@ for fName in entries:
     
     subName = fName.split(sep = "_")[0]
     ConfigTmp = fName.split(sep="_")[1]
+    trialTmp = fName.split(sep = "_")[2].split(sep = ".")[0]
     
     tmpDat = createTSmat(fName)
     tmpDat.plotAvgPressure()
@@ -539,7 +542,9 @@ for fName in entries:
                     
                     
                     heelArea = np.count_nonzero(tmpDat.plantarHeel[tmpDat.RTO[i]:tmpDat.RHS[i+1], :, :], axis = (1,2))
-                    heelAreaLate.append(np.mean(heelArea)/43*100) 
+                    heelAreaUp.append(np.mean(heelArea)/43*100) 
+                    hAreaDown = np.count_nonzero(tmpDat.plantarHeel[tmpDat.RHS[i]:tmpDat.RTO[i], :, :], axis = (1,2))
+                    heelAreaDown.append(np.mean(hAreaDown/43*100))
                     maxmaxToes.append(np.max(tmpDat.plantarToe[tmpDat.RHS[i]:tmpDat.RTO[i]])*6.895)
                     
                         
@@ -602,15 +607,16 @@ for fName in entries:
                         movement.append('Sprint')
                     config.append(tmpDat.config)
                     subject.append(tmpDat.subject)
+                    trial.append(trialTmp)
                     
             
                 except: print(fName + 'Bad stroke ' + str(i))
             
-    outcomes = pd.DataFrame({'Subject': list(subject), 'Movement':list(movement), 'Config':list(config), 'ContactTime':list(ct),
+    outcomes = pd.DataFrame({'Subject': list(subject), 'Movement':list(movement), 'Config':list(config), 'Trial':list(trial), 'ContactTime':list(ct),
                              'toeP_mid':list(toePmidstance),'toeArea_mid':list(toeAreamidstance), 'maxmaxToes':list(maxmaxToes),
                              'ffP_late':list(ffPLate), 'ffArea_late':list(ffAreaLate), 'ffP_Mid':list(ffPMid), 'ffArea_Mid':list(ffAreaMid), 'ffPMax_late':list(ffPMaxLate),
                              'mfP_late':list(mfPLate), 'mfArea_late':list(mfAreaLate), 'mfP_Mid':list(mfPMid), 'mfArea_Mid':list(mfAreaMid),
-                             'heelPressure_late':list(heelPLate), 'heelAreaP':list(heelAreaLate),  
+                             'heelArea_Up':list(heelAreaUp), 'heelArea_Down':list(heelAreaDown),  
                              'latP_mid':list(latPmidstance), 'latArea_mid':list(latAreamidstance), 'latP_late':list(latPLate), 'latArea_late':list(latAreaLate), 'latPropMid':list(latPropMid),
                              'medP_mid':list(medPmidstance), 'medArea_mid':list(medAreamidstance), 'medP_late':list(medPLate), 'medArea_late':list(medAreaLate), 'medPropMid':list(medPropMid),
                              'dorsalVar':list(dorsalVar), 'maxDorsalP':list(maxDorsal),
@@ -622,7 +628,7 @@ for fName in entries:
                              
                              })
 
-    outfileName = fPath + '0_CompiledResults1.csv'
+    outfileName = fPath + '0_CompiledResults2.csv'
     if save_on == 1:
         if os.path.exists(outfileName) == False:
         

@@ -3,6 +3,8 @@
 Created on Mon Nov 21 15:35:44 2022
 
 @author: Dan.Feeney
+
+This code analyzes data collected from the front and back of the cuff of a boot - the shin and the calf. 
 """
 
 import pandas as pd
@@ -42,7 +44,7 @@ class avgData:
     config: str
     subject: str
     fullDat: pd.DataFrame #entire stored dataframe. 
-    #this class is useful for plotting and subsequent analysis
+    #this class is useful for plotting and subsequent analysis. Data is formatted in the shape of the pressure sensors for plotting and analysis by region. 
     
     # below is a method of the dataclass
     def plotAvgPressure(self):
@@ -71,6 +73,11 @@ def createAvgMat(inputName):
     """ 
     Reads in file, creates average matrix data to be plotted and features
     are extracted. The result is a dataclass which can be used for further plotting
+    
+    inputName: string
+        filename of the data you are analyzing.
+        
+    result: avgData (see dataclass above)
     """
     dat = pd.read_csv(fPath+inputName, sep=',', skiprows = 1, header = 'infer')
     subj = inputName.split(sep="_")[0]
@@ -100,6 +107,7 @@ def createAvgMat(inputName):
     return(result)
 
 
+#initialize outcome variable lists
 meanShinPressure = []
 maxShinPressure = [] 
 sdShinPressure = []

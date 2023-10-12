@@ -253,13 +253,9 @@ oLabel = np.array([])
 oSesh = []
 
 
-heel_var = []
 heel_con = []
 heel_con_1 = [] # 1st half of stance
 heel_con_2 = [] # 2nd half of stance
-
-toe_con = []
-
 
 m_heel_ratio = []
 m_mid_ratio = []
@@ -267,13 +263,9 @@ m_met_ratio = []
 m_toe_ratio = []
 
 m_heelPP_lat = []
-m_heelPP_med = []
-m_heelPP = []
 m_midPP_lat = []
 m_metPP_lat = []
 m_toePP_lat = []
-m_toePP_med = []
-m_toePP = []
 
 avg_toe_force = []
 
@@ -310,23 +302,12 @@ for ii in range(0,len(entries)):
     R_tot_force = zeroInsoleForce(R_tot_force,100)
     [RHS,RTO] = findGaitEvents(R_tot_force,100)
     
-    L_heel_force = np.array(dat.iloc[:,40]+dat.iloc[:,52]-np.min(dat.iloc[:,40])-np.min(dat.iloc[:,52]))*4.44822
-    R_heel_force = np.array(dat.iloc[:,64]+dat.iloc[:,76]-np.min(dat.iloc[:,64])-np.min(dat.iloc[:,76]))*4.44822
-    
     
     L_heel_con = np.array((dat.iloc[:,37]+dat.iloc[:,49])/(dat.iloc[:,38]+dat.iloc[:,50])*100)
     R_heel_con = np.array((dat.iloc[:,61]+dat.iloc[:,73])/(dat.iloc[:,62]+dat.iloc[:,74])*100)
     
-    L_toe_con = np.array((dat.iloc[:,181]+dat.iloc[:,193])/(dat.iloc[:,182]+dat.iloc[:,194])*100)
-    R_toe_con = np.array((dat.iloc[:,205]+dat.iloc[:,217])/(dat.iloc[:,206]+dat.iloc[:,218])*100)
-    
     L_heelPP_lat = np.array(dat.iloc[:,36]-np.min(dat.iloc[:,36]))*6.89476
-    L_heelPP_med = np.array(dat.iloc[:,48]-np.min(dat.iloc[:,48]))*6.89476
-    L_heelPP = np.maximum(L_heelPP_lat,L_heelPP_med)
-    
     R_heelPP_lat = np.array(dat.iloc[:,60]-np.min(dat.iloc[:,60]))*6.89476
-    R_heelPP_med = np.array(dat.iloc[:,72]-np.min(dat.iloc[:,72]))*6.89476
-    R_heelPP = np.maximum(R_heelPP_lat,R_heelPP_med)
     
     L_midPP_lat = np.array(dat.iloc[:,84]-np.min(dat.iloc[:,84]))*6.89476
     R_midPP_lat = np.array(dat.iloc[:,108]-np.min(dat.iloc[:,108]))*6.89476
@@ -335,12 +316,7 @@ for ii in range(0,len(entries)):
     R_metPP_lat = np.array(dat.iloc[:,156]-np.min(dat.iloc[:,156]))*6.89476
     
     L_toePP_lat = np.array(dat.iloc[:,180]-np.min(dat.iloc[:,180]))*6.89476
-    L_toePP_med = np.array(dat.iloc[:,192]-np.min(dat.iloc[:,192]))*6.89476
-    L_toePP = np.maximum(L_toePP_lat,L_toePP_med)
-    
     R_toePP_lat = np.array(dat.iloc[:,204]-np.min(dat.iloc[:,204]))*6.89476
-    R_toePP_med = np.array(dat.iloc[:,216]-np.min(dat.iloc[:,216]))*6.89476
-    R_toePP = np.maximum(R_toePP_lat,R_toePP_med)
     
     
     L_heel_ratio = np.array((dat.iloc[:,40]-np.min(dat.iloc[:,40]))/(dat.iloc[:,52]-np.min(dat.iloc[:,52])))
@@ -395,13 +371,10 @@ for ii in range(0,len(entries)):
         
     # Compute metrics of interest
     for jj in LGS:
-        heel_var.append(np.std(L_heel_force[LHS[jj]:LTO[jj]])/np.mean(L_tot_force[LHS[jj]:LTO[jj]]))
         heel_con.append(np.mean(L_heel_con[LHS[jj]:LTO[jj]]))
         # Estimate for 1st and 2nd half of stance
         heel_con_1.append(np.mean(L_heel_con[LHS[jj]:LHS[jj]+int(.5*(LTO[jj]-LHS[jj]))]))
         heel_con_2.append(np.mean(L_heel_con[LHS[jj]+int(.5*(LTO[jj]-LHS[jj])):LTO[jj]]))
-        
-        toe_con.append(np.mean(L_toe_con[LHS[jj]:LTO[jj]]))
         
         # Examine ratio of forces
         m_heel_ratio.append(np.max(L_heel_ratio[LHS[jj]:LTO[jj]]))
@@ -411,15 +384,9 @@ for ii in range(0,len(entries)):
         
         # Examine the maximum lateral pressures
         m_heelPP_lat.append(np.max(L_heelPP_lat[LHS[jj]:LTO[jj]]))
-        m_heelPP_med.append(np.max(L_heelPP_med[LHS[jj]:LTO[jj]]))
-        m_heelPP.append(np.max(L_heelPP[LHS[jj]:LTO[jj]]))
-        
         m_midPP_lat.append(np.max(L_midPP_lat[LHS[jj]:LTO[jj]]))
         m_metPP_lat.append(np.max(L_metPP_lat[LHS[jj]:LTO[jj]]))
-        
         m_toePP_lat.append(np.max(L_toePP_lat[LHS[jj]:LTO[jj]]))
-        m_toePP_med.append(np.max(L_toePP_med[LHS[jj]:LTO[jj]]))
-        m_toePP.append(np.max(L_toePP[LHS[jj]:LTO[jj]]))
         
         # Average toe force
         avg_toe_force.append(np.mean(L_toe_force[LHS[jj]:LTO[jj]]))
@@ -428,13 +395,10 @@ for ii in range(0,len(entries)):
     
     if Subject not in poorR:
         for jj in RGS:
-            heel_var.append(np.std(R_heel_force[RHS[jj]:RTO[jj]])/np.mean(R_tot_force[RHS[jj]:RTO[jj]]))
             heel_con.append(np.mean(R_heel_con[RHS[jj]:RTO[jj]]))
             # Estimate for 1st and 2nd half of stance
             heel_con_1.append(np.mean(R_heel_con[RHS[jj]:RHS[jj]+int(.5*(RTO[jj]-RHS[jj]))]))
             heel_con_2.append(np.mean(R_heel_con[RHS[jj]+int(.5*(RTO[jj]-RHS[jj])):RTO[jj]]))
-            
-            toe_con.append(np.mean(R_toe_con[RHS[jj]:RTO[jj]]))
             
             # Examine ratio of forces
             m_heel_ratio.append(np.max(R_heel_ratio[RHS[jj]:RTO[jj]]))
@@ -444,19 +408,17 @@ for ii in range(0,len(entries)):
             
             # Examine the maximum lateral pressures
             m_heelPP_lat.append(np.max(R_heelPP_lat[RHS[jj]:RTO[jj]]))
-            m_heelPP_med.append(np.max(R_heelPP_med[RHS[jj]:RTO[jj]]))
-            m_heelPP.append(np.max(R_heelPP[RHS[jj]:RTO[jj]]))
-            
             m_midPP_lat.append(np.max(R_midPP_lat[RHS[jj]:RTO[jj]]))
             m_metPP_lat.append(np.max(R_metPP_lat[RHS[jj]:RTO[jj]]))
-            
             m_toePP_lat.append(np.max(R_toePP_lat[RHS[jj]:RTO[jj]]))
-            m_toePP_med.append(np.max(R_toePP_med[RHS[jj]:RTO[jj]]))
-            m_toePP.append(np.max(R_toePP[RHS[jj]:RTO[jj]]))
             
             # Average toe force
             avg_toe_force.append(np.mean(R_toe_force[RHS[jj]:RTO[jj]]))
             
+            
+    
+    
+    
     # Create Labels
     Llabel = np.zeros([len(LGS),1])
     # Uphill label
@@ -504,9 +466,9 @@ for ii in range(0,len(entries)):
 
 
 outcomes = pd.DataFrame({'Subject':list(oSubject), 'Config': list(oConfig),'Sesh': list(oSesh),
-                         'Label':list(oLabel),'HeelVar':list(heel_var) , 'HeelCon':list(heel_con),'HeelCon1':list(heel_con_1), 'HeelCon2':list(heel_con_2), 'ToeCon':list(toe_con),
-                         'm_heelPP_lat':list(m_heelPP_lat),'m_heelPP_med':list(m_heelPP_med),'m_heelPP':list(m_heelPP),'m_midPP_lat':list(m_midPP_lat),
-                         'm_metPP_lat':list(m_metPP_lat),'m_toePP_lat':list(m_toePP_lat),'m_toePP_med':list(m_toePP_med),'m_toePP':list(m_toePP),
+                         'Label':list(oLabel), 'HeelCon':list(heel_con),'HeelCon1':list(heel_con_1), 'HeelCon2':list(heel_con_2),
+                         'm_heel_ratio':list(m_heel_ratio),'m_mid_ratio':list(m_mid_ratio),'m_met_ratio':list(m_met_ratio),'m_toe_ratio':list(m_toe_ratio),
+                         'm_heelPP_lat':list(m_heelPP_lat),'m_midPP_lat':list(m_midPP_lat),'m_metPP_lat':list(m_metPP_lat),'m_toePP_lat':list(m_toePP_lat),
                          'avg_toe_med':list(avg_toe_force)})
 
 if save_on == 1:

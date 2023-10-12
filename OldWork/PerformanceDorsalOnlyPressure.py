@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
 """
+Created on Wed Jan 18 16:42:37 2023
+
+@author: Dan.Feeney
+"""
+
+# -*- coding: utf-8 -*-
+"""
 Created on Mon Nov 21 15:35:44 2022
 
 @author: Dan.Feeney
@@ -14,7 +21,7 @@ from dataclasses import dataclass
 from tkinter import messagebox
 
 save_on = 1
-check_data = 0
+
 # Read in files
 # only read .asc files for this work
 fPath = 'C:\\Users\\daniel.feeney\\Boa Technology Inc\\PFL Team - General\\Testing Segments\\Snow Performance\\SkiValidation_Dec2022\\InLabPressure\\'
@@ -143,64 +150,42 @@ subject = []
 
 for entry in entries:
     
-    if entry == 'CompiledResults2.csv':
-        print('Compiled results csv exists & will be added to')
+    tmpAvgMat = createAvgMat(entry)
+    tmpAvgMat.plotAvgPressure()
+    answer = messagebox.askyesno("Question","Is data clean?")
     
-    else:
-        tmpAvgMat = createAvgMat(entry)
-        if check_data == 0:
-            answer = True
-        else:
-            tmpAvgMat.plotAvgPressure()
-            answer = messagebox.askyesno("Question","Is data clean?")
+    if answer == False:
+        plt.close('all')
+        print('Adding file to bad file list')
+        #badFileList.append(fName)
+    
+    if answer == True:
+        plt.close('all')
+        print('Estimating point estimates')
+
+        config.append(tmpAvgMat.config)
+        subject.append(tmpAvgMat.subject)
+        meanDorsalPressure = float(np.mean(tmpAvgMat.avgDorsal))
+        maxDorsalPressure = float(np.max(tmpAvgMat.avgDorsal))
+        sdDorsalPressure = float(np.std(tmpAvgMat.avgDorsal))
+        totalDorsalPressure = float(np.sum(tmpAvgMat.avgDorsal))
         
-        if answer == False:
-            plt.close('all')
-            print('Adding file to bad file list')
-            #badFileList.append(fName)
         
-        if answer == True:
-            plt.close('all')
-            print('Estimating point estimates')
-    
-            config = tmpAvgMat.config
-            subject = tmpAvgMat.subject
-            DContact = np.count_nonzero(tmpAvgMat.avgDorsal)
-            meanDorsalPressure = float(np.mean(tmpAvgMat.avgDorsal))
-            maxDorsalPressure = float(np.max(tmpAvgMat.avgDorsal))
-            sdDorsalPressure = float(np.std(tmpAvgMat.avgDorsal))
-            totalDorsalPressure = float(np.sum(tmpAvgMat.avgDorsal))
-            
-            footLocations = subsetMat(tmpAvgMat)
-            # Calculate average, peak, and contact of masked regions of foot
-            [avgMHeel, pkMHeel, conMHeel] = calcSummaryStats(footLocations.RMHeel)
-            [avgLHeel, pkLHeel, conLHeel] = calcSummaryStats(footLocations.RLHeel)
-            [avgMMid, pkMMid, conMMid] = calcSummaryStats(footLocations.RMMidfoot)
-            [avgLMid, pkLMid, conLMid] = calcSummaryStats(footLocations.RLMidfoot)
-            [avgMMets, pkMMets, conMMets] = calcSummaryStats(footLocations.RMMets)
-            [avgLMets, pkLMets, conLMets] = calcSummaryStats(footLocations.RLMets)
-            [avgMToes, pkMToes, conMToes] = calcSummaryStats(footLocations.RMToes)
-            [avgLToes, pkLToes, conLToes] = calcSummaryStats(footLocations.RLToes)
-    
-            
-            outcomes = pd.DataFrame([[subject,config,DContact,meanDorsalPressure,maxDorsalPressure,sdDorsalPressure,totalDorsalPressure,
-                                    avgMHeel, pkMHeel, conMHeel, avgLHeel, pkLHeel, conLHeel, avgMMid, pkMMid, conMMid,
-                                    avgLMid, pkLMid, conLMid, avgMMets, pkMMets, conMMets, avgLMets, pkLMets, conLMets,
-                                    avgMToes, pkMToes, conMToes, avgLToes, pkLToes, conLToes]],
-                                    columns=['Subject','Config','DorsalContact','meanDorsalPressure','maxDorsalPressure','sdDorsalpressure','totalDorsalPressure',
-                                    'avgMHeel', 'pkMHeel', 'conMHeel', 'avgLHeel', 'pkLHeel', 'conLHeel', 'avgMMid', 'pkMMid', 'conMmid',
-                                    'avgLMid', 'pkLMid', 'conLMid', 'avgMMets', 'pkMMets', 'conMMets', 'avgLMets', 'pkLMets', 'conLMets',
-                                    'avgMToes', 'pkMToes', 'conMToes', 'avgLToes', 'pkLToes', 'conLToes'])
-              
-            outfileName = fPath + 'CompiledResults2.csv'
-            if save_on == 1:
-                if os.path.exists(outfileName) == False:
-                    
-                    outcomes.to_csv(outfileName, header=True, index = False)
+
+        
+        outcomes = pd.DataFrame([[subject,config,meanDorsalPressure,maxDorsalPressure,sdDorsalPressure,totalDorsalPressure,
+                                ]],
+                                columns=['Subject','Config','meanDorsalPressure','maxDorsalPressure','sdDorsalpressure','totalDorsalPressure'])
+          
+        outfileName = fPath + 'CompiledResults.csv'
+        if save_on == 1:
+            if os.path.exists(outfileName) == False:
                 
-                else:
-                    outcomes.to_csv(outfileName, mode='a', header=False, index = False) 
-                
+                outcomes.to_csv(outfileName, header=True, index = False)
+            
+            else:
+                outcomes.to_csv(outfileName, mode='a', header=False, index = False) 
+            
     
     
                

@@ -3,6 +3,9 @@
 Created on Mon Sep 18 11:30:31 2023
 
 @author: Eric.Honert
+
+This code analyses the pressure data for STATIC collections of helmet tests. One sensor is placed around the front of the head. One sensor is placed around the back of the head. 
+The first half of each trial is collected with the subject standing straight up, the second half of the trial the subject tilts their head backwards. 
 """
 
 import pandas as pd
@@ -48,10 +51,10 @@ def reformat_sensels(dat_sensels):
     dat_sensels : dataframe with one average pressure entry for each sensel
         Average pressure from the selected task
 
-    Returns
+    Returns : 
     -------
     updated_sensels : numpy array
-        Average pressure reformated into an array. Note: in cases where there
+        Average pressure reformated into an array in the shape of the pressure sensor. Note: in cases where there
         is not an entry, the sensel pressure will be zero.
 
     """
@@ -76,7 +79,8 @@ def reformat_sensels(dat_sensels):
 def plot_helmet_avgs(Press1,Press2):
     """
     The purpose of the function is to generate side-by-side pressure maps for
-    two pressure sensors. In the helmet case: the pressure at the front & back
+    two pressure sensors. In the helmet case: the pressure at the front & back. 
+    Figures are saved into a folder inside the fPath folder called  "PressureMaps"
 
     Parameters
     ----------
@@ -140,7 +144,6 @@ for entry in entries:
     # Some files only have 1 sensor
     TMPside = entry.split(sep="_")[2]
     
-    # Find po
     
     # Reset the matrices for each loop. F is for Front, B is for Back
     avgF_level = []; avgF_tilt = []
