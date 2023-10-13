@@ -25,6 +25,9 @@ entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
 
 @dataclass
 class avgData:
+    """
+    This class reorganizes data from pressure sensors into a matrix the same shape as the pressure sensors, and plots it using heat maps.
+    """
     avgDorsal: np.array
     avgPlantar: np.array
     config: str
@@ -56,6 +59,9 @@ class avgData:
 
 @dataclass
 class footLocData:
+    """
+    This class sorts pressure data by region of the foot.
+    """
     RLHeel: pd.DataFrame
     RMHeel: pd.DataFrame
     RMMidfoot: pd.DataFrame
@@ -163,7 +169,7 @@ for entry in entries:
         if check_data == 0:
             answer = True
         else:
-            tmpAvgMat.plotAvgPressure()
+            tmpAvgMat.plotAvgPressure() # plot heat map of pressure data
             answer = messagebox.askyesno("Question","Is data clean?")
         
         if answer == False:

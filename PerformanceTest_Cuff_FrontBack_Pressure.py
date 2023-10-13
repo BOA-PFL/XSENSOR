@@ -39,6 +39,9 @@ plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
 @dataclass
 class avgData:
+    """
+    This class reorganizes data from pressure sensors into a matrix the same shape as the pressure sensors, and plots it using heat maps.
+    """
     avgDorsal: np.array
     avgPlantar: np.array
     config: str
@@ -124,7 +127,7 @@ calfTotalPressure = []
 for entry in entries:
     
     tmpAvgMat = createAvgMat(entry)
-    tmpAvgMat.plotAvgPressure()
+    tmpAvgMat.plotAvgPressure() # create heat map of pressure data
     answer = messagebox.askyesno("Question","Is data clean?")
     
     if answer == False:

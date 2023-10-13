@@ -40,6 +40,17 @@ plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
 @dataclass
 class avgData:
+    
+    """ 
+    Reads in file, creates average matrix data to be plotted and features
+    are extracted. The result is a dataclass which can be used for further plotting
+    
+    inputName: string
+        filename of the data you are analyzing.
+        
+    result: avgData (see dataclass above)
+    """
+    
     avgDorsal: np.array
     avgPlantar: np.array
     avgDorsal2: np.array
@@ -82,6 +93,9 @@ class avgData:
 
 @dataclass
 class footLocData:
+    """
+    This class sorts pressure data by region of the foot.
+    """
     RLHeel: pd.DataFrame
     RMHeel: pd.DataFrame
     RMMidfoot: pd.DataFrame
@@ -153,4 +167,4 @@ def createAvgMat(inputName, inputName2):
 
 # Create plot #
 tmpAvgMat = createAvgMat(fileOne, fileTwo)
-tmpAvgMat.plotAvgPressure()
+tmpAvgMat.plotAvgPressure() # plot heat maps of pressure data
