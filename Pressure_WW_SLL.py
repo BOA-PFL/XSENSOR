@@ -215,6 +215,10 @@ def findTakeoffs(force, fThreshold):
    
 @dataclass    
 class tsData:
+    """ 
+    Reads in file, creates 3D time series matrix (foot length, foot width, time) to be plotted and features
+    are extracted. The result is a dataclass which can be used for further plotting. Requires findGaitEvents function.
+    """
     dorsalMat: np.array
     dorsalForefoot: np.array
     dorsalForefootLat: np.array 

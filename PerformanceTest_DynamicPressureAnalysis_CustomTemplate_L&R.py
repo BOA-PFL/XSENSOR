@@ -237,6 +237,15 @@ def findGaitEvents(vForce,freq):
    
 @dataclass    
 class tsData:
+    """ 
+    Reads in file, creates average matrix data in the shape of the pressure data, and stacked by time (ie. dim 0 = length of foot, dim 1 = width of foot, dim 2 = time, to be plotted and features
+    are extracted. The result is a dataclass which can be used for further plotting
+    
+    inputName: string
+        filename of the data you are analyzing.
+        
+    result: avgData (see dataclass above)
+    """
     dorsalMat: np.array
     dorsalForefoot: np.array
     dorsalForefootLat: np.array 
@@ -513,7 +522,7 @@ entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
 
 
 
-badFileList = []
+badFileList = [] # make a list files that couldn't be processed properly to go back and troubleshoot
 
 for fName in entries:
     
@@ -580,7 +589,7 @@ for fName in entries:
             #dat = pd.read_csv(fPath+fName, sep=',', skiprows = 1, header = 'infer')
         
             tmpDat = createTSmat(fName)
-            tmpDat.plotAvgPressure()
+            tmpDat.plotAvgPressure() # create heat map of pressure data
             
             answer = True # if data check is off. 
             if data_check == 1:
