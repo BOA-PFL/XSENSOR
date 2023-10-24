@@ -65,9 +65,20 @@ def delimitTrial(inputDF,FName):
         outputDat = inputDF.reset_index(drop = True)
         
     else: 
+        
+        #inputDF = dat
         fig, ax = plt.subplots()
-
-        totForce = np.mean(inputDF.iloc[:,210:430], axis = 1)*6895*0.014699
+        
+        insoleSide = inputDF['Insole Side'][0]
+                   
+        
+        if (insoleSide == 'Left'): 
+            
+            # Left side
+            totForce = np.mean(inputDF.iloc[:,18:238], axis = 1)*6895*0.014699
+        else:  
+            
+            totForce = np.mean(inputDF.iloc[:,210:430], axis = 1)*6895*0.014699
         print('Select a point on the plot to represent the beginning & end of trial')
 
 
@@ -237,15 +248,6 @@ def findGaitEvents(vForce,freq):
    
 @dataclass    
 class tsData:
-    """ 
-    Reads in file, creates average matrix data in the shape of the pressure data, and stacked by time (ie. dim 0 = length of foot, dim 1 = width of foot, dim 2 = time, to be plotted and features
-    are extracted. The result is a dataclass which can be used for further plotting
-    
-    inputName: string
-        filename of the data you are analyzing.
-        
-    result: avgData (see dataclass above)
-    """
     dorsalMat: np.array
     dorsalForefoot: np.array
     dorsalForefootLat: np.array 
@@ -356,11 +358,11 @@ def createTSmat(inputName):
     """
     
     
-    # inputName = entries[2]
+    #inputName = entries[2]
 
   
     # dat = pd.read_csv(fPath+inputName, sep=',', usecols=(columns) )  
-    dat = pd.read_csv(fPath+inputName, sep=',',  header = 'infer')
+    dat = pd.read_csv(fPath+inputName, sep=',', header = 'infer', low_memory=False)
    
     dat = delimitTrial(dat, inputName)
     subj = inputName.split(sep="_")[0]
@@ -370,6 +372,8 @@ def createTSmat(inputName):
     
     
     insoleSide = dat['Insole Side'][0]
+    
+        
     
     if (insoleSide == 'Left'): 
         
@@ -417,9 +421,51 @@ def createTSmat(inputName):
     dorsalMat[dorsalMat <1] = 0  
     
     
-    if ('Insole Side' == 'Right'): 
+    if ('Insole Side' == 'Left'): 
+        plantarToe = plantarMat[:,:7,:] 
         
+        plantarToeLat = plantarMat[:,:7, :5]
+        plantarToeMed = plantarMat[:,:7,5:] 
+        
+        plantarForefoot = plantarMat[:,7:15, :] 
+        
+        plantarForefootLat = plantarMat[:,7:15,:5] #Opposite ":," sequence from R side
+        plantarForefootMed = plantarMat[:,7:15,5:] 
+        
+        plantarMidfoot = plantarMat[:,15:25,:] 
+        
+        plantarMidfootLat = plantarMat[:,15:25,:5] #Opposite ":," sequence from R side
+        plantarMidfootMed = plantarMat[:,15:25,5:] 
+        
+        
+        plantarHeel = plantarMat[:,25:, :] 
+        
+        plantarHeelLat = plantarMat[:,25:,:5] #Opposite ":," sequence from R side
+        plantarHeelMed = plantarMat[:,25:, 5:]
+        
+        
+        dorsalForefoot = dorsalMat[:,:6,:] 
+        
+        dorsalForefootLat = dorsalMat[:,:6,:5]
+        dorsalForefootMed = dorsalMat[:,:6,5:]
+        dorsalMidfoot = dorsalMat[:,6:12, :]  
+        
+        dorsalMidfootLat = dorsalMat[:,6:12,:5]
+        dorsalMidfootMed = dorsalMat[:, 6:12,5:] 
+        
+        dorsalInstep = dorsalMat[:,12:, :] 
+        
+        dorsalInstepLat = dorsalMat[:,12:,:5]
+        dorsalInstepMed = dorsalMat[:,12:,5:]
+        
+        plantarLateral = plantarMat[:,:5]
+        plantarMedial = plantarMat[:,:,5:]
+    
          
+       
+    
+    else:  
+               
         plantarToe = plantarMat[:,:7,:]
         plantarToeLat = plantarMat[:,:7,4:]
         plantarToeMed = plantarMat[:,:7,:4]
@@ -445,48 +491,6 @@ def createTSmat(inputName):
         
         plantarLateral = plantarMat[:,:,4:]
         plantarMedial = plantarMat[:,:,:4]
-    
-    else:  
-               
-        plantarToe = plantarMat[:,:7,:] 
-        
-        plantarToeLat = plantarMat[:,:7, :4]
-        plantarToeMed = plantarMat[:,:7,4:] 
-        
-        plantarForefoot = plantarMat[:,7:15, :] 
-        
-        plantarForefootLat = plantarMat[:,7:15,:4] #Opposite ":," sequence from R side
-        plantarForefootMed = plantarMat[:,7:15,4:] 
-        
-        plantarMidfoot = plantarMat[:,15:25,:] 
-        
-        plantarMidfootLat = plantarMat[:,15:25,:4] #Opposite ":," sequence from R side
-        plantarMidfootMed = plantarMat[:,15:25,4:] 
-        
-        
-        plantarHeel = plantarMat[:,25:, :] 
-        
-        plantarHeelLat = plantarMat[:,25:,:4] #Opposite ":," sequence from R side
-        plantarHeelMed = plantarMat[:,25:, 4:]
-        
-        
-        dorsalForefoot = dorsalMat[:,:6,:] 
-        
-        dorsalForefootLat = dorsalMat[:,:6,:5]
-        dorsalForefootMed = dorsalMat[:,:6,5:]
-        dorsalMidfoot = dorsalMat[:,6:12, :]  
-        
-        dorsalMidfootLat = dorsalMat[:,6:12,:5]
-        dorsalMidfootMed = dorsalMat[:, 6:12,5:] 
-        
-        dorsalInstep = dorsalMat[:,12:, :] 
-        
-        dorsalInstepLat = dorsalMat[:,12:,:5]
-        dorsalInstepMed = dorsalMat[:,12:,5:]
-        
-        plantarLateral = plantarMat[:,:4]
-        plantarMedial = plantarMat[:,:,4:]
-    
     
     
     
@@ -515,14 +519,14 @@ def createTSmat(inputName):
 
 # Read in files
 # only read .asc files for this work
-fPath = 'C:/Users/Kate.Harrison/Boa Technology Inc/PFL Team - General/Testing Segments/AgilityPerformanceData/AS_Trail_DorsalPressureVariationII_PFLMech_June2023/Xsensor/'
+fPath = 'C:/Users/Kate.Harrison/Boa Technology Inc/PFL Team - General/Testing Segments/AgilityPerformanceData/AS_Trail_DorsalPressureVariationIII_PFLMech_July2023/Xsensor/'
 fileExt = r".csv"
-entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
+entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) ]
 
 
 
 
-badFileList = [] # make a list files that couldn't be processed properly to go back and troubleshoot
+badFileList = []
 
 for fName in entries:
     
@@ -579,7 +583,7 @@ for fName in entries:
     
 
     try: 
-        fName = entries[1]
+        #fName = entries[2]
         subName = fName.split(sep = "_")[0]
         ConfigTmp = fName.split(sep="_")[1]
         moveTmp = fName.split(sep = "_")[2].split(sep = '.')[0].lower()
@@ -589,7 +593,7 @@ for fName in entries:
             #dat = pd.read_csv(fPath+fName, sep=',', skiprows = 1, header = 'infer')
         
             tmpDat = createTSmat(fName)
-            tmpDat.plotAvgPressure() # create heat map of pressure data
+            tmpDat.plotAvgPressure()
             
             answer = True # if data check is off. 
             if data_check == 1:
@@ -598,7 +602,7 @@ for fName in entries:
                 for i in range(len(tmpDat.RHS)):
     
                     plt.axvspan(tmpDat.RHS[i], tmpDat.RTO[i], color = 'lightgray', alpha = 0.5)
-                answer = messagebox.askyesno("Question","Is data clean?")
+                    answer = messagebox.askyesno("Question","Is data clean?")
             
             
             
@@ -610,7 +614,7 @@ for fName in entries:
             if answer == True:
                 plt.close('all')
                 print('Estimating point estimates')
-                tmpDat.plotAvgPressure()
+                
     
                 for i in range(len(tmpDat.RHS)):
                     
@@ -626,7 +630,7 @@ for fName in entries:
                     pct60 = tmpDat.RHS[i] + round(frames*.6)
                     pct90 = tmpDat.RHS[i] + round(frames*.9)
                     
-
+    
                     
                     maxmaxToes.append(np.max(tmpDat.plantarToe[tmpDat.RHS[i]:tmpDat.RTO[i]])*6.895)
                     toePmidstance.append(np.mean(tmpDat.plantarToe[pct40:pct60,:,:])*6.895)
@@ -674,40 +678,41 @@ for fName in entries:
                     mfDorsalMax.append(np.max(tmpDat.dorsalMidfoot[tmpDat.RHS[i]:tmpDat.RTO[i], :, :])*6.895)
                     instepMax.append(np.max(tmpDat.dorsalInstep[tmpDat.RHS[i]:tmpDat.RTO[i], :, :])*6.895)
                     
-    
-                    
-    
+
+                
+
+        
+
+            outcomes = pd.DataFrame({'Subject': list(subject), 'Movement':list(movement), 'Config':list(config), 'ContactTime':list(ct),
+                                     'toeP_mid':list(toePmidstance),'toeArea_mid':list(toeAreamidstance), 'maxmaxToes':list(maxmaxToes),
+                                     'ffP_late':list(ffPLate), 'ffArea_late':list(ffAreaLate), 'ffP_Mid':list(ffPMid), 'ffArea_Mid':list(ffAreaMid), 'ffPMax_late':list(ffPMaxLate),
+                                     'mfP_late':list(mfPLate), 'mfArea_late':list(mfAreaLate), 'mfP_Mid':list(mfPMid), 'mfArea_Mid':list(mfAreaMid),
+                                     'heelPressure_late':list(heelPLate), 'heelAreaP':list(heelAreaLate),  
+                                     'latP_mid':list(latPmidstance), 'latArea_mid':list(latAreamidstance), 'latP_late':list(latPLate), 'latArea_late':list(latAreaLate), 'latPropMid':list(latPropMid),
+                                     'medP_mid':list(medPmidstance), 'medArea_mid':list(medAreamidstance), 'medP_late':list(medPLate), 'medArea_late':list(medAreaLate), 'medPropMid':list(medPropMid),
+                                     'dorsalVar':list(dorsalVar), 'maxDorsalP':list(maxDorsal),
+                                     'ffDorsalEarlyP':list(ffDorsalEarlyP), 'ffDorsalMidP':list(ffDorsalMidP), 'ffDorsalLateP':list(ffDorsalLateP),
+                                     'mfDorsalEarlyP':list(mfDorsalEarlyP), 'mfDorsalMidP':list(mfDorsalMidP), 'mfDorsalLateP':list(mfDorsalLateP),
+
+                                     'instepEarlyP':list(instepEarlyP), 'instepMidP':list(instepMidP), 'instepLateP':list(instepLateP),
+                                     'ffDorsalMax':list(ffDorsalMax), 'mfDorsalMax':list(mfDorsalMax), 'instepMax':list(instepMax)
+                                     
+                                     })
+
+            outfileName = fPath + '0_CompiledResults_4.csv'
+            if save_on == 1:
+                if os.path.exists(outfileName) == False:
+                
+                    outcomes.to_csv(outfileName, header=True, index = False)
             
-
-                outcomes = pd.DataFrame({'Subject': list(subject), 'Movement':list(movement), 'Config':list(config), 'ContactTime':list(ct),
-                                         'toeP_mid':list(toePmidstance),'toeArea_mid':list(toeAreamidstance), 'maxmaxToes':list(maxmaxToes),
-                                         'ffP_late':list(ffPLate), 'ffArea_late':list(ffAreaLate), 'ffP_Mid':list(ffPMid), 'ffArea_Mid':list(ffAreaMid), 'ffPMax_late':list(ffPMaxLate),
-                                         'mfP_late':list(mfPLate), 'mfArea_late':list(mfAreaLate), 'mfP_Mid':list(mfPMid), 'mfArea_Mid':list(mfAreaMid),
-                                         'heelPressure_late':list(heelPLate), 'heelAreaP':list(heelAreaLate),  
-                                         'latP_mid':list(latPmidstance), 'latArea_mid':list(latAreamidstance), 'latP_late':list(latPLate), 'latArea_late':list(latAreaLate), 'latPropMid':list(latPropMid),
-                                         'medP_mid':list(medPmidstance), 'medArea_mid':list(medAreamidstance), 'medP_late':list(medPLate), 'medArea_late':list(medAreaLate), 'medPropMid':list(medPropMid),
-                                         'dorsalVar':list(dorsalVar), 'maxDorsalP':list(maxDorsal),
-                                         'ffDorsalEarlyP':list(ffDorsalEarlyP), 'ffDorsalMidP':list(ffDorsalMidP), 'ffDorsalLateP':list(ffDorsalLateP),
-                                         'mfDorsalEarlyP':list(mfDorsalEarlyP), 'mfDorsalMidP':list(mfDorsalMidP), 'mfDorsalLateP':list(mfDorsalLateP),
-
-                                         'instepEarlyP':list(instepEarlyP), 'instepMidP':list(instepMidP), 'instepLateP':list(instepLateP),
-                                         'ffDorsalMax':list(ffDorsalMax), 'mfDorsalMax':list(mfDorsalMax), 'instepMax':list(instepMax)
-                                         
-                                         })
-
-                outfileName = fPath + '0_CompiledResults1.csv'
-                if save_on == 1:
-                    if os.path.exists(outfileName) == False:
-                    
-                        outcomes.to_csv(outfileName, header=True, index = False)
-                
-                    else:
-                        outcomes.to_csv(outfileName, mode='a', header=False, index = False) 
-                
+                else:
+                    outcomes.to_csv(outfileName, mode='a', header=False, index = False) 
+            
         
         
     except:
-            print('Not usable data')             
+            print('Not usable data')
+            badFileList.append(fName)             
             
             
             
