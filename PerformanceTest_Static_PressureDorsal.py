@@ -18,7 +18,7 @@ save_on = 1
 # Read in files
 # only read .asc files for this work
 
-fPath = 'C:/Users/Kate.Harrison/Boa Technology Inc/PFL Team - General/Testing Segments/AgilityPerformanceData/AS_Trail_DorsalPressureVariationII_PFLMech_June2023/Xsensor/Static/'
+fPath = 'Z:\\Testing Segments\\Material Testing\\StructureMaterialsA&S\\XSensor\\Cropped\\Static\\'
 
 
 fileExt = r".csv"
@@ -89,9 +89,9 @@ def createAvgMat(inputName):
     
     if (insoleSide == 'Left'): 
         
-        # Left side
-        plantarSensel = dat.iloc[:,18:238]
-        dorsalSensel = dat.iloc[:,250:430]
+       # Left side
+       plantarSensel = dat.iloc[:,18:238]
+       dorsalSensel = dat.iloc[:,250:430]
     else:  
         dorsalSensel = dat.iloc[:,18:198]
         plantarSensel = dat.iloc[:,210:430] 
@@ -122,30 +122,29 @@ def createAvgMat(inputName):
     return(result)
 
 
-# meanDorsalPressure = []
-# maxDorsalPressure = [] 
-# sdDorsalPressure = []
-# totalDorsalPressure = []
-# config = []
-# subject = []
-# Movement = []
+meanDorsalPressure = []
+maxDorsalPressure = [] 
+sdDorsalPressure = []
+totalDorsalPressure = []
+config = []
+subject = []
+Movement = []
+plantarContact = []
+plantarPeakPressure = []
+plantarAvgPressure = []
+plantarSDPressure = []
+plantarTotalPressure = []
 
-# plantarContact = []
-# plantarPeakPressure = []
-# plantarAvgPressure = []
-# plantarSDPressure = []
-# plantarTotalPressure = []
-
-
+#insoleSide = 'Right'
 
 for entry in entries:
     
 
 
     #entry = entries[7]
-    if 'tanding' in entry:
+    if 'tand' in entry:
         Movement ='Standing'
-    elif 'itting' in entry: 
+    elif 'it' in entry: 
         Movement ='Sitting'
             
 

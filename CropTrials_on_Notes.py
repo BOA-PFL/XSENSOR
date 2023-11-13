@@ -18,8 +18,8 @@ import math
 import matplotlib.pyplot as plt
 import os
 
-fPath = 'C:/Users/eric.honert/Boa Technology Inc/PFL Team - General/Testing Segments/WorkWear_Performance/EH_Workwear_MidCutStabilityI_CPDMech_June23/Pressure/Raw/' #Where the uncropped data live
-fSave = 'C:/Users/eric.honert/Boa Technology Inc/PFL Team - General/Testing Segments/WorkWear_Performance/EH_Workwear_MidCutStabilityI_CPDMech_June23/Pressure/' #Where to save cropped data
+fPath = 'Z:\\Testing Segments\\Material Testing\\StructureMaterialsA&S\\XSensor\\' #Where the uncropped data live
+fSave = 'Z:\\Testing Segments\\Material Testing\\StructureMaterialsA&S\\XSensor\\Cropped\\' #Where to save cropped data
 fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
 cropped_entries = [fName for fName in os.listdir(fSave) if fName.endswith(fileExt)]
@@ -31,13 +31,13 @@ for entry in entries:
     # Don't redo cropping, check if it has already been cropped
     cropped_count = 0
     for sub_entry in cropped_entries:
-        if str(subject + '_' + tmpConfig) in sub_entry:
+       if str(subject + '_' + tmpConfig) in sub_entry:
             cropped_count = cropped_count + 1
     
     if cropped_count == 0:
         print(entry)
         tmpSesh = entry.split('_')[2][0]
-        dat = pd.read_csv(fPath+entry, sep=',', skiprows = 1, header = 'infer')
+        dat = pd.read_csv(fPath+entry, sep=',', skiprows = 1, header = 'infer', engine = 'python')
         dat.Note = dat['Note'].fillna(0)
         Notes  = np.array(dat.Note)
         idx = np.where(Notes != 0)[0] # Find rows where there was a note indicating end of one activity
