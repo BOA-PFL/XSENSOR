@@ -145,7 +145,11 @@ for entry in entries:
     #entry = entries[7]
     if 'tanding' in entry:
         Movement ='Standing'
-    elif 'itting' in entry: 
+    if 'tand' in entry:
+        Movement ='Standing'
+    if 'itting' in entry: 
+        Movement ='Sitting'
+    if 'it' in entry: 
         Movement ='Sitting'
             
 
