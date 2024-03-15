@@ -18,7 +18,7 @@ save_on = 1
 # Read in files
 # only read .asc files for this work
 
-fPath = 'C:/Users/Kate.Harrison/Boa Technology Inc/PFL Team - General/Testing Segments/AgilityPerformanceData/AS_Trail_DorsalPressureVariationII_PFLMech_June2023/Xsensor/Static/'
+fPath = 'C:\\Users\\bethany.kilpatrick\\Boa Technology Inc\\PFL - General\\Testing Segments\\Cycling Performance Tests\\PP_CyclingUpperStiffness_Performance_March24\\Xsensor\\Static\\'
 
 
 fileExt = r".csv"
@@ -45,7 +45,7 @@ class avgData:
     config: str
     subject: str
     fullDat: pd.DataFrame #entire stored dataframe. 
-    #this class is useful for plotting and subsequent analysis
+    #this class is useful for plotting and subsequent analysis. 
     
     # below is a method of the dataclass
     def plotAvgPressure(self):
@@ -72,12 +72,16 @@ class avgData:
 
 def createAvgMat(inputName):
     """ 
-    Reads in file, creates average matrix data to be plotted and features
+    Reads in file, creates average matrix data, in the shape of the pressure sensor(s), to be plotted and features
     are extracted. The result is a dataclass which can be used for further plotting
+    
+    inputName: string
+        filename of data static trial you are processing. 
     """
    
         
-    #inputName = entries[14]
+    # inputName = entries[2]
+   
     dat = pd.read_csv(fPath+inputName, sep=',', header = 'infer')
     subj = inputName.split(sep="_")[0]
     config = inputName.split(sep="_")[1].split(sep=".")[0]
@@ -108,11 +112,18 @@ def createAvgMat(inputName):
     for ii in range(len(headers)-1):
         con_press[store_r[ii],store_c[ii]] = np.mean(plantarSensel.iloc[:,ii])
         
-   
+    con_press[con_press < 1] = 0
+    
+    
     avgDorsalMat = np.array(np.mean(dorsalSensel, axis = 0)).reshape((18,10))
    
-    avgDorsalMat = np.flip(avgDorsalMat, axis = 0)
-    avgPlantarMat = np.array(con_press)
+    avgDorsalMat = np.flip(avgDorsalMat, axis = 0) 
+    
+    avgDorsalMat[avgDorsalMat <1] = 0  
+    
+    avgPlantarMat = np.array(con_press) 
+    
+    
     
     result = avgData(avgDorsalMat, avgPlantarMat, config, subj, dat)
     
@@ -133,23 +144,28 @@ def createAvgMat(inputName):
 # plantarSDPressure = []
 # plantarTotalPressure = []
 
-
+heelArea = [] 
+heelAreaUP = []
 
 for entry in entries:
     
 
 
-    #entry = entries[7]
+    # entry = entries[3]
     if 'tanding' in entry:
         Movement ='Standing'
-    elif 'itting' in entry: 
+    if 'tand' in entry:
+        Movement ='Standing'
+    if 'itting' in entry: 
+        Movement ='Sitting'
+    if 'it' in entry: 
         Movement ='Sitting'
             
 
 
     tmpAvgMat = createAvgMat(entry)
     tmpAvgMat.plotAvgPressure()
-    answer = messagebox.askyesno("Question","Is data clean?")
+    answer = messagebox.askyesno("Question","Is data clean?") # If entire rows of sensels are blank, its not clean!
     
     plantar = tmpAvgMat.avgPlantar
     
@@ -195,12 +211,13 @@ for entry in entries:
         ffPressure = float(np.mean(tmpAvgMat.avgPlantar[7:15, :])*6.895)
         mfContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[15:25, :])/70*100)
         mfPressure = float(np.mean(tmpAvgMat.avgPlantar[15:25, :])*6.895)
-        heelContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[25:, :])/36*100)
+        
+        heelContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[25:, :])/43*100)
         heelPressure = float(np.mean(tmpAvgMat.avgPlantar[25:, :])*6.895)
 
         
 
-        outcomes = pd.DataFrame([[subject,config,Movement, 
+        outcomes = pd.DataFrame([[subject,config, Movement,
                                   dorsalContact, meanDorsalPressure, maxDorsalPressure,sdDorsalPressure,totalDorsalPressure,
 
                                   ffDorsalContact, ffDorsalPressure, ffDorsalMaxPressure, mfDorsalContact, mfDorsalPressure,  mfDorsalMaxPressure, instepDorsalContact, instepDorsalPressure, instepDorsalMaxPressure,
@@ -225,7 +242,7 @@ for entry in entries:
                                          ])
 
           
-        outfileName = fPath + 'CompiledResults_Static.csv'
+        outfileName = fPath + '0_CompiledResults_Static.csv'
         if save_on == 1:
             if os.path.exists(outfileName) == False:
                 
