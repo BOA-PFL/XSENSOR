@@ -80,7 +80,7 @@ def createAvgMat(inputName):
     """
    
         
-    # inputName = entries[2]
+    inputName = entries[4]
    
     dat = pd.read_csv(fPath+inputName, sep=',', header = 'infer')
     subj = inputName.split(sep="_")[0]
@@ -212,7 +212,7 @@ for entry in entries:
         mfContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[15:25, :])/70*100)
         mfPressure = float(np.mean(tmpAvgMat.avgPlantar[15:25, :])*6.895)
         
-        heelContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[25:, :])/43*100)
+        heelContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[25:, :])/35*100)
         heelPressure = float(np.mean(tmpAvgMat.avgPlantar[25:, :])*6.895)
 
         
