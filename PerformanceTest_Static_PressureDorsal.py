@@ -13,12 +13,14 @@ import seaborn as sns
 from dataclasses import dataclass
 from tkinter import messagebox
 
-save_on = 1
+import scipy.signal as sig
+
+save_on = 0
 
 # Read in files
 # only read .asc files for this work
 
-fPath = 'C:\\Users\\bethany.kilpatrick\\Boa Technology Inc\\PFL - General\\Testing Segments\\Cycling Performance Tests\\PP_CyclingUpperStiffness_Performance_March24\\Xsensor\\Static\\'
+fPath = 'C:\\Users\\bethany.kilpatrick\\Boa Technology Inc\\PFL - General\\Testing Segments\\Cycling Performance Tests\\PP_CyclingUpperStiffnessII_May2024\\Xsensor\\Static\\'
 
 
 fileExt = r".csv"
@@ -57,7 +59,15 @@ class avgData:
         ax2.set(xticklabels=[])
         ax2.set_title('Plantar Pressure') 
         plt.suptitle(self.config)
-        plt.tight_layout()
+        plt.tight_layout() 
+        
+        saveFolder= fPath + '2DPlots'
+        
+        if os.path.exists(saveFolder) == False:
+            os.mkdir(saveFolder)
+            
+        plt.savefig(saveFolder + '/' + self.subject + self.config + '.png')
+         
         return fig  
     
     def sortDF(self, colName):
@@ -80,13 +90,13 @@ def createAvgMat(inputName):
     """
    
         
-    inputName = entries[4]
-   
-    dat = pd.read_csv(fPath+inputName, sep=',', header = 'infer')
+    # inputName = entries[0]
+    # dat = pd.read_csv(fPath+inputName, sep=',',skiprows = 1, header = 'infer')
+    dat = pd.read_csv(fPath+inputName, sep=',',header = 'infer')
     subj = inputName.split(sep="_")[0]
     config = inputName.split(sep="_")[1].split(sep=".")[0]
     
-    insoleSide = dat['Insole Side'][0]
+    insoleSide = dat['Insole.1'][0] #Depending on the export, might be names "Insole Side"
     
     if (insoleSide == 'Left'): 
         
@@ -130,36 +140,36 @@ def createAvgMat(inputName):
     return(result)
 
 
-# meanDorsalPressure = []
-# maxDorsalPressure = [] 
-# sdDorsalPressure = []
-# totalDorsalPressure = []
-# config = []
-# subject = []
-# Movement = []
+meanDorsalPressure = []
+maxDorsalPressure = [] 
+sdDorsalPressure = []
+totalDorsalPressure = []
+config = []
+subject = []
+Movement = []
 
-# plantarContact = []
-# plantarPeakPressure = []
-# plantarAvgPressure = []
-# plantarSDPressure = []
-# plantarTotalPressure = []
+plantarContact = []
+plantarPeakPressure = []
+plantarAvgPressure = []
+plantarSDPressure = []
+plantarTotalPressure = []
 
 heelArea = [] 
 heelAreaUP = []
 
-for entry in entries:
+for entry in entries[1:]:
     
 
 
     # entry = entries[3]
-    if 'tanding' in entry:
-        Movement ='Standing'
-    if 'tand' in entry:
-        Movement ='Standing'
-    if 'itting' in entry: 
-        Movement ='Sitting'
-    if 'it' in entry: 
-        Movement ='Sitting'
+    # if 'tanding' in entry:
+    #     Movement ='Standing'
+    # if 'tand' in entry:
+    #     Movement ='Standing'
+    # if 'itting' in entry: 
+    #     Movement ='Sitting'
+    # if 'it' in entry: 
+    #     Movement ='Sitting'
             
 
 
@@ -217,7 +227,7 @@ for entry in entries:
 
         
 
-        outcomes = pd.DataFrame([[subject,config, Movement,
+        outcomes = pd.DataFrame([[subject,config, 
                                   dorsalContact, meanDorsalPressure, maxDorsalPressure,sdDorsalPressure,totalDorsalPressure,
 
                                   ffDorsalContact, ffDorsalPressure, ffDorsalMaxPressure, mfDorsalContact, mfDorsalPressure,  mfDorsalMaxPressure, instepDorsalContact, instepDorsalPressure, instepDorsalMaxPressure,
@@ -227,7 +237,7 @@ for entry in entries:
                                   toeContact, toePressure, ffContact, ffPressure, mfContact, mfPressure, heelContact, heelPressure
                                   ]],
                                 
-                                columns=['Subject','Config', 'Movement', 
+                                columns=['Subject','Config', 
                                          'dorsalContact', 'meanDorsalPressure','maxDorsalPressure','sdDorsalPressure','totalDorsalPressure',
                                          
 
