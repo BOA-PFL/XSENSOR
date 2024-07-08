@@ -96,7 +96,7 @@ def createAvgMat(inputName):
     subj = inputName.split(sep="_")[0]
     config = inputName.split(sep="_")[1].split(sep=".")[0]
     
-    insoleSide = dat['Insole.1'][0] #Depending on the export, might be names "Insole Side"
+    insoleSide = dat['Insole.1'][0]
     
     if (insoleSide == 'Left'): 
         
@@ -157,19 +157,19 @@ plantarTotalPressure = []
 heelArea = [] 
 heelAreaUP = []
 
-for entry in entries[1:]:
+for entry in entries:
     
 
 
     # entry = entries[3]
-    # if 'tanding' in entry:
-    #     Movement ='Standing'
-    # if 'tand' in entry:
-    #     Movement ='Standing'
-    # if 'itting' in entry: 
-    #     Movement ='Sitting'
-    # if 'it' in entry: 
-    #     Movement ='Sitting'
+    if 'tanding' in entry:
+        Movement ='Standing'
+    if 'tand' in entry:
+        Movement ='Standing'
+    if 'itting' in entry: 
+        Movement ='Sitting'
+    if 'it' in entry: 
+        Movement ='Sitting'
             
 
 
@@ -227,7 +227,7 @@ for entry in entries[1:]:
 
         
 
-        outcomes = pd.DataFrame([[subject,config, 
+        outcomes = pd.DataFrame([[subject,config, Movement,
                                   dorsalContact, meanDorsalPressure, maxDorsalPressure,sdDorsalPressure,totalDorsalPressure,
 
                                   ffDorsalContact, ffDorsalPressure, ffDorsalMaxPressure, mfDorsalContact, mfDorsalPressure,  mfDorsalMaxPressure, instepDorsalContact, instepDorsalPressure, instepDorsalMaxPressure,
@@ -237,7 +237,7 @@ for entry in entries[1:]:
                                   toeContact, toePressure, ffContact, ffPressure, mfContact, mfPressure, heelContact, heelPressure
                                   ]],
                                 
-                                columns=['Subject','Config', 
+                                columns=['Subject','Config', 'Movement', 
                                          'dorsalContact', 'meanDorsalPressure','maxDorsalPressure','sdDorsalPressure','totalDorsalPressure',
                                          
 
