@@ -877,7 +877,7 @@ for ii in range(0,len(entries)):
     oLabel = np.concatenate((oLabel,Llabel,Rlabel),axis = None)
     
 
-    outcomes = pd.DataFrame({'Subject': list(subject), 'Movement':list(movement), 'Config':list(config), 'Side':list(side), 'Label':list(oLabel), 'ContactTime':list(ct),
+    outcomes = pd.DataFrame({'Subject': list(subject), 'Movement':list(movement), 'Config':list(config), 'Sesh' : list(sesh), 'Side':list(side), 'Label':list(oLabel), 'ContactTime':list(ct),
                              'toeP_mid':list(toePmidstance),'toeArea_mid':list(toeAreamidstance), 'maxmaxToes':list(maxmaxToes),
                              'ffP_late':list(ffPLate), 'ffArea_late':list(ffAreaLate), 'ffP_Mid':list(ffPMid), 'ffArea_Mid':list(ffAreaMid), 'ffPMax_late':list(ffPMaxLate),
                              'mfP_late':list(mfPLate), 'mfArea_late':list(mfAreaLate), 'mfP_Mid':list(mfPMid), 'mfArea_Mid':list(mfAreaMid), 'mfMax': list(mfmax),
