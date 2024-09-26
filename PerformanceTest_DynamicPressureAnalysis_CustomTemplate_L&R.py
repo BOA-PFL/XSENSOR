@@ -69,7 +69,7 @@ def delimitTrial(inputDF,FName):
         #inputDF = dat
         fig, ax = plt.subplots()
         
-        insoleSide = inputDF['Insole Side'][0]
+        insoleSide = inputDF['Insole'][0]
                    
         
         if (insoleSide == 'Left'): 
@@ -371,7 +371,7 @@ def createTSmat(inputName):
     
     
     
-    insoleSide = dat['Insole Side'][0]
+    insoleSide = dat['Insole'][0]
     
         
     
@@ -421,7 +421,7 @@ def createTSmat(inputName):
     dorsalMat[dorsalMat <1] = 0  
     
     
-    if ('Insole Side' == 'Left'): 
+    if ('Insole' == 'Left'): 
         plantarToe = plantarMat[:,:7,:] 
         
         plantarToeLat = plantarMat[:,:7, :5]
@@ -602,7 +602,7 @@ for fName in entries:
                 for i in range(len(tmpDat.RHS)):
     
                     plt.axvspan(tmpDat.RHS[i], tmpDat.RTO[i], color = 'lightgray', alpha = 0.5)
-                    answer = messagebox.askyesno("Question","Is data clean?")
+                answer = messagebox.askyesno("Question","Is data clean?")
             
             
             
