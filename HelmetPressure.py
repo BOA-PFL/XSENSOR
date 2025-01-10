@@ -16,14 +16,14 @@ import seaborn as sns
 import addcopyfighandler
 from tkinter import messagebox
 
-save_on = 0
+save_on = 1
 debug = 1
 
 # Read in files
 # only read .csv files for this work
-fPath = 'C:/Users/kate.harrison/Boa Technology Inc/PFL Team - General/Testing Segments/Helmets/HelmetPressureTest_Aug2023/Xsensor/'
+fPath = 'C:\\Users\\Kate.Harrison\\Boa Technology Inc\\PFL Team - General\\Testing Segments\\Helmets\\HelmetTest_Sept2024\\Xsensor\\Cropped\\'
 
-fileExt = r"Static_1.csv" # Don't call all .csv files, only the ones that were collected in lab
+fileExt = r".csv" # Don't call all .csv files, only the ones that were collected in lab
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
 
 ### set plot font size ###
@@ -69,14 +69,14 @@ def reformat_sensels(dat_sensels):
     
     # Place the data in the affiliated row/column
     updated_sensels = np.zeros((np.max(store_r)+1,np.max(store_c)+1))
-    updated_sensels[updated_sensels==0] = np.nan
+    #updated_sensels[updated_sensels==0] = np.nan
     for ii in range(len(headers)-1):
         updated_sensels[store_r[ii],store_c[ii]] = dat_sensels[ii]
 
     return(updated_sensels)
 
 
-def plot_helmet_avgs(Press1,Press2):
+def plot_helmet_avgs(Press):
     """
     The purpose of the function is to generate side-by-side pressure maps for
     two pressure sensors. In the helmet case: the pressure at the front & back. 
@@ -96,95 +96,63 @@ def plot_helmet_avgs(Press1,Press2):
 
     """
     
-    fig, (ax1, ax2) = plt.subplots(1,2)
-    ax1 = sns.heatmap(reformat_sensels(Press1), ax = ax1, cmap="mako", vmin = 0, vmax = 15)
+    fig, ax1 = plt.subplots(1,1)
+    ax1 = sns.heatmap(reformat_sensels(Press), ax = ax1, cmap="mako", vmin = 0, vmax = 15)
     ax1.set(xticklabels=[])
-    ax1.set_title('Front Pressure') 
-    ax2 = sns.heatmap(reformat_sensels(Press2), ax = ax2, cmap="mako", vmin = 0, vmax = 15)
-    ax2.set(xticklabels=[])
-    ax2.set_title('Back Pressure') 
+    ax1.set_title('Helmet Pressure') 
+   
     
     outFileFolder = fPath + '/PressureMaps/'
     if os.path.isdir(outFileFolder) == False:
         os.mkdir(outFileFolder)
     
-    plt.savefig(fPath + '/PressureMaps/' + TMPsubj + TMPconfig + '.png')
+    plt.savefig(fPath + '/PressureMaps/' + TMPsubj + TMPconfig + TMPcond + TMPtrial +'.png')
     
     return(fig)
 
 
 config = []
 subject = []
-Position = []
+condition = [] # tight or preferred
+trial = []
 badFileList = []
-aspect = []
 
-PeakPressure = []
-AvgPressure = []
-TotPressure = []
-VarPressure = []
 
-CentrePressure = []
-CentrePeakPressure = []
-SidePressure = []
-SidePeakPressure = []
+avgP = []
+pP = []
+avgP_Front = []
+pP_Front = []
+avgP_Side = []
+pP_Side = []
+avgP_Back = []
+pP_Back = []
 
 
 # Index through all of the selected entries
-for entry in entries:          
+for entry in entries[1:]:          
     # load the file
+    #entry = entries[1]
     print(entry)
     
     #entry= entries[0]
-    dat = pd.read_csv(fPath+entry, sep=',',skiprows = 1, header = 'infer')
+    dat = pd.read_csv(fPath+entry, sep=',', header = 'infer')
     
     TMPsubj = entry.split(sep="_")[0]
     TMPconfig = entry.split(sep="_")[1]
+    TMPcond = entry.split(sep="_")[3]
+    TMPtrial = entry.split(sep="_")[4].split('.')[0]
     
-    # Some files only have 1 sensor
-    TMPside = entry.split(sep="_")[2]
-    
+    avg = np.mean(dat.iloc[:,18:], axis = 0)*6.895
     
     # Reset the matrices for each loop. F is for Front, B is for Back
-    avgF_level = []; avgF_tilt = []
-    avgB_level = []; avgB_tilt = []
+   
     
-    # Separate out trials if there was only one pressure sensor
-    if TMPside == 'Static':
-        # Create averages from each of the different tasks
-        # Assume first 5 seconds in from the level static, last 5 seconds is from the head tilted back
-        # If both sensors are in, the left is the front, right is the back
-        avgF_level = np.mean(dat.iloc[0:501,18:238],axis=0)*6.895
-        F_level = reformat_sensels(avgF_level)
-        avgF_tilt = np.mean(dat.iloc[501:,18:238],axis=0)*6.895
-        
-        avgB_level = np.mean(dat.iloc[0:501,250:],axis=0)*6.895
-        avgB_tilt = np.mean(dat.iloc[501:,250:],axis=0)*6.895
-        B_level = reformat_sensels(avgB_level)
-        
-    elif TMPside == 'Front':
-        # F is for front
-        avgF_level = np.mean(dat.iloc[0:501,18:238],axis=0)*6.895
-        avgF_tilt = np.mean(dat.iloc[501:,18:238],axis=0)*6.895
-        F_level = reformat_sensels(avgF_level)
-        
-    elif TMPside == 'Back':
-        # F is for front
-        avgB_level = np.mean(dat.iloc[0:501,18:238],axis=0)*6.895
-        avgB_tilt = np.mean(dat.iloc[501:,18:238],axis=0)*6.895
-        B_level = reformat_sensels(avgB_level)
+    
         
     # Evaluate pressure with debugging plots
     if debug == 1: 
-        if TMPside == 'Static':
-            plot_helmet_avgs(avgF_level,avgB_level)
-            #plot_helmet_avgs(avgF_tilt,avgB_tilt)
-        elif TMPside == 'Front':
-            plot_helmet_avgs(avgF_level,avgF_level*0)
-            #plot_helmet_avgs(avgF_tilt,avgF_tilt*0)
-        elif TMPside == 'Back':
-            plot_helmet_avgs(avgB_level*0,avgB_level)
-            #plot_helmet_avgs(avgB_tilt*0,avgB_tilt)
+
+        plot_helmet_avgs(avg)
         answer = messagebox.askyesno("Question","Is data clean?")
         plt.close()
     else:
@@ -199,90 +167,32 @@ for entry in entries:
         # plt.close('all')
         print('Estimating point estimates')
         
-        # Evaluate Level Pressure
-        if TMPside == 'Static':
-            # Level
-            aspect.append('Front')
-            config.append(TMPconfig)
-            subject.append(TMPsubj)
-            Position.append('Level')
-            PeakPressure.append(np.max(avgF_level))
-            AvgPressure.append(np.mean(avgF_level))
-            TotPressure.append(np.sum(avgF_level))
-            VarPressure.append(np.std(avgF_level)/np.mean(avgF_level))
-            CentrePressure.append(np.nanmean(F_level[10:21, :]))
-            CentrePeakPressure.append(np.nanmax(F_level[10:21, :]))
-            SidePressure.append(np.nanmean(F_level[:10, :]))
-            SidePeakPressure.append(np.nanmax(F_level[:10, :]))
-            
-            aspect.append('Back')
-            config.append(TMPconfig)
-            subject.append(TMPsubj)
-            Position.append('Level')
-            PeakPressure.append(np.max(avgB_level))
-            AvgPressure.append(np.mean(avgB_level))
-            TotPressure.append(np.sum(avgB_level))
-            VarPressure.append(np.std(avgB_level)/np.mean(avgB_level))
-            CentrePressure.append(np.nanmean(B_level[10:21, :]))
-            CentrePeakPressure.append(np.nanmax(B_level[10:21, :]))
-            SidePressure.append(np.nanmean(B_level[:10, :]))
-            SidePeakPressure.append(np.nanmax(B_level[:10, :]))
-            
-            # # Tilted
-            # aspect.append('Front')
-            # config.append(TMPconfig)
-            # subject.append(TMPsubj)
-            # Position.append('Tilt')
-            # PeakPressure.append(np.max(avgF_tilt))
-            # AvgPressure.append(np.mean(avgF_tilt))
-            # TotPressure.append(np.sum(avgF_tilt))
-            # VarPressure.append(np.std(avgF_tilt)/np.mean(avgF_tilt))
-            
-        if TMPside == 'Front':
-            
-            aspect.append('Front')
-            config.append(TMPconfig)
-            subject.append(TMPsubj)
-            Position.append('Level')
-            PeakPressure.append(np.max(avgF_level))
-            AvgPressure.append(np.mean(avgF_level))
-            TotPressure.append(np.sum(avgF_level))
-            VarPressure.append(np.std(avgF_level)/np.mean(avgF_level))
-            CentrePressure.append(np.nanmean(F_level[10:21, :]))
-            CentrePeakPressure.append(np.nanmax(F_level[10:21, :]))
-            SidePressure.append(np.nanmean(F_level[:10, :]))
-            SidePeakPressure.append(np.nanmax(F_level[:10, :]))
+        subject.append(TMPsubj)
+        config.append(TMPconfig)
+        condition.append(TMPcond)
+        trial.append(TMPtrial)
         
-        if TMPside == 'Static' or TMPside == 'Back':
-            # Level
-            aspect.append('Back')
-            config.append(TMPconfig)
-            subject.append(TMPsubj)
-            Position.append('Level')
-            PeakPressure.append(np.max(avgB_level))
-            AvgPressure.append(np.mean(avgB_level))
-            TotPressure.append(np.sum(avgB_level))
-            VarPressure.append(np.std(avgB_level)/np.mean(avgB_level))
-            CentrePressure.append(np.nanmean(B_level[10:21, :]))
-            CentrePeakPressure.append(np.nanmax(B_level[10:21, :]))
-            SidePressure.append(np.nanmean(B_level[:10, :]))
-            SidePeakPressure.append(np.nanmax(B_level[:10, :]))
-            
-            # # Tilted
-            # aspect.append('Back')
-            # config.append(TMPconfig)
-            # subject.append(TMPsubj)
-            # Position.append('Tilt')
-            # PeakPressure.append(np.max(avgB_tilt))
-            # AvgPressure.append(np.mean(avgB_tilt))
-            # TotPressure.append(np.sum(avgB_tilt))
-            # VarPressure.append(np.std(avgB_tilt)/np.mean(avgB_tilt))
+        avg = reformat_sensels(avg)
+        # Evaluate Level Pressure
+        avgP.append(np.mean(avg, axis = None))
+        pP.append(np.max(avg, axis = None))
+        avgP_Front.append(np.mean(avg[:,26:], axis = None))
+        pP_Front.append(np.max(avg[:,26:], axis = None))
+        avgP_Side.append(np.mean(avg[:,13:26], axis = None))
+        pP_Side.append(np.max(avg[:,13:26], axis = None))
+        avgP_Back.append(np.mean(avg[:,:13], axis = None))
+        pP_Back.append(np.max(avg[:,:13], axis = None))
+        
+  
 
 
 # Save outcomes in a .csv
-outcomes = pd.DataFrame({'Subject':list(subject), 'Config': list(config),'Position': list(Position), 'Aspect':list(aspect),
-                         'PeakPressure': list(PeakPressure), 'AvgPressure': list(AvgPressure), 'TotPressure': list(TotPressure), 'VarPressure': list(VarPressure),
-                         'CentrePressure':list(CentrePressure), 'CentrePeakPressure':list(CentrePeakPressure), 'SidePressure':list(SidePressure), 'SidePeakPressure':list(SidePeakPressure)})
+outcomes = pd.DataFrame({'Subject':list(subject), 'Config': list(config),'Condition': list(condition), 'Trial':list(trial),
+                         'PeakPressure': list(pP), 'AvgPressure': list(avgP), 
+                         'AvgPressure_Front':list(avgP_Front), 'PeakPressure_Front':list(pP_Front), 
+                         'AveragePressure_Side':list(avgP_Side), 'PeakPressure_Side':list(pP_Side),
+                         'AveragePressure_Back':list(avgP_Back), 'PeakPressure_Back':list(pP_Back)
+                         })
 
 if save_on == 1:   
     outcomes.to_csv(fPath + '0_HelmetPressureStatic1.csv', header=True, index = False)
