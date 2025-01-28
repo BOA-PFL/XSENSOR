@@ -13,6 +13,7 @@ import seaborn as sns
 from dataclasses import dataclass
 from tkinter import messagebox
 import scipy.signal as sig
+import math
 
 
 ### set plot font size ###
@@ -69,11 +70,32 @@ def delimitTrial(inputDF,FName):
         #inputDF = dat
         fig, ax = plt.subplots()
         
+<<<<<<< Updated upstream
         insoleSide = inputDF['Insole'][0]
                    
+=======
+        #if these are present in the df label; else skip 
+        insoleL = 0
+        insoleR = 0
+        dorsalT = 0 
+        COP_on = 0
+>>>>>>> Stashed changes
         
-        if (insoleSide == 'Left'): 
-            
+        if inputDF['Insole'][0] == 'Left':      # check to see if right insole used
+            insoleL = 1
+        if  inputDF['Insole.1'][0] == 'Right':  # check to see if left insole used
+            insoleR = 1
+        if math.isnan(inputDF['Insole'][0]):       # check to see if dorsal pad was used
+            dorsalT = 1            
+        if inputDF['COP Row'][0] > 0:       # check to see if COP was exported
+            COP_on = 1
+        
+        
+        # if (insoleSide == 'Left'): 
+        if (insoleL == 1 and COP_on ==1):    
+            # Left side
+            totForce = np.mean(inputDF.iloc[:,20:240], axis = 1)*6895*0.014699
+        if (insoleL == 1):    
             # Left side
             totForce = np.mean(inputDF.iloc[:,18:238], axis = 1)*6895*0.014699
         else:  
@@ -281,6 +303,9 @@ class tsData:
     RHS: np.array 
     RTO: np.array
     
+    COP_X: np.array 
+    COP_Y: np.array 
+
     config: str
     movement: str
     subject: str
@@ -360,16 +385,34 @@ def createTSmat(inputName):
     
     #inputName = entries[2]
 
-  
-    # dat = pd.read_csv(fPath+inputName, sep=',', usecols=(columns) )  
+
     dat = pd.read_csv(fPath+inputName, sep=',', header = 'infer', low_memory=False)
    
     dat = delimitTrial(dat, inputName)
     subj = inputName.split(sep="_")[0]
     config = inputName.split(sep="_")[1]
     movement = inputName.split(sep = '_')[2] 
+    #if these are present in the df label; else skip 
+    insoleL = 0
+    insoleR = 0
+    dorsalT = 0 
+    COP_on = 0
+    
+    if dat['Insole'][0] == 'Left':      # check to see if right insole used
+        insoleL = 1
+    if  dat['Insole.1'][0] == 'Right':  # check to see if left insole used
+        insoleR = 1
+    if math.isnan(dat['Insole'][0]):       # check to see if dorsal pad was used
+        dorsalT = 1            
+    if dat['COP Row'][0] > 0:       # check to see if COP was exported
+        COP_on = 1
+    
+    if (COP_on == 1):
+        COP_Y = dat['COP Column']
+        COP_X = dat['COP Row']
     
     
+<<<<<<< Updated upstream
     
     insoleSide = dat['Insole'][0]
     
@@ -378,9 +421,26 @@ def createTSmat(inputName):
     if (insoleSide == 'Left'): 
         
         # Left side
+=======
+    # exports without COP/ historical data 
+    if (insoleL == 1 and COP_on == 0): 
+        # Left insole used
+>>>>>>> Stashed changes
         plantarSensel = dat.iloc[:,18:238]
         dorsalSensel = dat.iloc[:,250:430]
-    else:  
+    if (insoleR == 1 and COP_on == 0): 
+        # right insole used
+        dorsalSensel = dat.iloc[:,18:198]
+        plantarSensel = dat.iloc[:,210:430] 
+    
+        
+    # exports w COP
+    if (insoleL == 1 and COP_on == 1): 
+        # Left insole used
+        plantarSensel = dat.iloc[:,20:240]
+        dorsalSensel = dat.iloc[:,250:430]
+    if (insoleR == 1 and COP_on == 1):  
+        # right insole used
         dorsalSensel = dat.iloc[:,18:198]
         plantarSensel = dat.iloc[:,210:430] 
 
@@ -508,7 +568,7 @@ def createTSmat(inputName):
                      plantarMat, plantarToe, plantarToeLat, plantarToeMed,
                      plantarForefoot, plantarForefootLat, plantarForefootMed,
                      plantarMidfoot, plantarMidfootLat, plantarMidfootMed,
-                     plantarHeel, plantarHeelLat, plantarHeelMed, plantarLateral, plantarMedial, RForce, RHS, RTO,
+                     plantarHeel, plantarHeelLat, plantarHeelMed, plantarLateral, plantarMedial, RForce, RHS, RTO, COP_X, COP_Y,
                      config, movement, subj, dat)
     
     return(result)
@@ -519,10 +579,10 @@ def createTSmat(inputName):
 
 # Read in files
 # only read .asc files for this work
-fPath = 'C:/Users/Kate.Harrison/Boa Technology Inc/PFL Team - General/Testing Segments/AgilityPerformanceData/AS_Trail_DorsalPressureVariationIII_PFLMech_July2023/Xsensor/'
+fPath = 'C:\\Users\\milena.singletary\\OneDrive - BOA Technology Inc\\General - PFL Team\\Testing Segments\\Hike\\2025_Mechanistic_MidcutSDMechanistic2_Scarpa\\Xsensor\\cropped\\'
 fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) ]
-
+entries = [fName for fName in entries if ('UH' in fName) or ('DH' in fName) or ('trail' in fName) or ('Trail' in fName)]
 
 
 
@@ -699,7 +759,7 @@ for fName in entries:
                                      
                                      })
 
-            outfileName = fPath + '0_CompiledResults_4.csv'
+            outfileName = fPath + '0_CompiledResults.csv'
             if save_on == 1:
                 if os.path.exists(outfileName) == False:
                 
