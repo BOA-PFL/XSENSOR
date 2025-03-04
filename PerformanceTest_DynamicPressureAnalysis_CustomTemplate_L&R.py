@@ -31,7 +31,7 @@ plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
 save_on = 1
 
-data_check = 0
+data_check = 1
 
 fwdLook = 30
 fThresh = 50
@@ -77,28 +77,33 @@ def delimitTrial(inputDF,FName):
         COP_on = 0
 
         # identifying sensors and export used
-        if inputDF['Insole'][0] == 'Left':      # check to see if right insole used
-            insoleL = 1
-            if math.isnan(inputDF['Insole.1'][0]):  # check to see if dorsal pad was used; dorsal column called 'Insole' or 'Insole.1' based on use of L/R
-                dorsalT = 1 
-                
-        if  inputDF['Insole.1'][0] == 'Right':  # check to see if left insole used
-            insoleR = 1   
-            if math.isnan(inputDF['Insole'][0]):  # check to see if dorsal pad was used; dorsal column called 'Insole' or 'Insole.1' based on use of L/R
-                dorsalT = 1 
-                
-        if inputDF['COP Row'][0] > 0:       # check to see if COP was exported
+    #if these are present in the df label; else skip 
+
+        if 'Insole' in inputDF.columns:
+            if  inputDF['Insole'][0] == 'Left':      # check to see if right insole used
+                insoleL = 1
+            if math.isnan(inputDF['Insole'][0]):       # check to see if dorsal pad was used
+                dorsalT = 1
+            else:
+                dorsalT = 0 
+        if 'Insole.1' in inputDF.columns:
+            if  inputDF['Insole.1'][0] == 'Right':  # check to see if left insole used
+                insoleR = 1
+            
+                       
+        if 'COP Row' in inputDF.columns:       # check to see if COP was exported
             COP_on = 1
-        
+        else: 
+            COP_on = 0
 
         
         
         if (COP_on == 1): # COP in CSV
             if (insoleL == 1 and dorsalT ==1):                 # Left Insole
-                totForce = np.mean(inputDF.iloc[:,20:240], axis = 1)*6895*0.014699
+                totForce = np.mean(inputDF.iloc[:,20:240], axis = 1)*6895*0.014699 # iloc needs to be updated for left
                 
             if (insoleR == 1 and dorsalT ==1):                 # Right Insole
-                totForce = np.mean(inputDF.iloc[:,214:434], axis = 1)*6895*0.014699  # use inputDF.columns.get_loc('') to find column index
+                totForce = np.mean(inputDF.iloc[:,212:431], axis = 1)*6895*0.014699  # use inputDF.columns.get_loc('') to find column index
                 
             if (insoleR == 1 and insoleL == 1):     # Left and Right Insole
                 totForce = np.mean(inputDF.iloc[:,18:238], axis = 1)*6895*0.014699 # iloc needs to be updated for two insoles
@@ -111,7 +116,7 @@ def delimitTrial(inputDF,FName):
                 totForce = np.mean(inputDF.iloc[:,18:238], axis = 1)*6895*0.014699
                 
             if (insoleR == 1 and dorsalT ==1):                 # Right Insole
-                totForce = np.mean(inputDF.iloc[:,212:432], axis = 1)*6895*0.014699
+                totForce = np.mean(inputDF.iloc[:,208:427], axis = 1)*6895*0.014699
                 
             if (insoleR == 1 and insoleL == 1):     # Left and Right Insole
                 totForce = np.mean(inputDF.iloc[:,18:238], axis = 1)*6895*0.014699
@@ -439,22 +444,28 @@ def createTSmat(inputName):
     dorsalT = 0 
     COP_on = 0
     
-    if dat['Insole'][0] == 'Left':      # check to see if right insole used
-        insoleL = 1
-    if  dat['Insole.1'][0] == 'Right':  # check to see if left insole used
-        insoleR = 1
-    if math.isnan(dat['Insole'][0]):       # check to see if dorsal pad was used
-        dorsalT = 1            
-    if dat['COP Row'][0] > 0:       # check to see if COP was exported
+    if 'Insole' in dat.columns:
+        if  dat['Insole'][0] == 'Left':      # check to see if right insole used
+            insoleL = 1
+        if math.isnan(dat['Insole'][0]):       # check to see if dorsal pad was used
+            dorsalT = 1
+        else:
+            dorsalT = 0 
+    if 'Insole.1' in dat.columns:
+        if  dat['Insole.1'][0] == 'Right':  # check to see if left insole used
+            insoleR = 1
+        
+                   
+    if 'COP Row' in dat.columns:       # check to see if COP was exported
         COP_on = 1
-    
-    if (COP_on == 1):
-        COP_Y = dat['COP Column']
-        COP_X = dat['COP Row']
-    
+    else: 
+        COP_on = 0
 
-    # exports without COP/ historical data 
+        
+
+     
     if (dorsalT == 1):
+        # exports without COP/ historical data
         if (COP_on == 0 ):
             if (insoleL == 1): 
                 # Left insole used
@@ -462,13 +473,165 @@ def createTSmat(inputName):
                 RplantarSensel = np.nan
                 dorsalSensel = dat.iloc[:,250:430]
 
-                
-            if (insoleR == 1): 
-                # Right insole used
-                dorsalSensel = dat.iloc[:,18:198]
-                RlantarSensel = dat.iloc[:,210:430]
-                LplantarSensel = np.nan
+
+
+                headers = LplantarSensel.columns
+                store_r = []
+                store_c = []
                
+                for name in headers:
+                    store_r.append(int(name.split(sep = "_")[1])-1)
+                    store_c.append(int(name.split(sep = "_")[2].split(sep=".")[0])-1)
+                
+                LplantarMat = np.zeros((dat.shape[0], np.max(store_r)+1,np.max(store_c)+1))
+                
+                for ii in range(len(headers)):
+                    LplantarMat[:, store_r[ii],store_c[ii]] = LplantarSensel.iloc[:,ii]
+                
+                LplantarMat[LplantarMat < 1] = 0
+                
+                
+                
+                headers = dorsalSensel.columns
+                store_r = []
+                store_c = []
+
+                for name in headers:
+                    store_r.append(int(name.split(sep = "_")[1])-1)
+                    store_c.append(int(name.split(sep = "_")[2].split(sep=".")[0])-1)
+                
+                dorsalMat = np.zeros((dat.shape[0], np.max(store_r)+1,np.max(store_c)+1))
+                
+                for ii in range(len(headers)):
+                    dorsalMat[:, store_r[ii],store_c[ii]] = dorsalSensel.iloc[:,ii]
+                
+                
+                dorsalMat = np.flip(dorsalMat, axis = 0) 
+                dorsalMat[dorsalMat <1] = 0  
+           
+            
+           
+            
+            if (insoleR == 1): 
+                 # Right insole used
+                 dorsalSensel = dat.iloc[:,17:196]
+                 RplantarSensel = dat.iloc[:,208:427]
+                 LplantarSensel = np.nan
+
+                 headers = RplantarSensel.columns
+                 store_r = []
+                 store_c = []
+                   
+                 for name in headers:
+                    store_r.append(int(name.split(sep = "_")[1])-1)
+                    store_c.append(int(name.split(sep = "_")[2].split(sep=".")[0])-1)
+                
+                 RplantarMat = np.zeros((dat.shape[0], np.max(store_r)+1,np.max(store_c)+1))
+                
+                 for ii in range(len(headers)):
+                    RplantarMat[:, store_r[ii],store_c[ii]] = RplantarSensel.iloc[:,ii]
+                
+                 RplantarMat[RplantarMat < 1] = 0
+                
+                
+                
+                 headers = dorsalSensel.columns
+                 store_r = []
+                 store_c = []
+                
+                 for name in headers:
+                    store_r.append(int(name.split(sep = "_")[1])-1)
+                    store_c.append(int(name.split(sep = "_")[2].split(sep=".")[0])-1)
+                
+                 dorsalMat = np.zeros((dat.shape[0], np.max(store_r)+1,np.max(store_c)+1))
+                
+                 for ii in range(len(headers)):
+                    dorsalMat[:, store_r[ii],store_c[ii]] = dorsalSensel.iloc[:,ii]
+                
+                
+                 dorsalMat = np.flip(dorsalMat, axis = 0) 
+                 dorsalMat[dorsalMat <1] = 0  
+
+                 RplantarToe = RplantarMat[:,:7,:]
+                 RplantarToeLat = RplantarMat[:,:7,4:]
+                 RplantarToeMed = RplantarMat[:,:7,:4]
+                 RplantarForefoot = RplantarMat[:,7:15, :]
+                 RplantarForefootLat = RplantarMat[:,7:15,4:]
+                 RplantarForefootMed = RplantarMat[:,7:15,:4]
+                 RplantarMidfoot = RplantarMat[:,15:25,:]
+                 RplantarMidfootLat = RplantarMat[:,15:25,4:]
+                 RplantarMidfootMed = RplantarMat[:,15:25,:4]
+                 RplantarHeel = RplantarMat[:,25:, :]
+                 RplantarHeelLat = RplantarMat[:,25:,4:]
+                 RplantarHeelMed = RplantarMat[:,25:, :4]
+               
+                 dorsalForefoot = dorsalMat[:,:6,:]
+                 dorsalForefootLat = dorsalMat[:,:6,5:]
+                 dorsalForefootMed = dorsalMat[:,:6,:5]
+                 dorsalMidfoot = dorsalMat[:,6:12, :]
+                 dorsalMidfootLat = dorsalMat[:,6:12,:5]
+                 dorsalMidfootMed = dorsalMat[:, 6:12,5:]
+                 dorsalInstep = dorsalMat[:,12:, :]
+                 dorsalInstepLat = dorsalMat[:,12:,5:]
+                 dorsalInstepMed = dorsalMat[:,12:,:5]
+               
+                 RplantarLateral = RplantarMat[:,:,4:]
+                 RplantarMedial = RplantarMat[:,:,:4]
+           
+           
+           
+                 RForce = np.mean(RplantarMat, axis = (1,2))*6895*0.014699
+                 RForce = zeroInsoleForce(RForce,freq)
+                 [RHS,RTO] = findGaitEvents(RForce,freq)
+
+                 LplantarMat = np.nan
+                 LplantarToe = np.nan 
+                 LplantarToeLat = np.nan 
+                 LplantarToeMed = np.nan 
+                 LplantarForefoot = np.nan 
+                 LplantarForefootLat = np.nan 
+                 LplantarForefootMed = np.nan 
+                 LplantarMidfoot = np.nan 
+                 LplantarMidfootLat = np.nan 
+                 LplantarMidfootMed = np.nan
+                 LplantarHeel = np.nan 
+                 LplantarHeelLat = np.nan
+                 LplantarHeelMed = np.nan 
+                
+                 LplantarLateral = np.nan
+                 LplantarMedial = np.nan
+                 
+                 LForce = np.nan
+                 [LHS, LTO] = (np.nan, np.nan)
+                 LCOP_Y = np.nan     
+                 LCOP_X = np.nan
+                 RCOP_Y = np.nan
+                 RCOP_X = np.nan
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         # exports w COP
         if (COP_on == 1 ):
             if (insoleL == 1): 
@@ -476,13 +639,16 @@ def createTSmat(inputName):
                 LplantarSensel = dat.iloc[:,20:240]
                 RplantarSensel = np.nan
                 dorsalSensel = dat.iloc[:,250:430]
+                LCOP_Y = dat['COP Column']
+                LCOP_X = dat['COP Row']
         
             if (insoleR == 1):  
                 # Right insole used
-                dorsalSensel = dat.iloc[:,18:198]
-                RplantarSensel = dat.iloc[:,210:430]
+                dorsalSensel = dat.iloc[:,19:198]
+                RplantarSensel = dat.iloc[:,212:431]
                 LplantarSensel = np.nan
-
+                RCOP_Y = dat['COP Column.1']
+                RCOP_X = dat['COP Row.1']
     
     # exports without dorsal data / insole only 
     if (dorsalT == 0):
@@ -503,6 +669,7 @@ def createTSmat(inputName):
                 RplantarSensel = dat.iloc[:,210:430] 
                 LplantarSensel = dat.iloc[:,210:430]
         
+        
         # exports w COP
         if (COP_on == 1 ):
             if (insoleL == 1): 
@@ -510,130 +677,148 @@ def createTSmat(inputName):
                 LplantarSensel = dat.iloc[:,20:240]
                 RplantarSensel = np.nan
                 dorsalSensel = np.nan
+                LCOP_Y = dat['COP Column']
+                LCOP_X = dat['COP Row']
+            
             
             if (insoleR == 1):  
                 # Right insole used
                 RplantarSensel = dat.iloc[:,210:430] 
                 LplantarSensel = np.nan
                 dorsalSensel = np.nan
+                RCOP_Y = dat['COP Column']
+                RCOP_X = dat['COP Row']
+            
+            
+
+
+
+
 
 
             if (insoleL == 1) and (insoleR == 1): # both plantar insole used assuming no dorsal
                 RplantarSensel = dat.iloc[:,210:430] 
                 LplantarSensel = dat.iloc[:,210:430]
+                LCOP_Y = dat['COP Column']          # check to see how these columns are called out
+                LCOP_X = dat['COP Row']
+                RCOP_Y = dat['COP Column']
+                RCOP_X = dat['COP Row']
+   
     
    
     
-    headers = plantarSensel.columns
-    store_r = []
-    store_c = []
+   
+    
+   
+    
+   
+    
+   
+    
+   
+    
+   ############# old function below
+    
+    # headers = LplantarSensel.columns
+    # store_r = []
+    # store_c = []
 
-    for name in headers:
-        store_r.append(int(name.split(sep = "_")[1])-1)
-        store_c.append(int(name.split(sep = "_")[2].split(sep=".")[0])-1)
+    # for name in headers:
+    #     store_r.append(int(name.split(sep = "_")[1])-1)
+    #     store_c.append(int(name.split(sep = "_")[2].split(sep=".")[0])-1)
     
-    plantarMat = np.zeros((dat.shape[0], np.max(store_r)+1,np.max(store_c)+1))
+    # plantarMat = np.zeros((dat.shape[0], np.max(store_r)+1,np.max(store_c)+1))
     
-    for ii in range(len(headers)):
-        plantarMat[:, store_r[ii],store_c[ii]] = plantarSensel.iloc[:,ii]
+    # for ii in range(len(headers)):
+    #     plantarMat[:, store_r[ii],store_c[ii]] = plantarSensel.iloc[:,ii]
     
-    plantarMat[plantarMat < 1] = 0
-    
-    
-    headers = dorsalSensel.columns
-    store_r = []
-    store_c = []
-
-    for name in headers:
-        store_r.append(int(name.split(sep = "_")[1])-1)
-        store_c.append(int(name.split(sep = "_")[2].split(sep=".")[0])-1)
-    
-    dorsalMat = np.zeros((dat.shape[0], np.max(store_r)+1,np.max(store_c)+1))
-    
-    for ii in range(len(headers)):
-        dorsalMat[:, store_r[ii],store_c[ii]] = dorsalSensel.iloc[:,ii]
+    # plantarMat[plantarMat < 1] = 0
     
     
-    dorsalMat = np.flip(dorsalMat, axis = 0) 
-    dorsalMat[dorsalMat <1] = 0  
+    # if (dorsalT == 1):
+    #     headers = dorsalSensel.columns
+    #     store_r = []
+    #     store_c = []
+    
+    #     for name in headers:
+    #         store_r.append(int(name.split(sep = "_")[1])-1)
+    #         store_c.append(int(name.split(sep = "_")[2].split(sep=".")[0])-1)
+        
+    #     dorsalMat = np.zeros((dat.shape[0], np.max(store_r)+1,np.max(store_c)+1))
+        
+    #     for ii in range(len(headers)):
+    #         dorsalMat[:, store_r[ii],store_c[ii]] = dorsalSensel.iloc[:,ii]
+        
+        
+    #     dorsalMat = np.flip(dorsalMat, axis = 0) 
+    #     dorsalMat[dorsalMat <1] = 0  
     
     
-    if ('Insole' == 'Left'): 
-        plantarToe = plantarMat[:,:7,:] 
+    # if ('Insole' == 'Left'): 
+    #     plantarToe = plantarMat[:,:7,:] 
         
-        plantarToeLat = plantarMat[:,:7, :5]
-        plantarToeMed = plantarMat[:,:7,5:] 
-        
-        plantarForefoot = plantarMat[:,7:15, :] 
-        
-        plantarForefootLat = plantarMat[:,7:15,:5] #Opposite ":," sequence from R side
-        plantarForefootMed = plantarMat[:,7:15,5:] 
-        
-        plantarMidfoot = plantarMat[:,15:25,:] 
-        
-        plantarMidfootLat = plantarMat[:,15:25,:5] #Opposite ":," sequence from R side
-        plantarMidfootMed = plantarMat[:,15:25,5:] 
-        
-        
-        plantarHeel = plantarMat[:,25:, :] 
-        
-        plantarHeelLat = plantarMat[:,25:,:5] #Opposite ":," sequence from R side
-        plantarHeelMed = plantarMat[:,25:, 5:]
+    #     plantarToeLat = plantarMat[:,:7, :5]
+    #     plantarToeMed = plantarMat[:,:7,5:] 
+    #     plantarForefoot = plantarMat[:,7:15, :] 
+    #     plantarForefootLat = plantarMat[:,7:15,:5] #Opposite ":," sequence from R side
+    #     plantarForefootMed = plantarMat[:,7:15,5:] 
+    #     plantarMidfoot = plantarMat[:,15:25,:] 
+    #     plantarMidfootLat = plantarMat[:,15:25,:5] #Opposite ":," sequence from R side
+    #     plantarMidfootMed = plantarMat[:,15:25,5:] 
+    #     plantarHeel = plantarMat[:,25:, :] 
+    #     plantarHeelLat = plantarMat[:,25:,:5] #Opposite ":," sequence from R side
+    #     plantarHeelMed = plantarMat[:,25:, 5:]
         
         
-        dorsalForefoot = dorsalMat[:,:6,:] 
+    #     dorsalForefoot = dorsalMat[:,:6,:] 
+    #     dorsalForefootLat = dorsalMat[:,:6,:5]
+    #     dorsalForefootMed = dorsalMat[:,:6,5:]
+    #     dorsalMidfoot = dorsalMat[:,6:12, :]  
+    #     dorsalMidfootLat = dorsalMat[:,6:12,:5]
+    #     dorsalMidfootMed = dorsalMat[:, 6:12,5:] 
+    #     dorsalInstep = dorsalMat[:,12:, :] 
+    #     dorsalInstepLat = dorsalMat[:,12:,:5]
+    #     dorsalInstepMed = dorsalMat[:,12:,5:]
         
-        dorsalForefootLat = dorsalMat[:,:6,:5]
-        dorsalForefootMed = dorsalMat[:,:6,5:]
-        dorsalMidfoot = dorsalMat[:,6:12, :]  
-        
-        dorsalMidfootLat = dorsalMat[:,6:12,:5]
-        dorsalMidfootMed = dorsalMat[:, 6:12,5:] 
-        
-        dorsalInstep = dorsalMat[:,12:, :] 
-        
-        dorsalInstepLat = dorsalMat[:,12:,:5]
-        dorsalInstepMed = dorsalMat[:,12:,5:]
-        
-        plantarLateral = plantarMat[:,:5]
-        plantarMedial = plantarMat[:,:,5:]
+    #     plantarLateral = plantarMat[:,:5]
+    #     plantarMedial = plantarMat[:,:,5:]
     
          
        
     
-    else:  
+    # else:  
                
-        plantarToe = plantarMat[:,:7,:]
-        plantarToeLat = plantarMat[:,:7,4:]
-        plantarToeMed = plantarMat[:,:7,:4]
-        plantarForefoot = plantarMat[:,7:15, :]
-        plantarForefootLat = plantarMat[:,7:15,4:]
-        plantarForefootMed = plantarMat[:,7:15,:4]
-        plantarMidfoot = plantarMat[:,15:25,:]
-        plantarMidfootLat = plantarMat[:,15:25,4:]
-        plantarMidfootMed = plantarMat[:,15:25,:4]
-        plantarHeel = plantarMat[:,25:, :]
-        plantarHeelLat = plantarMat[:,25:,4:]
-        plantarHeelMed = plantarMat[:,25:, :4]
+    #     plantarToe = plantarMat[:,:7,:]
+    #     plantarToeLat = plantarMat[:,:7,4:]
+    #     plantarToeMed = plantarMat[:,:7,:4]
+    #     plantarForefoot = plantarMat[:,7:15, :]
+    #     plantarForefootLat = plantarMat[:,7:15,4:]
+    #     plantarForefootMed = plantarMat[:,7:15,:4]
+    #     plantarMidfoot = plantarMat[:,15:25,:]
+    #     plantarMidfootLat = plantarMat[:,15:25,4:]
+    #     plantarMidfootMed = plantarMat[:,15:25,:4]
+    #     plantarHeel = plantarMat[:,25:, :]
+    #     plantarHeelLat = plantarMat[:,25:,4:]
+    #     plantarHeelMed = plantarMat[:,25:, :4]
         
-        dorsalForefoot = dorsalMat[:,:6,:]
-        dorsalForefootLat = dorsalMat[:,:6,5:]
-        dorsalForefootMed = dorsalMat[:,:6,:5]
-        dorsalMidfoot = dorsalMat[:,6:12, :]
-        dorsalMidfootLat = dorsalMat[:,6:12,:5]
-        dorsalMidfootMed = dorsalMat[:, 6:12,5:]
-        dorsalInstep = dorsalMat[:,12:, :]
-        dorsalInstepLat = dorsalMat[:,12:,5:]
-        dorsalInstepMed = dorsalMat[:,12:,:5]
+    #     dorsalForefoot = dorsalMat[:,:6,:]
+    #     dorsalForefootLat = dorsalMat[:,:6,5:]
+    #     dorsalForefootMed = dorsalMat[:,:6,:5]
+    #     dorsalMidfoot = dorsalMat[:,6:12, :]
+    #     dorsalMidfootLat = dorsalMat[:,6:12,:5]
+    #     dorsalMidfootMed = dorsalMat[:, 6:12,5:]
+    #     dorsalInstep = dorsalMat[:,12:, :]
+    #     dorsalInstepLat = dorsalMat[:,12:,5:]
+    #     dorsalInstepMed = dorsalMat[:,12:,:5]
         
-        plantarLateral = plantarMat[:,:,4:]
-        plantarMedial = plantarMat[:,:,:4]
+    #     plantarLateral = plantarMat[:,:,4:]
+    #     plantarMedial = plantarMat[:,:,:4]
     
     
     
-    RForce = np.mean(plantarMat, axis = (1,2))*6895*0.014699
-    RForce = zeroInsoleForce(RForce,freq)
-    [RHS,RTO] = findGaitEvents(RForce,freq)
+    # RForce = np.mean(plantarMat, axis = (1,2))*6895*0.014699
+    # RForce = zeroInsoleForce(RForce,freq)
+    # [RHS,RTO] = findGaitEvents(RForce,freq)
     
     
     
@@ -666,10 +851,10 @@ def createTSmat(inputName):
 
 # Read in files
 # only read .asc files for this work
-fPath = 'C:\\Users\\milena.singletary\\OneDrive - BOA Technology Inc\\General - PFL Team\\Equipment Manuals\\XSENSOR\\'
+fPath = 'C:\\Users\\milena.singletary\\OneDrive - BOA Technology Inc\\General - PFL Team\\Equipment Manuals\\XSENSOR\\testfiles\\'
 fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) ]
-entries = [fName for fName in entries if ('UH' in fName) or ('DH' in fName) or ('trail' in fName) or ('Trail' in fName)]
+# entries = [fName for fName in entries if ('UH' in fName) or ('DH' in fName) or ('trail' in fName) or ('Trail' in fName)]
 
 
 
