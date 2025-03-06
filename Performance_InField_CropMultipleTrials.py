@@ -4,8 +4,17 @@ Created on Fri Jan 31 17:55:43 2025
 
 @author: Eric.Honert
 
-The purpose of this code is to deliniate trials and name them based on the 
-TrialNotes tab in the Qual excel document
+The purpose of this code is to deliniate trials
+
+The trial names should be labelled as follows:
+    Subject_Config_#*.csv
+    # = the trial that began the data collection
+    * = the trial that ended the data collection
+    EX: KelseyAmoroso_CFS_46.csv
+    4 is the first trial in the CFS condition
+    6 is the last trial in the CFS condition
+
+This code will skip files that have already been delimited
 """
 
 
@@ -69,13 +78,14 @@ for entry in entries:
     if cropped_count == 0:
         print(entry)
         dat = pd.read_csv(fPath+entry, sep=',', skiprows = 1, header = 'infer')
+        columnnames = dat.columns
         
         for jj in range(noTrials):
             # Segment the data
-            if len(dat.iloc[1,:]) > 210:
-                datcrop = delimitTrial(dat,dat.iloc[:,25],dat.iloc[:,226],[0,len(dat.iloc[:,15])])
+            if 'Est. Load (lbf).1' in columnnames:
+                datcrop = delimitTrial(dat,dat['Est. Load (lbf)'],dat['Est. Load (lbf).1'],[0,len(dat.iloc[:,15])])
             else:
-                datcrop = delimitTrial(dat,dat.iloc[:,25],np.zeros(len(dat.iloc[:,15])),[0,len(dat.iloc[:,15])])
+                datcrop = delimitTrial(dat,dat['Est. Load (lbf)'],np.zeros(len(dat.iloc[:,15])),[0,len(dat.iloc[:,15])])
             
             datcrop.to_csv(fSave+subject+'_'+config+'_'+str(firstTrial+jj)+'.csv', index = False)
             
