@@ -552,6 +552,7 @@ for fName in entries:
     subject = []
     ct = []
     movement = []
+    side = []
 
     toePmidstance = []
     toeAreamidstance = []
@@ -633,70 +634,83 @@ for fName in entries:
                 print('Estimating point estimates')
                 
     
-                for i in range(len(tmpDat.RHS)):
+                if len(tmpDat.RplantarMat) != 0:
                     
-                    #i = 5
-                    config.append(tmpDat.config)
-                    subject.append(tmpDat.subject)
-                    movement.append(moveTmp)
-                    frames = tmpDat.RTO[i] - tmpDat.RHS[i]
-                    ct.append(frames/200)
-                    pct10 = tmpDat.RHS[i] + round(frames*.1)
-                    pct40 = tmpDat.RHS[i] + round(frames*.4)
-                    pct50 = tmpDat.RHS[i] + round(frames*.5)
-                    pct60 = tmpDat.RHS[i] + round(frames*.6)
-                    pct90 = tmpDat.RHS[i] + round(frames*.9)
+                    for i in range(len(tmpDat.RHS)):
                     
-    
+                        #i = 5
+                        side.append('Right')
+                        config.append(tmpDat.config)
+                        subject.append(tmpDat.subject)
+                        movement.append(moveTmp)
+                        frames = tmpDat.RTO[i] - tmpDat.RHS[i]
+                        ct.append(frames/100)
+                        pct10 = tmpDat.RHS[i] + round(frames*.1)
+                        pct40 = tmpDat.RHS[i] + round(frames*.4)
+                        pct50 = tmpDat.RHS[i] + round(frames*.5)
+                        pct60 = tmpDat.RHS[i] + round(frames*.6)
+                        pct90 = tmpDat.RHS[i] + round(frames*.9)
+                        
+                        maxmaxToes.append(np.max(tmpDat.RplantarToe[tmpDat.RHS[i]:tmpDat.RTO[i]])*6.895)
+                        toePmidstance.append(np.mean(tmpDat.RplantarToe[pct40:pct60,:,:])*6.895)
+                                           
+                        heelAreaLate.append(np.count_nonzero(tmpDat.RplantarHeel[pct50:tmpDat.RTO[i], :, :])/(tmpDat.RTO[i] - pct50)/43*100) # making this from 50% stance time to toe off to match big data. Consider switing to 90% to toe off?
+                        heelPLate.append(np.mean(tmpDat.RplantarHeel[pct90:tmpDat.RTO[i], :, :])*6.895)
+        
+                        latPmidstance.append(np.mean(tmpDat.RplantarLateral[pct40:pct60, :, :])*6.895)
+                        latAreamidstance.append(np.count_nonzero(tmpDat.RplantarLateral[pct40:pct60, :, :])/(pct60-pct40)/138*100)
+                        medPmidstance.append(np.mean(tmpDat.RplantarMedial[pct40:pct60, :, :])*6.895)
+                        medAreamidstance.append(np.count_nonzero(tmpDat.RplantarMedial[pct40:pct60, :, :])/(pct60-pct40)/82*100)
+                        latPropMid.append(np.sum(tmpDat.RplantarLateral[pct40:pct60, :, :])/np.sum(tmpDat.RplantarMat[pct40:pct60, :, :]))
+                        medPropMid.append(np.sum(tmpDat.RplantarMedial[pct40:pct60, :, :])/np.sum(tmpDat.RplantarMat[pct40:pct60, :, :]))
+                        
+                        if len(tmpDat.dorsalMat) != 0: 
+                            
+                            dorsalVar.append(np.std(tmpDat.dorsalMat[tmpDat.RHS[i]:tmpDat.RTO[i], :, :])/np.mean(tmpDat.dorsalMat[tmpDat.RHS[i]:tmpDat.RTO[i], :, :])*6.895)
+                            maxDorsal.append(np.max(tmpDat.dorsalMat[tmpDat.RHS[i]:tmpDat.RTO[i], :, :])*6.895)
+                            
+                        else:
+                            dorsalVar.append('nan')
+                            maxDorsal.append('nan')
+                            
+                if len(tmpDat.LplantarMat) != 0:
                     
-                    maxmaxToes.append(np.max(tmpDat.plantarToe[tmpDat.RHS[i]:tmpDat.RTO[i]])*6.895)
-                    toePmidstance.append(np.mean(tmpDat.plantarToe[pct40:pct60,:,:])*6.895)
-                    toeAreamidstance.append(np.count_nonzero(tmpDat.plantarToe[pct40:pct60,:,:])/(pct60 - pct40)/39*100)
-                    ffAreaLate.append(np.count_nonzero(tmpDat.plantarForefoot[pct90:tmpDat.RTO[i], :,:])/(tmpDat.RTO[i] - pct90)/68*100)
-                    ffPLate.append(np.mean(tmpDat.plantarForefoot[pct90:tmpDat.RTO[i], :, :])*6.895)
-                    ffPMaxLate.append(np.max(tmpDat.plantarForefoot[pct90:tmpDat.RTO[i], :, :]))
-                    ffAreaMid.append(np.count_nonzero(tmpDat.plantarForefoot[pct40:pct60, :,:])/(pct60 - pct40)/68*100)
-                    ffPMid.append((np.mean(tmpDat.plantarForefoot[pct40:pct60, :, :]))*6.895)
+                    for i in range(len(tmpDat.LHS)):
                     
-                    mfAreaLate.append(np.count_nonzero(tmpDat.plantarMidfoot[pct90:tmpDat.RTO[i], :,:])/(tmpDat.RTO[i] - pct90)/70*100)
-                    mfPLate.append(np.mean(tmpDat.plantarMidfoot[pct90:tmpDat.RTO[i], :, :])*6.895)
-                    mfAreaMid.append(np.count_nonzero(tmpDat.plantarMidfoot[pct40:pct60, :,:])/(pct60 - pct40)/70*100)
-                    mfPMid.append((np.mean(tmpDat.plantarMidfoot[pct40:pct60, :, :]))*6.895)
-                    
-                    heelAreaLate.append(np.count_nonzero(tmpDat.plantarHeel[pct50:tmpDat.RTO[i], :, :])/(tmpDat.RTO[i] - pct50)/43*100) # making this from 50% stance time to toe off to match big data. Consider switing to 90% to toe off?
-                    heelPLate.append(np.mean(tmpDat.plantarHeel[pct90:tmpDat.RTO[i], :, :])*6.895)
-    
-                    latPmidstance.append(np.mean(tmpDat.plantarLateral[pct40:pct60, :, :])*6.895)
-                    latAreamidstance.append(np.count_nonzero(tmpDat.plantarLateral[pct40:pct60, :, :])/(pct60-pct40)/138*100)
-                    latPLate.append(np.mean(tmpDat.plantarLateral[pct90:tmpDat.RTO[i], :, :])*6.895)
-                    latAreaLate.append(np.count_nonzero(tmpDat.plantarLateral[pct90:tmpDat.RTO[i], :, :])/(tmpDat.RTO[i] - pct90)/138*100)
-                    medPmidstance.append(np.mean(tmpDat.plantarMedial[pct40:pct60, :, :])*6.895)
-                    medAreamidstance.append(np.count_nonzero(tmpDat.plantarMedial[pct40:pct60, :, :])/(pct60-pct40)/82*100)
-                    medPLate.append(np.mean(tmpDat.plantarMedial[pct90:tmpDat.RTO[i], :, :])*6.895)
-                    medAreaLate.append(np.count_nonzero(tmpDat.plantarMedial[pct90:tmpDat.RTO[i], :, :])/(tmpDat.RTO[i]-pct90)/82*100)
-                    
-                    latPropMid.append(np.sum(tmpDat.plantarLateral[pct40:pct60, :, :])/np.sum(tmpDat.plantarMat[pct40:pct60, :, :]))
-                    medPropMid.append(np.sum(tmpDat.plantarMedial[pct40:pct60, :, :])/np.sum(tmpDat.plantarMat[pct40:pct60, :, :]))
-                    
-                    dorsalVar.append(np.std(tmpDat.dorsalMat[tmpDat.RHS[i]:tmpDat.RTO[i], :, :])/np.mean(tmpDat.dorsalMat[tmpDat.RHS[i]:tmpDat.RTO[i], :, :])*6.895)
-                    maxDorsal.append(np.max(tmpDat.dorsalMat[tmpDat.RHS[i]:tmpDat.RTO[i], :, :])*6.895)
-                    
-                    ffDorsalEarlyP.append(np.mean(tmpDat.dorsalForefoot[tmpDat.RHS[i]:pct10, :, :])*6.895)
-                    ffDorsalMidP.append(np.mean(tmpDat.dorsalForefoot[pct40:pct60, :, :])*6.895)
-                    ffDorsalLateP.append(np.mean(tmpDat.dorsalForefoot[pct90:tmpDat.RTO[i], :, :])*6.895)
-                    mfDorsalEarlyP.append(np.mean(tmpDat.dorsalMidfoot[tmpDat.RHS[i]:pct10, :, :])*6.895)
-                    mfDorsalMidP.append(np.mean(tmpDat.dorsalMidfoot[pct40:pct60, :, :])*6.895)
-                    mfDorsalLateP.append(np.mean(tmpDat.dorsalMidfoot[pct90:tmpDat.RTO[i], :, :])*6.895)
-                    instepEarlyP.append(np.mean(tmpDat.dorsalInstep[tmpDat.RHS[i]:pct10, :, :])*6.895)
-                    instepMidP.append(np.mean(tmpDat.dorsalInstep[pct40:pct60, :, :])*6.895)
-                    instepLateP.append(np.mean(tmpDat.dorsalInstep[pct90:tmpDat.RTO[i], :, :])*6.895)
-                    
-                    ffDorsalMax.append(np.max(tmpDat.dorsalForefoot[tmpDat.RHS[i]:tmpDat.RTO[i], :, :])*6.895)
-                    mfDorsalMax.append(np.max(tmpDat.dorsalMidfoot[tmpDat.RHS[i]:tmpDat.RTO[i], :, :])*6.895)
-                    instepMax.append(np.max(tmpDat.dorsalInstep[tmpDat.RHS[i]:tmpDat.RTO[i], :, :])*6.895)
-                    
-
-                
+                        #i = 5
+                        side.append('Left')
+                        config.append(tmpDat.config)
+                        subject.append(tmpDat.subject)
+                        movement.append(moveTmp)
+                        frames = tmpDat.LTO[i] - tmpDat.LHS[i]
+                        ct.append(frames/100)
+                        pct10 = tmpDat.LHS[i] + round(frames*.1)
+                        pct40 = tmpDat.LHS[i] + round(frames*.4)
+                        pct50 = tmpDat.LHS[i] + round(frames*.5)
+                        pct60 = tmpDat.LHS[i] + round(frames*.6)
+                        pct90 = tmpDat.LHS[i] + round(frames*.9)
+                        
+                        maxmaxToes.append(np.max(tmpDat.LplantarToe[tmpDat.LHS[i]:tmpDat.LTO[i]])*6.895)
+                        toePmidstance.append(np.mean(tmpDat.LplantarToe[pct40:pct60,:,:])*6.895)
+                                           
+                        heelAreaLate.append(np.count_nonzero(tmpDat.LplantarHeel[pct50:tmpDat.LTO[i], :, :])/(tmpDat.LTO[i] - pct50)/43*100) # making this from 50% stance time to toe off to match big data. Consider switing to 90% to toe off?
+                        heelPLate.append(np.mean(tmpDat.LplantarHeel[pct90:tmpDat.LTO[i], :, :])*6.895)
+        
+                        latPmidstance.append(np.mean(tmpDat.LplantarLateral[pct40:pct60, :, :])*6.895)
+                        latAreamidstance.append(np.count_nonzero(tmpDat.LplantarLateral[pct40:pct60, :, :])/(pct60-pct40)/138*100)
+                        medPmidstance.append(np.mean(tmpDat.LplantarMedial[pct40:pct60, :, :])*6.895)
+                        medAreamidstance.append(np.count_nonzero(tmpDat.LplantarMedial[pct40:pct60, :, :])/(pct60-pct40)/82*100)
+                        latPropMid.append(np.sum(tmpDat.LplantarLateral[pct40:pct60, :, :])/np.sum(tmpDat.LplantarMat[pct40:pct60, :, :]))
+                        medPropMid.append(np.sum(tmpDat.LplantarMedial[pct40:pct60, :, :])/np.sum(tmpDat.LplantarMat[pct40:pct60, :, :]))
+                        
+                        if len(tmpDat.dorsalMat) != 0: 
+                            
+                            dorsalVar.append(np.std(tmpDat.dorsalMat[tmpDat.LHS[i]:tmpDat.LTO[i], :, :])/np.mean(tmpDat.dorsalMat[tmpDat.LHS[i]:tmpDat.LTO[i], :, :])*6.895)
+                            maxDorsal.append(np.max(tmpDat.dorsalMat[tmpDat.LHS[i]:tmpDat.LTO[i], :, :])*6.895)
+                            
+                        else:
+                            dorsalVar.append('nan')
+                            maxDorsal.append('nan')
 
         
 
@@ -716,7 +730,7 @@ for fName in entries:
                                      
                                      })
 
-            outfileName = fPath + '0_CompiledResults_4.csv'
+            outfileName = fPath + '0_CompiledResults.csv'
             if save_on == 1:
                 if os.path.exists(outfileName) == False:
                 
