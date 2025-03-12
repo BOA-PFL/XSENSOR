@@ -69,7 +69,7 @@ def delimitTrial(inputDF,FName):
         #inputDF = dat
         fig, ax = plt.subplots()
         
-        insoleSide = inputDF['Insole Side'][0]
+        insoleSide = inputDF['Insole'][0]
                    
         
         if (insoleSide == 'Left'): 
@@ -536,7 +536,7 @@ def createTSmat(inputName):
 
 # Read in files
 # only read .asc files for this work
-fPath = 'C:/Users/Kate.Harrison/Boa Technology Inc/PFL Team - General/Testing Segments/AgilityPerformanceData/AS_Trail_DorsalPressureVariationIII_PFLMech_July2023/Xsensor/'
+fPath = 'C:\\Users\\milena.singletary\\OneDrive - BOA Technology Inc\\General - PFL Team\\Testing Segments\\WorkWear_Performance\\2025_Performance_HighCutPFSWorkwearI_TimberlandPro\\Xsensor\\cropped\\'
 fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) ]
 
@@ -607,7 +607,8 @@ for fName in entries:
         moveTmp = fName.split(sep = "_")[2].split(sep = '.')[0].lower()
         
         # Make sure the files are named FirstLast_Config_Movement_Trial# - The "if" statement won't work if there isn't a trial number next to the movement
-        if ('skater' in moveTmp) or ('cmj' in moveTmp) or ('run' in moveTmp) or ('walk' in moveTmp):
+        # if ('skater' in moveTmp) or ('cmj' in moveTmp) or ('run' in moveTmp) or ('walk' in moveTmp):
+        if ('dh' in moveTmp) or ('uh' in moveTmp) or ('walk' in moveTmp):
             #dat = pd.read_csv(fPath+fName, sep=',', skiprows = 1, header = 'infer')
         
             tmpDat = createTSmat(fName)
@@ -620,7 +621,7 @@ for fName in entries:
                 for i in range(len(tmpDat.RHS)):
     
                     plt.axvspan(tmpDat.RHS[i], tmpDat.RTO[i], color = 'lightgray', alpha = 0.5)
-                    answer = messagebox.askyesno("Question","Is data clean?")
+                answer = messagebox.askyesno("Question","Is data clean?")
             
             
             

@@ -1,11 +1,4 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Mar 13 14:47:49 2023
 
-@author: Milena.Singletary
-"""
-### figuring out pressure template for the SLL/ overground landings 
-# -*- coding: utf-8 -*-
 """
 Created on Tue Jan 17 11:23:50 2023
 
@@ -72,11 +65,20 @@ def delimitTrial(inputDF,FName):
         outputDat = inputDF.reset_index(drop = True)
         
     else: 
+        
+        #inputDF = dat
         fig, ax = plt.subplots()
-
-        totForce = np.mean(inputDF.iloc[:,214:425], axis = 1)*6895*0.014699
-        # changing the column to 27 and no axis call
-        #totForce = np.mean(inputDF.iloc[:,27])*6895*0.014699
+        
+        insoleSide = inputDF['Insole'][0]
+                   
+        
+        if (insoleSide == 'Left'): 
+            
+            # Left side
+            totForce = np.mean(inputDF.iloc[:,18:238], axis = 1)*6895*0.014699
+        else:  
+            
+            totForce = np.mean(inputDF.iloc[:,210:430], axis = 1)*6895*0.014699
         print('Select a point on the plot to represent the beginning & end of trial')
 
 
@@ -86,7 +88,7 @@ def delimitTrial(inputDF,FName):
         plt.close()
         outputDat = inputDF.iloc[int(np.floor(pts[0,0])) : int(np.floor(pts[1,0])),:]
         outputDat = outputDat.reset_index(drop = True)
-        trial_segment = np.array([FName, pts])
+        trial_segment = np.array([FName, pts], dtype = object)
         np.save(fPath+FName+'TrialSeg.npy',trial_segment)
 
     return(outputDat)
@@ -323,6 +325,7 @@ class tsData:
 
 
 
+
 def createTSmat(inputName):
     """ 
     Reads in file, creates 3D time series matrix (foot length, foot width, time) to be plotted and features
@@ -349,7 +352,8 @@ def createTSmat(inputName):
     RplantarLateral = []
     RplantarMedial = []
     RForce = []
-    RForce = []
+    RHS = []
+    RTO = []
     RCOP_Y = []
     RCOP_X = []
 
@@ -361,6 +365,8 @@ def createTSmat(inputName):
     LplantarLateral = []
     LplantarMedial = []
     LForce = []
+    LHS = []
+    LTO = []
     LCOP_Y = []
     LCOP_X = []
     
@@ -397,6 +403,7 @@ def createTSmat(inputName):
             
             LForce = np.mean(LplantarMat, axis = (1,2))*6895*0.014699
             LForce = zeroInsoleForce(LForce,freq)
+
         
         if dat['Insole'][0] != 'Right' and dat['Insole'][0] != 'Left' :       # check to see if dorsal pad was used
             
@@ -465,6 +472,7 @@ def createTSmat(inputName):
             RForce = zeroInsoleForce(RForce,freq)
 
 
+
         if 'COP Row' in dat.columns:  
             
             if dat['Insole'][0] == 'Left':
@@ -486,7 +494,7 @@ def createTSmat(inputName):
     result = tsData(dorsalMat, dorsalForefoot, dorsalMidfoot, dorsalInstep, 
                      LplantarMat, LplantarToe, LplantarForefoot, LplantarMidfoot, LplantarHeel, LplantarLateral, LplantarMedial,
                      RplantarMat, RplantarToe, RplantarForefoot, RplantarMidfoot, RplantarHeel,  RplantarLateral, RplantarMedial,
-                     LForce, RForce, 
+                     LForce, LHS, LTO,  RForce, RHS, RTO,
                      LCOP_X, LCOP_Y, RCOP_X, RCOP_Y,
                      config, movement, subj, dat)
     
@@ -495,11 +503,122 @@ def createTSmat(inputName):
 
 
 
+
+def findStabilization(avgF, sdF):
+    """
+    Using the rolling average and SD values, this calcualtes when the 
+    actual stabilized force occurs. 
+    
+    Parameters
+    ----------
+    avgF : list, calculated using movAvgForce 
+        rolling average of pressure.
+    sdF : list, calcualted using movSDForce above
+        rolling SD of pressure.
+
+    Returns
+    -------
+    floating point number
+        Time to stabilize using the heuristic: pressure is within +/- 5% of subject
+        mass and the rolling standrd deviation is below 20
+
+    """
+    stab = []
+    for step in range(len(avgF)-1):
+        if avgF[step] >= (subBW - 0.05*subBW) and avgF[step] <= (subBW + 0.05*subBW) and sdF[step] < 20:
+            stab.append(step + 1) 
+            
+    return stab[0] 
+
+
+def movAvgForce(force, landing, takeoff, length):
+    """
+    In order to estimate when someone stabilized, we calcualted the moving
+    average force and SD of the force signal. This is one of many published 
+    methods to calcualte when someone is stationary. 
+    
+    Parameters
+    ----------
+    force : Pandas series
+        pandas series of force from pressure insoles.
+    landing : List
+        list of landings calcualted from findLandings.
+    takeoff : List
+        list of takeoffs from findTakeoffs.
+    length : Integer
+        length of time in indices to calculate the moving average.
+
+    Returns
+    -------
+    avgF : list
+        smoothed average force .
+
+    """
+    newForce = np.array(force)
+    win_len = length; #window length for steady standing
+    avgF = []
+    for i in range(landing, takeoff):
+        avgF.append(np.mean(newForce[i : i + win_len]))     
+    return avgF
+
+#moving SD as calcualted above
+def movSDForce(force, landing, takeoff, length):
+    """
+    This function calculates a rolling standard deviation over an input
+    window length
+    
+    Parameters
+    ----------
+    force : Pandas series
+        pandas series of force from pressure insoles.
+    landing : List
+        list of landings calcualted from findLandings.
+    takeoff : List
+        list of takeoffs from findTakeoffs.
+    length : Integer
+        length of time in indices to calculate the moving average.
+
+    Returns
+    -------
+    avgF : list
+        smoothed rolling SD of pressure
+
+    """
+    newForce = np.array(force)
+    win_len = length; #window length for steady standing
+    avgF = []
+    for i in range(landing, takeoff):
+        avgF.append(np.std(newForce[i : i + win_len]))     
+    return avgF
+
+#estimated stability after 200 indices
+def findBW(force):
+    """
+    If you do not have the subject's body weight or want to find from the 
+    steady portion of force, this may be used. This is highly conditional on 
+    the data and how it was collected. The below assumes quiet standing from
+    100 to 200 indices. 
+    
+    Parameters
+    ----------
+    force : Pandas series
+        DESCRIPTION.
+
+    Returns
+    -------
+    BW : floating point number
+        estimate of body weight of the subject to find stabilized weight
+        in Newtons
+
+    """
+    BW = np.mean(avgF[100:200])
+    return BW
+
 #############################################################################################################################################################
 
 # Read in files
 # only read .asc files for this work
-fPath = 'C:/Users/milena.singletary/Boa Technology Inc/PFL Team - Documents/General/Testing Segments/WorkWear_Performance/EH_Workwear_MidCutStabilityII_CPDMech_Sept23/XSENSOR/cropped/'
+fPath = 'C:\\Users\\milena.singletary\\OneDrive - BOA Technology Inc\\General - PFL Team\\Testing Segments\\WorkWear_Performance\\2025_Performance_HighCutPFSWorkwearI_TimberlandPro\\Xsensor\\cropped\\'
 fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
 
@@ -535,6 +654,13 @@ for fName in entries:
     heelArea = []
     heelPres = []
 
+    sdFz = []
+    avgF = []
+    sdF = []
+    subBW = [] 
+    
+    stabilization = []
+
     try: 
         #fName = entries[2]
         subName = fName.split(sep = "_")[0]
@@ -544,47 +670,50 @@ for fName in entries:
         
         # Make sure the files are named FirstLast_Config_Movement_Trial# - The "if" statement won't work if there isn't a trial number next to the movement
         #if ('SLL' in moveTmp):# or ('SLLT' in moveTmp): # or ('Trail' in moveTmp):
-        if (moveTmp == 'SLL'):
+        if (moveTmp == 'SLL') or ('SLLT' in moveTmp):
             #dat = pd.read_csv(fPath+fName, sep=',', skiprows = 1, header = 'infer')
             
   
             tmpDat = createTSmat(fName)
-            ffoot = np.mean(tmpDat.plantarForefoot, axis = (1,2)) * 6895 * 0.014699
             
+            if len(tmpDat.RplantarMat != 0):
+                ffoot = np.mean(tmpDat.RplantarForefoot, axis = (1,2)) * 6895 * 0.014699
+                pForce = tmpDat.RForce
             
-            land = sig.find_peaks(tmpDat.RForce, height = 1000, distance = 600)[0]
-            land_ht =  sig.find_peaks(tmpDat.RForce, height = 1000, distance = 600)[1]['peak_heights']
+            elif len(tmpDat.LplantarMat != 0):
+                ffoot = np.mean(tmpDat.LplantarForefoot, axis = (1,2)) * 6895 * 0.014699
+                pForce = tmpDat.LForce    
+                
+               
+                
+            land = sig.find_peaks(pForce, height = 1000, distance = 600)[0]
+            land_ht =  sig.find_peaks(pForce, height = 1000, distance = 600)[1]['peak_heights']
             fft_pk = sig.find_peaks(ffoot, height = 1000, distance = 500)[0]
             fft_ht = sig.find_peaks(ffoot, height = 1000, distance = 500)[1]['peak_heights']
             
             htThrsh = np.mean(land_ht) - 400
                         
-            true_land = sig.find_peaks(tmpDat.RForce, height = htThrsh, distance = 500)[0]
-            land_ht =  sig.find_peaks(tmpDat.RForce, height = htThrsh, distance = 500)[1]['peak_heights']
+            true_land = sig.find_peaks(pForce, height = htThrsh, distance = 500)[0]
+            land_ht =  sig.find_peaks(pForce, height = htThrsh, distance = 500)[1]['peak_heights']
    
-  
+
             
             answer = True # if data check is off. 
             if data_check == 1:
                 plt.figure()
-                plt.plot(tmpDat.RForce, label = 'Right Foot Total Force') 
+                plt.plot(pForce, label = 'Right Foot Total Force') 
                 plt.plot(true_land, land_ht, marker = 'o', linestyle = 'none')
                 #plt.plot(range(len(ffoot)), ffoot)
                 #plt.plot(fft_pk, fft_ht, marker = 'v', linestyle = 'none')
-                
-  
                 answer = messagebox.askyesno("Question","Is data clean?")    
   
   
-  
-                
-            
             if answer == False:
                 disThrsh = np.mean(land)- 100
-                true_land = sig.find_peaks(tmpDat.RForce, height = htThrsh, distance = disThrsh)[0]
-                land_ht =  sig.find_peaks(tmpDat.RForce, height = htThrsh, distance = disThrsh)[1]['peak_heights']
+                true_land = sig.find_peaks(pForce, height = htThrsh, distance = disThrsh)[0]
+                land_ht =  sig.find_peaks(pForce, height = htThrsh, distance = disThrsh)[1]['peak_heights']
                 plt.figure()
-                plt.plot(tmpDat.RForce, label = 'Right Foot Total Force') 
+                plt.plot(pForce, label = 'Right Foot Total Force') 
                 plt.plot(land, land_ht, marker = 'o', linestyle = 'none')
                 plt.plot(range(len(ffoot)), ffoot)
                 plt.plot(fft_pk, fft_ht, marker = 'v', linestyle = 'none')
@@ -602,36 +731,69 @@ for fName in entries:
                 
         
         
+                if len(tmpDat.RplantarMat != 0):
                 
-                # toe 39 ; fft 68 ; heel 43
-                for ii in range(len(land)):
-                    toeClawAvg.append(np.mean(tmpDat.plantarToe[land[ii]: land[ii]+100]))
-                    toeClawPk.append(np.max(tmpDat.plantarToe[land[ii]: land[ii]+100]))
-                    toeLatAvg.append(np.mean(tmpDat.plantarToeLat[land[ii]: land[ii]+100]))
-                    toeLatPk.append(np.max(tmpDat.plantarToeLat[land[ii]: land[ii]+100]))
-                    toeMedAvg.append(np.mean(tmpDat.plantarToeMed[land[ii]: land[ii]+100]))
-                    toeMedPk.append(np.max(tmpDat.plantarToeMed[land[ii]: land[ii]+100]))
+                    # toe 39 ; fft 68 ; heel 43
+                    for ii in range(len(land)):
+                        sdFz.append(np.std(pForce [ land[ii] + 100 : land[ii] + 400]))
+                        avgF = movAvgForce(pForce,land[ii] , land[ii] + 200 , 10)
+                        sdF = movSDForce(pForce, land[ii], land[ii] + 200, 10)
+                        subBW = findBW(avgF)
+                        try:
+                            stabilization.append(findStabilization(avgF, sdF)/100)
+                        except:
+                            stabilization.append('NaN')
+                            
+                        toeClawAvg.append(np.mean(tmpDat.RplantarToe[land[ii]: land[ii]+100]))
+                        toeClawPk.append(np.max(tmpDat.RplantarToe[land[ii]: land[ii]+100]))
+
+                
+                        ffAvg.append(np.mean(tmpDat.RplantarForefoot[land[ii]: land[ii]+100]))
+                        ffPk.append(np.max(tmpDat.RplantarForefoot[land[ii]: land[ii]+100]))
+                        ffConArea.append(np.count_nonzero(tmpDat.RplantarForefoot[land[ii]: land[ii]+100])/100/68*100) # divided by 100 frames
+
+                
+                        heelArea.append(np.count_nonzero(tmpDat.RplantarHeel[land[ii]: land[ii]+100])/ 100/ 43*100) # divided by 100 frames
+                        heelPres.append(np.mean(tmpDat.RplantarHeel[land[ii]: land[ii]+100]))
+                        
+                        config.append(tmpDat.config)
+                        subject.append(tmpDat.subject)
+                        movement.append(moveTmp)
+                        order.append(torder)
+                        
+                elif len(tmpDat.LplantarMat != 0):
+                        sdFz.append(np.std(pForce [ land[ii] + 100 : land[ii] + 400]))
+                        avgF = movAvgForce(pForce,land[ii] , land[ii] + 200 , 10)
+                        sdF = movSDForce(pForce, land[ii], land[ii] + 200, 10)
+                        subBW = findBW(avgF)
+                        try:
+                            stabilization.append(findStabilization(avgF, sdF)/100)
+                        except:
+                            stabilization.append('NaN')
+
+                    # toe 39 ; fft 68 ; heel 43
+                        for ii in range(len(land)):
+                            toeClawAvg.append(np.mean(tmpDat.LplantarToe[land[ii]: land[ii]+100]))
+                            toeClawPk.append(np.max(tmpDat.LplantarToe[land[ii]: land[ii]+100]))
+
+                            ffAvg.append(np.mean(tmpDat.LplantarForefoot[land[ii]: land[ii]+100]))
+                            ffPk.append(np.max(tmpDat.LplantarForefoot[land[ii]: land[ii]+100]))
+                            ffConArea.append(np.count_nonzero(tmpDat.LplantarForefoot[land[ii]: land[ii]+100])/100/68*100) # divided by 100 frames
+
+                        
+                            heelArea.append(np.count_nonzero(tmpDat.LplantarHeel[land[ii]: land[ii]+100])/ 100/ 43*100) # divided by 100 frames
+                            heelPres.append(np.mean(tmpDat.LplantarHeel[land[ii]: land[ii]+100]))
+                            
+                            config.append(tmpDat.config)
+                            subject.append(tmpDat.subject)
+                            movement.append(moveTmp)
+                            order.append(torder)
+                        
+                        
+                        
             
-                    ffAvg.append(np.mean(tmpDat.plantarForefoot[land[ii]: land[ii]+100]))
-                    ffPk.append(np.max(tmpDat.plantarForefoot[land[ii]: land[ii]+100]))
-                    ffConArea.append(np.count_nonzero(tmpDat.plantarForefoot[land[ii]: land[ii]+100])/100/68*100) # divided by 100 frames
-                    ffLatAvg.append(np.mean(tmpDat.plantarForefootLat[land[ii]: land[ii]+100]))
-                    ffLatPk.append(np.max(tmpDat.plantarForefootLat[land[ii]: land[ii]+100]))
-                    ffMedAvg.append(np.mean(tmpDat.plantarForefootMed[land[ii]: land[ii]+100]))
-                    ffMedPk.append(np.max(tmpDat.plantarForefootMed[land[ii]: land[ii]+100]))
-            
-                    heelArea.append(np.count_nonzero(tmpDat.plantarHeel[land[ii]: land[ii]+100])/ 100/ 43*100) # divided by 100 frames
-                    heelPres.append(np.mean(tmpDat.plantarHeel[land[ii]: land[ii]+100]))
-                    
-                    config.append(tmpDat.config)
-                    subject.append(tmpDat.subject)
-                    movement.append(moveTmp)
-                    order.append(torder)
-            
-                outcomes = pd.DataFrame({'Subject': list(subject), 'Movement':list(movement), 'Config':list(config), 'Order':list(order),
-                                 'ToeClaw': list(toeClawAvg), 'ToeClawPeak': list(toeClawPk), 'ToeLat': list(toeLatAvg), 'ToeLatPeak' : list(toeLatPk),
-                                 'ToeMed' : list(toeMedAvg), 'ToeMedPeak' : list(toeMedPk), 'ForefootAvg' : list(ffAvg), 'ForefootPeak' : list(ffPk), 'ForefootContA' : list(ffConArea),
-                                 'ForefootLat': list(ffLatAvg), 'ForefootLatPk': list(ffLatPk), 'ForefootMed': list(ffMedAvg), 'ForefootMedPk': list(ffMedPk),
+                outcomes = pd.DataFrame({'Subject': list(subject), 'Movement':list(movement), 'Config':list(config), 'Order':list(order), 'StabTime': list(stabilization),
+                                 'ToeClaw': list(toeClawAvg), 'ToeClawPeak': list(toeClawPk),  'ForefootAvg' : list(ffAvg), 'ForefootPeak' : list(ffPk), 'ForefootContA' : list(ffConArea), 
                                  'HeelConArea' : list(heelArea), 'HeelPressure' : list(heelPres)})
        
         
