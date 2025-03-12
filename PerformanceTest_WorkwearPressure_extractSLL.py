@@ -665,12 +665,12 @@ for fName in entries:
         #fName = entries[2]
         subName = fName.split(sep = "_")[0]
         ConfigTmp = fName.split(sep="_")[1]
-        moveTmp = fName.split(sep = "_")[2].split(sep = '.')[0]
+        moveTmp = fName.split(sep = "_")[2].split(sep = '.')[0].lower()
         torder = fName.split(sep = "_")[3].split(sep = '.')[0]
         
         # Make sure the files are named FirstLast_Config_Movement_Trial# - The "if" statement won't work if there isn't a trial number next to the movement
         #if ('SLL' in moveTmp):# or ('SLLT' in moveTmp): # or ('Trail' in moveTmp):
-        if (moveTmp == 'SLL') or ('SLLT' in moveTmp):
+        if (moveTmp == 'sll') or ('sllt' in moveTmp):
             #dat = pd.read_csv(fPath+fName, sep=',', skiprows = 1, header = 'infer')
             
   
@@ -705,7 +705,10 @@ for fName in entries:
                 plt.plot(true_land, land_ht, marker = 'o', linestyle = 'none')
                 #plt.plot(range(len(ffoot)), ffoot)
                 #plt.plot(fft_pk, fft_ht, marker = 'v', linestyle = 'none')
-                answer = messagebox.askyesno("Question","Is data clean?")    
+                answer = messagebox.askyesno("Question","Is data clean?") 
+                saveFolder = fPath + 'SLLtDetections'
+                if os.path.exists(saveFolder) == False:
+                  os.mkdir(saveFolder) 
   
   
             if answer == False:
@@ -726,6 +729,7 @@ for fName in entries:
                 badFileList.append(fName)
                 
             if answer == True:
+                plt.savefig(saveFolder + '/' + fName.split('.csv')[0] +'.png')
                 plt.close('all')
                 print('Estimating point estimates')
                 
