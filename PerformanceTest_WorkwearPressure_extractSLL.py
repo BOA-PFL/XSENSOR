@@ -1,11 +1,4 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Mar 13 14:47:49 2023
 
-@author: Milena.Singletary
-"""
-### figuring out pressure template for the SLL/ overground landings 
-# -*- coding: utf-8 -*-
 """
 Created on Tue Jan 17 11:23:50 2023
 
@@ -72,11 +65,20 @@ def delimitTrial(inputDF,FName):
         outputDat = inputDF.reset_index(drop = True)
         
     else: 
+        
+        #inputDF = dat
         fig, ax = plt.subplots()
-
-        totForce = np.mean(inputDF.iloc[:,214:425], axis = 1)*6895*0.014699
-        # changing the column to 27 and no axis call
-        #totForce = np.mean(inputDF.iloc[:,27])*6895*0.014699
+        
+        insoleSide = inputDF['Insole'][0]
+                   
+        
+        if (insoleSide == 'Left'): 
+            
+            # Left side
+            totForce = np.mean(inputDF.iloc[:,18:238], axis = 1)*6895*0.014699
+        else:  
+            
+            totForce = np.mean(inputDF.iloc[:,210:430], axis = 1)*6895*0.014699
         print('Select a point on the plot to represent the beginning & end of trial')
 
 
@@ -86,7 +88,7 @@ def delimitTrial(inputDF,FName):
         plt.close()
         outputDat = inputDF.iloc[int(np.floor(pts[0,0])) : int(np.floor(pts[1,0])),:]
         outputDat = outputDat.reset_index(drop = True)
-        trial_segment = np.array([FName, pts])
+        trial_segment = np.array([FName, pts], dtype = object)
         np.save(fPath+FName+'TrialSeg.npy',trial_segment)
 
     return(outputDat)
@@ -212,115 +214,115 @@ def findTakeoffs(force, fThreshold):
 
 
 
-   
+
+
+ ## setting up data classes for 6 possible combos: DorsalRightCOP, DorsalLeftCOP, RightLeftCOP, DorsalRightnoCOP, DorsalLeftnoCOP, RightLeftnoCOP 
 @dataclass    
 class tsData:
-    """ 
-    Reads in file, creates 3D time series matrix (foot length, foot width, time) to be plotted and features
-    are extracted. The result is a dataclass which can be used for further plotting. Requires findGaitEvents function.
-    """
-    dorsalMat: np.array
-    dorsalForefoot: np.array
-    dorsalForefootLat: np.array 
-    dorsalForefootMed: np.array 
-    dorsalMidfoot: np.array
-    dorsalMidfootLat: np.array 
-    dorsalMidfootMed: np.array 
-    dorsalInstep: np.array 
-    dorsalInstepLat: np.array 
-    dorsalInstepMed: np.array 
-    
-    plantarMat: np.array
-    plantarToe: np.array 
-    plantarToeLat: np.array 
-    plantarToeMed: np.array 
-    plantarForefoot: np.array 
-    plantarForefootLat : np.array 
-    plantarForefootMed: np.array 
-    plantarMidfoot: np.array 
-    plantarMidfootLat: np.array 
-    plantarMidfootMed: np.array
-    plantarHeel: np.array 
-    plantarHeelLat: np.array 
-    plantarHeelMed: np.array 
-    
-    plantarLateral: np.array
-    plantarMedial: np.array
-    
-    RForce: np.array 
-    
-    #Rland : np.array
-    #Rtake : np.array
-    # RHS: np.array 
-    # RTO: np.array
-    
-    config: str
-    movement: str
-    subject: str
-    
-    fullDat: pd.DataFrame #entire stored dataframe. 
-    #this class is useful for plotting and subsequent analysis
-    
-    # below is a method of the dataclass
-    # def plotAvgPressure(self):
-        
-    #     earlyPlantar = np.zeros([len(self.RHS), 30, 9])
-    #     midPlantar = np.zeros([len(self.RHS), 30, 9])
-    #     latePlantar = np.zeros([len(self.RHS), 30, 9])
-        
-    #     earlyDorsal = np.zeros([len(self.RHS), 18, 10])
-    #     midDorsal = np.zeros([len(self.RHS), 18, 10])
-    #     lateDorsal = np.zeros([len(self.RHS), 18, 10])
-        
-    #     for i in range(len(self.RHS)):
-            
-    #         earlyPlantar[i,:,:] = self.plantarMat[self.RHS[i],:,:]
-    #         midPlantar[i,:,:] = self.plantarMat[self.RHS[i] + round((self.RTO[i]-self.RHS[i])/2),:,:]
-    #         latePlantar[i,:,:] = self.plantarMat[self.RTO[i],:,:]
-    #         earlyDorsal[i,:,:] = self.dorsalMat[self.RHS[i],:,:]
-    #         midDorsal[i,:,:] = self.dorsalMat[self.RHS[i] + round((self.RTO[i]-self.RHS[i])/2),:,:]
-    #         lateDorsal[i,:,:] = self.dorsalMat[self.RTO[i],:,:]
-            
-    #     earlyPlantarAvg = np.mean(earlyPlantar, axis = 0)
-    #     midPlantarAvg = np.mean(midPlantar, axis = 0)
-    #     latePlantarAvg = np.mean(latePlantar, axis = 0)
-    #     earlyDorsalAvg = np.mean(earlyDorsal, axis = 0)
-    #     midDorsalAvg = np.mean(midDorsal, axis = 0)
-    #     lateDorsalAvg = np.mean(lateDorsal, axis = 0)
-        
-    #     fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(3,2)
-    #     ax1 = sns.heatmap(earlyDorsalAvg, ax = ax1, cmap="mako", vmin = 0, vmax = np.max(earlyDorsalAvg))
-    #     ax1.set_title('Dorsal Pressure') 
-    #     ax1.set_ylabel('Initial Contact')
-        
-        
-    #     ax2 = sns.heatmap(earlyPlantarAvg, ax = ax2, cmap="mako", vmin = 0, vmax = np.max(earlyPlantarAvg))
-    #     ax2.set_title('Plantar Pressure') 
-        
-    #     ax3 = sns.heatmap(midDorsalAvg, ax = ax3, cmap = 'mako', vmin = 0, vmax = np.max(midDorsalAvg))
-    #     ax3.set_ylabel('Midstance')
-        
-    #     ax4 = sns.heatmap(midPlantarAvg, ax = ax4, cmap = 'mako', vmin = 0, vmax = np.max(midPlantarAvg))
-        
-    #     ax5 = sns.heatmap(lateDorsalAvg, ax = ax5, cmap = 'mako', vmin = 0, vmax = np.max(latePlantarAvg))
-    #     ax5.set_ylabel('Toe off')
-        
-        
-    #     ax6 = sns.heatmap(latePlantarAvg, ax = ax6, cmap = 'mako', vmin = 0, vmax = np.max(lateDorsalAvg))
-        
-    #     fig.set_size_inches(5, 10)
-        
-    #     plt.suptitle(self.subject +' '+ self. movement +' '+ self.config)
-    #     plt.tight_layout()
-    #     plt.margins(0.1)
-        
-    #     saveFolder= fPath + '2DPlots'
-        
-    #     if os.path.exists(saveFolder) == False:
-    #         os.mkdir(saveFolder)
-            
-    #     plt.savefig(saveFolder + '/' + self.subject +' '+ self. movement +' '+ self.config + '.png')
-    #     return fig  
+     dorsalMat: np.array
+     dorsalForefoot: np.array
+     dorsalMidfoot: np.array
+     dorsalInstep: np.array 
+     
+     
+     LplantarMat: np.array
+     LplantarToe: np.array 
+     LplantarForefoot: np.array 
+     LplantarMidfoot: np.array 
+     LplantarHeel: np.array 
+     LplantarLateral: np.array
+     LplantarMedial: np.array
+     
+     RplantarMat: np.array
+     RplantarToe: np.array 
+     RplantarForefoot: np.array 
+     RplantarMidfoot: np.array 
+     RplantarHeel: np.array 
+     RplantarLateral: np.array
+     RplantarMedial: np.array
+  
+     LForce: np.array 
+     LHS: np.array 
+     LTO: np.array
+     
+     RForce: np.array 
+     RHS: np.array 
+     RTO: np.array
+     
+     LCOP_X: np.array 
+     LCOP_Y: np.array 
+
+     RCOP_X: np.array 
+     RCOP_Y: np.array 
+
+     config: str
+     movement: str
+     subject: str
+     
+     fullDat: pd.DataFrame #entire stored dataframe. 
+     #this class is useful for plotting and subsequent analysis
+     
+     # below is a method of the dataclass
+     def plotAvgPressure(self):
+         
+         earlyPlantar = np.zeros([len(self.RHS), 31, 9])
+         midPlantar = np.zeros([len(self.RHS), 31, 9])
+         latePlantar = np.zeros([len(self.RHS), 31, 9])
+         
+         earlyDorsal = np.zeros([len(self.RHS), 18, 10])
+         midDorsal = np.zeros([len(self.RHS), 18, 10])
+         lateDorsal = np.zeros([len(self.RHS), 18, 10])
+         
+         for i in range(len(self.RHS)):
+             
+             earlyPlantar[i,:,:] = self.RplantarMat[self.RHS[i],:,:]
+             midPlantar[i,:,:] = self.RplantarMat[self.RHS[i] + round((self.RTO[i]-self.RHS[i])/2),:,:]
+             latePlantar[i,:,:] = self.RplantarMat[self.RTO[i],:,:]
+             earlyDorsal[i,:,:] = self.dorsalMat[self.RHS[i],:,:]
+             midDorsal[i,:,:] = self.dorsalMat[self.RHS[i] + round((self.RTO[i]-self.RHS[i])/2),:,:]
+             lateDorsal[i,:,:] = self.dorsalMat[self.RTO[i],:,:]
+             
+         earlyPlantarAvg = np.mean(earlyPlantar, axis = 0)
+         midPlantarAvg = np.mean(midPlantar, axis = 0)
+         latePlantarAvg = np.mean(latePlantar, axis = 0)
+         earlyDorsalAvg = np.mean(earlyDorsal, axis = 0)
+         midDorsalAvg = np.mean(midDorsal, axis = 0)
+         lateDorsalAvg = np.mean(lateDorsal, axis = 0)
+         
+         fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(3,2)
+         ax1 = sns.heatmap(earlyDorsalAvg, ax = ax1, cmap="mako", vmin = 0, vmax = np.max(earlyDorsalAvg))
+         ax1.set_title('Dorsal Pressure') 
+         ax1.set_ylabel('Initial Contact')
+         
+         
+         ax2 = sns.heatmap(earlyPlantarAvg, ax = ax2, cmap="mako", vmin = 0, vmax = np.max(earlyPlantarAvg))
+         ax2.set_title('Plantar Pressure') 
+         
+         ax3 = sns.heatmap(midDorsalAvg, ax = ax3, cmap = 'mako', vmin = 0, vmax = np.max(midDorsalAvg))
+         ax3.set_ylabel('Midstance')
+         
+         ax4 = sns.heatmap(midPlantarAvg, ax = ax4, cmap = 'mako', vmin = 0, vmax = np.max(midPlantarAvg))
+         
+         ax5 = sns.heatmap(lateDorsalAvg, ax = ax5, cmap = 'mako', vmin = 0, vmax = np.max(latePlantarAvg))
+         ax5.set_ylabel('Toe off')
+         
+         
+         ax6 = sns.heatmap(latePlantarAvg, ax = ax6, cmap = 'mako', vmin = 0, vmax = np.max(lateDorsalAvg))
+         
+         fig.set_size_inches(5, 10)
+         
+         plt.suptitle(self.subject +' '+ self. movement +' '+ self.config)
+         plt.tight_layout()
+         plt.margins(0.1)
+         
+         saveFolder= fPath + '2DPlots'
+         
+         if os.path.exists(saveFolder) == False:
+             os.mkdir(saveFolder)
+             
+         plt.savefig(saveFolder + '/' + self.subject +' '+ self. movement +' '+ self.config + '.png')
+         return fig  
+
 
 
 
@@ -329,138 +331,294 @@ def createTSmat(inputName):
     Reads in file, creates 3D time series matrix (foot length, foot width, time) to be plotted and features
     are extracted. The result is a dataclass which can be used for further plotting. Requires findGaitEvents function.
     """
-    # columns = ['Frame', 'Date', 'Time', 'Units', 'Threshold', 'Note', 'Sensor', 'Insole Side', 'Rows', 'Columns', 'Average Pressure (PSI)', 
-    #              'Minimum Pressure (PSI)', 'Peak Pressure (PSI)', 'Contact Area (cm²)', 'Total Area (cm²)', 'Contact %', 'Est. Load (lbf)', 'Std Dev.', 
-    #              'S_1_1', 'S_1_2', 'S_1_3', 'S_1_4', 'S_1_5', 'S_1_6', 'S_1_7', 'S_1_8', 'S_1_9', 'S_1_10', 
-    #              'S_2_1', 'S_2_2', 'S_2_3', 'S_2_4', 'S_2_5', 'S_2_6', 'S_2_7', 'S_2_8', 'S_2_9', 'S_2_10', 
-    #              'S_3_1', 'S_3_2', 'S_3_3', 'S_3_4', 'S_3_5', 'S_3_6', 'S_3_7', 'S_3_8', 'S_3_9', 'S_3_10', 
-    #              'S_4_1', 'S_4_2', 'S_4_3', 'S_4_4', 'S_4_5', 'S_4_6', 'S_4_7', 'S_4_8', 'S_4_9', 'S_4_10', 
-    #              'S_5_1', 'S_5_2', 'S_5_3', 'S_5_4', 'S_5_5', 'S_5_6', 'S_5_7', 'S_5_8', 'S_5_9', 'S_5_10', 
-    #              'S_6_1', 'S_6_2', 'S_6_3', 'S_6_4', 'S_6_5', 'S_6_6', 'S_6_7', 'S_6_8', 'S_6_9', 'S_6_10', 
-    #              'S_7_1', 'S_7_2', 'S_7_3', 'S_7_4', 'S_7_5', 'S_7_6', 'S_7_7', 'S_7_8', 'S_7_9', 'S_7_10', 
-    #              'S_8_1', 'S_8_2', 'S_8_3', 'S_8_4', 'S_8_5', 'S_8_6', 'S_8_7', 'S_8_8', 'S_8_9', 'S_8_10', 
-    #              'S_9_1', 'S_9_2', 'S_9_3', 'S_9_4', 'S_9_5', 'S_9_6', 'S_9_7', 'S_9_8', 'S_9_9', 'S_9_10', 
-    #              'S_10_1', 'S_10_2', 'S_10_3', 'S_10_4', 'S_10_5', 'S_10_6', 'S_10_7', 'S_10_8', 'S_10_9', 'S_10_10', 
-    #              'S_11_1', 'S_11_2', 'S_11_3', 'S_11_4', 'S_11_5', 'S_11_6', 'S_11_7', 'S_11_8', 'S_11_9', 'S_11_10', 
-    #              'S_12_1', 'S_12_2', 'S_12_3', 'S_12_4', 'S_12_5', 'S_12_6', 'S_12_7', 'S_12_8', 'S_12_9', 'S_12_10', 
-    #              'S_13_1', 'S_13_2', 'S_13_3', 'S_13_4', 'S_13_5', 'S_13_6', 'S_13_7', 'S_13_8', 'S_13_9', 'S_13_10', 
-    #              'S_14_1', 'S_14_2', 'S_14_3', 'S_14_4', 'S_14_5', 'S_14_6', 'S_14_7', 'S_14_8', 'S_14_9', 'S_14_10', 
-    #              'S_15_1', 'S_15_2', 'S_15_3', 'S_15_4', 'S_15_5', 'S_15_6', 'S_15_7', 'S_15_8', 'S_15_9', 'S_15_10', 
-    #              'S_16_1', 'S_16_2', 'S_16_3', 'S_16_4', 'S_16_5', 'S_16_6', 'S_16_7', 'S_16_8', 'S_16_9', 'S_16_10', 
-    #              'S_17_1', 'S_17_2', 'S_17_3', 'S_17_4', 'S_17_5', 'S_17_6', 'S_17_7', 'S_17_8', 'S_17_9', 'S_17_10', 
-    #              'S_18_1', 'S_18_2', 'S_18_3', 'S_18_4', 'S_18_5', 'S_18_6', 'S_18_7', 'S_18_8', 'S_18_9', 'S_18_10', 
-    #              'Sensor.1', 'Insole Side.1', 'Rows.1', 'Columns.1', 'Average Pressure (PSI).1', 'Minimum Pressure (PSI).1', 'Peak Pressure (PSI).1', 'Contact Area (cm²).1', 
-    #              'Total Area (cm²).1', 'Contact %.1', 'Est. Load (lbf).1', 'Std Dev..1', 
-    #              'S_1_2.1', 'S_1_3.1', 'S_1_4.1', 'S_1_5.1', 'S_2_2.1', 'S_2_3.1', 'S_2_4.1', 'S_2_5.1', 'S_2_6.1', 'S_3_1.1', 'S_3_2.1', 'S_3_3.1', 'S_3_4.1', 'S_3_5.1', 
-    #              'S_3_6.1', 'S_3_7.1', 'S_4_1.1', 'S_4_2.1', 'S_4_3.1', 'S_4_4.1', 'S_4_5.1', 'S_4_6.1', 'S_4_7.1', 'S_5_1.1', 'S_5_2.1', 'S_5_3.1', 'S_5_4.1', 'S_5_5.1', 
-    #              'S_5_6.1', 'S_5_7.1', 'S_5_8.1', 'S_6_1.1', 'S_6_2.1', 'S_6_3.1', 'S_6_4.1', 'S_6_5.1', 'S_6_6.1', 'S_6_7.1', 'S_6_8.1', 'S_7_1.1', 'S_7_2.1', 'S_7_3.1', 
-    #              'S_7_4.1', 'S_7_5.1', 'S_7_6.1', 'S_7_7.1', 'S_7_8.1', 'S_8_1.1', 'S_8_2.1', 'S_8_3.1', 'S_8_4.1', 'S_8_5.1', 'S_8_6.1', 'S_8_7.1', 'S_8_8.1', 'S_8_9.1', 
-    #              'S_9_1.1', 'S_9_2.1', 'S_9_3.1', 'S_9_4.1', 'S_9_5.1', 'S_9_6.1', 'S_9_7.1', 'S_9_8.1', 'S_9_9.1', 'S_10_1.1', 'S_10_2.1', 'S_10_3.1', 'S_10_4.1', 'S_10_5.1', 
-    #              'S_10_6.1', 'S_10_7.1', 'S_10_8.1', 'S_10_9.1', 'S_11_1.1', 'S_11_2.1', 'S_11_3.1', 'S_11_4.1', 'S_11_5.1', 'S_11_6.1', 'S_11_7.1', 'S_11_8.1', 'S_11_9.1', 
-    #              'S_12_2.1', 'S_12_3.1', 'S_12_4.1', 'S_12_5.1', 'S_12_6.1', 'S_12_7.1', 'S_12_8.1', 'S_12_9.1', 'S_13_2.1', 'S_13_3.1', 'S_13_4.1', 'S_13_5.1', 'S_13_6.1', 
-    #              'S_13_7.1', 'S_13_8.1', 'S_13_9.1', 'S_14_2.1', 'S_14_3.1', 'S_14_4.1', 'S_14_5.1', 'S_14_6.1', 'S_14_7.1', 'S_14_8.1', 'S_14_9.1', 'S_15_3.1', 'S_15_4.1', 
-    #              'S_15_5.1', 'S_15_6.1', 'S_15_7.1', 'S_15_8.1', 'S_15_9.1', 'S_16_3.1', 'S_16_4.1', 'S_16_5.1', 'S_16_6.1', 'S_16_7.1', 'S_16_8.1', 'S_16_9.1', 'S_17_3.1', 
-    #              'S_17_4.1', 'S_17_5.1', 'S_17_6.1', 'S_17_7.1', 'S_17_8.1', 'S_17_9.1', 'S_18_3.1', 'S_18_4.1', 'S_18_5.1', 'S_18_6.1', 'S_18_7.1', 'S_18_8.1', 'S_18_9.1', 
-    #              'S_19_3', 'S_19_4', 'S_19_5', 'S_19_6', 'S_19_7', 'S_19_8', 'S_19_9', 'S_20_3', 'S_20_4', 'S_20_5', 'S_20_6', 'S_20_7', 'S_20_8', 'S_20_9', 'S_21_3', 'S_21_4', 
-    #              'S_21_5', 'S_21_6', 'S_21_7', 'S_21_8', 'S_21_9', 'S_22_3', 'S_22_4', 'S_22_5', 'S_22_6', 'S_22_7', 'S_22_8', 'S_22_9', 'S_23_3', 'S_23_4', 'S_23_5', 'S_23_6', 
-    #              'S_23_7', 'S_23_8', 'S_23_9', 'S_24_3', 'S_24_4', 'S_24_5', 'S_24_6', 'S_24_7', 'S_24_8', 'S_24_9', 'S_25_3', 'S_25_4', 'S_25_5', 'S_25_6', 'S_25_7', 'S_25_8', 
-    #              'S_25_9', 'S_26_3', 'S_26_4', 'S_26_5', 'S_26_6', 'S_26_7', 'S_26_8', 'S_26_9', 'S_27_3', 'S_27_4', 'S_27_5', 'S_27_6', 'S_27_7', 'S_27_8', 'S_27_9', 'S_28_3', 
-    #              'S_28_4', 'S_28_5', 'S_28_6', 'S_28_7', 'S_28_8', 'S_28_9', 'S_29_3', 'S_29_4', 'S_29_5', 'S_29_6', 'S_29_7', 'S_29_8', 'S_29_9', 'S_30_4', 'S_30_5', 'S_30_6', 
-    #              'S_30_7', 'S_30_8', 'S_31_5', 'S_31_6', 'S_31_7']
+
+    #inputName = entries[3]
     
-    #inputName = entries[1]
-    dat = pd.read_csv(fPath+inputName, sep=',', skiprows = 0, header = 'infer')
-    # dat = pd.read_csv(fPath+inputName, sep=',', usecols = columns)
+    freq = 100
+    dat = pd.read_csv(fPath+inputName, sep=',', header = 0, low_memory=False)
+    if dat.shape[1] == 2:
+        dat = pd.read_csv(fPath+inputName, sep=',', header = 1, low_memory=False)
+   
     dat = delimitTrial(dat, inputName)
     subj = inputName.split(sep="_")[0]
     config = inputName.split(sep="_")[1]
-    movement = inputName.split(sep = '_')[2]
-    dorsalSensel = dat.iloc[:,18:198]
-    plantarSensel = dat.iloc[:,210:430]
-    
-    headers = plantarSensel.columns
-    store_r = []
-    store_c = []
+    movement = inputName.split(sep = '_')[2] 
 
-    for name in headers:
-        store_r.append(int(name.split(sep = "_")[1])-1)
-        store_c.append(int(name.split(sep = "_")[2].split(sep=".")[0])-1)
-    
-    plantarMat = np.zeros((dat.shape[0], np.max(store_r)+1,np.max(store_c)+1))
-    
-    for ii in range(len(headers)-1):
-        plantarMat[:, store_r[ii],store_c[ii]] = plantarSensel.iloc[:,ii]
+    RplantarMat = []
+    RplantarToe = []
+    RplantarForefoot = []
+    RplantarMidfoot = []
+    RplantarHeel = []
+    RplantarLateral = []
+    RplantarMedial = []
+    RForce = []
+    RHS = []
+    RTO = []
+    RCOP_Y = []
+    RCOP_X = []
 
-    plantarMat[plantarMat < 1 ] = 0
+    LplantarMat = []
+    LplantarToe = []
+    LplantarForefoot = []
+    LplantarMidfoot = []
+    LplantarHeel = []
+    LplantarLateral = []
+    LplantarMedial = []
+    LForce = []
+    LHS = []
+    LTO = []
+    LCOP_Y = []
+    LCOP_X = []
     
-    headers = dorsalSensel.columns
-    store_r = []
-    store_c = []
+    dorsalMat = []
+    dorsalForefoot = []
+    dorsalMidfoot = []
+    dorsalInstep = []
 
-    for name in headers:
-        store_r.append(int(name.split(sep = "_")[1])-1)
-        store_c.append(int(name.split(sep = "_")[2].split(sep=".")[0])-1)
+    if 'Insole' in dat.columns:
+        if  dat['Insole'][0] == 'Left':      # check to see if right insole used
+           
+            LplantarSensel = dat.loc[:,'S_1_5':'S_31_5']
+            
+            headers = LplantarSensel.columns
+            store_r = []
+            store_c = []
+           
+            for name in headers:
+                store_r.append(int(name.split(sep = "_")[1])-1)
+                store_c.append(int(name.split(sep = "_")[2].split(sep=".")[0])-1)
+            
+            LplantarMat = np.zeros((dat.shape[0], np.max(store_r)+1,np.max(store_c)+1))
+            
+            for ii in range(len(headers)):
+                LplantarMat[:, store_r[ii],store_c[ii]] = LplantarSensel.iloc[:,ii]
+            
+            LplantarMat[LplantarMat < 1] = 0
+            LplantarToe = LplantarMat[:,:7,:]
+            LplantarForefoot = LplantarMat[:,7:15, :]
+            LplantarMidfoot = LplantarMat[:,15:25,:]
+            LplantarHeel = LplantarMat[:,25:, :]
+            LplantarLateral = LplantarMat[:,:,:4:]
+            LplantarMedial =LplantarMat[:,:,4]
+            
+            LForce = np.mean(LplantarMat, axis = (1,2))*6895*0.014699
+            LForce = zeroInsoleForce(LForce,freq)
+
+        
+        if dat['Insole'][0] != 'Right' and dat['Insole'][0] != 'Left' :       # check to see if dorsal pad was used
+            
+            dorsalSensel = dat.loc[:,'S_1_1':'S_18_10']
+            
+        elif 'Insole.1' in dat.columns:
+            if dat['Insole.1'][0] != 'Right' and dat['Insole.1'][0] != 'Left' :
     
-    dorsalMat = np.zeros((dat.shape[0], np.max(store_r)+1,np.max(store_c)+1))
-    
-    for ii in range(len(headers)-1):
-        dorsalMat[:, store_r[ii],store_c[ii]] = dorsalSensel.iloc[:,ii]
-    
-    dorsalMat = np.flip(dorsalMat, axis = 1)
-    dorsalMat[dorsalMat < 1 ] = 0
+                dorsalSensel = dat.loc[:,'S_1_1':'S_18_10']
+                
+        if 'dorsalSensel' in locals():        
+            headers = dorsalSensel.columns
+            store_r = []
+            store_c = []
+
+            for name in headers:
+                store_r.append(int(name.split(sep = "_")[1])-1)
+                store_c.append(int(name.split(sep = "_")[2].split(sep=".")[0])-1)
+            
+            dorsalMat = np.zeros((dat.shape[0], np.max(store_r)+1,np.max(store_c)+1))
+            
+            for ii in range(len(headers)):
+                dorsalMat[:, store_r[ii],store_c[ii]] = dorsalSensel.iloc[:,ii]
+            
+            
+            dorsalMat = np.flip(dorsalMat, axis = 0) 
+            dorsalMat[dorsalMat <1] = 0  
+            
+            dorsalForefoot = dorsalMat[:,:6,:]
+            dorsalMidfoot = dorsalMat[:,6:12, :]
+            dorsalInstep = dorsalMat[:,12:, :]
+            
+        
+        if  dat['Insole'][0] == 'Right':  # check to see if left insole used
+            
+            RplantarSensel = dat.loc[:, 'S_1_2':'S_31_7'] 
+        
+        elif  'Insole.1' in dat.columns:
+            if dat['Insole.1'][0] == 'Right':  
+                
+                RplantarSensel = dat.loc[:, 'S_1_2.1':'S_31_7']
+            
+        if 'RplantarSensel' in locals():  
+            headers = RplantarSensel.columns
+            store_r = []
+            store_c = []
+              
+            for name in headers:
+               store_r.append(int(name.split(sep = "_")[1])-1)
+               store_c.append(int(name.split(sep = "_")[2].split(sep=".")[0])-1)
+           
+            RplantarMat = np.zeros((dat.shape[0], np.max(store_r)+1,np.max(store_c)+1))
+           
+            for ii in range(len(headers)):
+               RplantarMat[:, store_r[ii],store_c[ii]] = RplantarSensel.iloc[:,ii]
+            
+            RplantarMat[RplantarMat < 1] = 0
+            RplantarToe = RplantarMat[:,:7,:]
+            RplantarForefoot = RplantarMat[:,7:15, :]
+            RplantarMidfoot = RplantarMat[:,15:25,:]
+            RplantarHeel = RplantarMat[:,25:, :]
+            RplantarLateral = RplantarMat[:,:,4:]
+            RplantarMedial = RplantarMat[:,:,:4]
+          
+            RForce = np.mean(RplantarMat, axis = (1,2))*6895*0.014699
+            RForce = zeroInsoleForce(RForce,freq)
 
 
-    
-    plantarToe = plantarMat[:,:7,:]
-    plantarToeLat = plantarMat[:,:7,4:]
-    plantarToeMed = plantarMat[:,:7,:4]
-    plantarForefoot = plantarMat[:,7:15, :]
-    plantarForefootLat = plantarMat[:,7:15,4:]
-    plantarForefootMed = plantarMat[:,7:15,:4]
-    plantarMidfoot = plantarMat[:,15:25,:]
-    plantarMidfootLat = plantarMat[:,15:25,4:]
-    plantarMidfootMed = plantarMat[:,15:25,:4]
-    plantarHeel = plantarMat[:,25:, :]
-    plantarHeelLat = plantarMat[:,25:,4:]
-    plantarHeelMed = plantarMat[:,25:, :4]
-    
-    dorsalForefoot = dorsalMat[:,:6,:]
-    dorsalForefootLat = dorsalMat[:,:6,5:]
-    dorsalForefootMed = dorsalMat[:,:6,:5]
-    dorsalMidfoot = dorsalMat[:,6:12, :]
-    dorsalMidfootLat = dorsalMat[:,6:12,:5]
-    dorsalMidfootMed = dorsalMat[:, 6:12,5:]
-    dorsalInstep = dorsalMat[:,12:, :]
-    dorsalInstepLat = dorsalMat[:,12:,5:]
-    dorsalInstepMed = dorsalMat[:,12:,:5]
-    
-    plantarLateral = plantarMat[:,:,4:]
-    plantarMedial = plantarMat[:,:,:4]
-    
-    RForce = np.mean(plantarMat, axis = (1,2))*6895*0.014699
-    #RForce = zeroInsoleForce(RForce,freq)
-    #[land] = findLandings(RForce, fThresh)
-    #[take] = findTakeoffs(RForce, fThresh)
-    #[RHS,RTO] = findGaitEvents(RForce,freq)
-    
-    result = tsData(dorsalMat, dorsalForefoot, dorsalForefootLat, dorsalForefootMed, 
-                     dorsalMidfoot, dorsalMidfootLat, dorsalMidfootMed, 
-                     dorsalInstep, dorsalInstepLat, dorsalInstepMed, 
-                     plantarMat, plantarToe, plantarToeLat, plantarToeMed,
-                     plantarForefoot, plantarForefootLat, plantarForefootMed,
-                     plantarMidfoot, plantarMidfootLat, plantarMidfootMed,
-                     plantarHeel, plantarHeelLat, plantarHeelMed, plantarLateral, plantarMedial, RForce, 
-                     config, movement, subj, dat) #land, take,) 
+
+        if 'COP Row' in dat.columns:  
+            
+            if dat['Insole'][0] == 'Left':
+                
+                LCOP_Y = dat['COP Column']
+                LCOP_X = dat['COP Row']
+                
+            if dat['Insole'][0] == 'Right':
+                
+                RCOP_Y = dat['COP Column']
+                RCOP_X = dat['COP Row']
+               
+            if 'Insole.1' in dat.columns:
+                if dat['Insole.1'][0] == 'Right':
+                
+                    RCOP_Y = dat['COP Column.1']
+                    RCOP_X = dat['COP Row.1']
+                
+    result = tsData(dorsalMat, dorsalForefoot, dorsalMidfoot, dorsalInstep, 
+                     LplantarMat, LplantarToe, LplantarForefoot, LplantarMidfoot, LplantarHeel, LplantarLateral, LplantarMedial,
+                     RplantarMat, RplantarToe, RplantarForefoot, RplantarMidfoot, RplantarHeel,  RplantarLateral, RplantarMedial,
+                     LForce, LHS, LTO,  RForce, RHS, RTO,
+                     LCOP_X, LCOP_Y, RCOP_X, RCOP_Y,
+                     config, movement, subj, dat)
     
     return(result)
 
 
 
+
+
+def findStabilization(avgF, sdF):
+    """
+    Using the rolling average and SD values, this calcualtes when the 
+    actual stabilized force occurs. 
+    
+    Parameters
+    ----------
+    avgF : list, calculated using movAvgForce 
+        rolling average of pressure.
+    sdF : list, calcualted using movSDForce above
+        rolling SD of pressure.
+
+    Returns
+    -------
+    floating point number
+        Time to stabilize using the heuristic: pressure is within +/- 5% of subject
+        mass and the rolling standrd deviation is below 20
+
+    """
+    stab = []
+    for step in range(len(avgF)-1):
+        if avgF[step] >= (subBW - 0.05*subBW) and avgF[step] <= (subBW + 0.05*subBW) and sdF[step] < 20:
+            stab.append(step + 1) 
+            
+    return stab[0] 
+
+
+def movAvgForce(force, landing, takeoff, length):
+    """
+    In order to estimate when someone stabilized, we calcualted the moving
+    average force and SD of the force signal. This is one of many published 
+    methods to calcualte when someone is stationary. 
+    
+    Parameters
+    ----------
+    force : Pandas series
+        pandas series of force from pressure insoles.
+    landing : List
+        list of landings calcualted from findLandings.
+    takeoff : List
+        list of takeoffs from findTakeoffs.
+    length : Integer
+        length of time in indices to calculate the moving average.
+
+    Returns
+    -------
+    avgF : list
+        smoothed average force .
+
+    """
+    newForce = np.array(force)
+    win_len = length; #window length for steady standing
+    avgF = []
+    for i in range(landing, takeoff):
+        avgF.append(np.mean(newForce[i : i + win_len]))     
+    return avgF
+
+#moving SD as calcualted above
+def movSDForce(force, landing, takeoff, length):
+    """
+    This function calculates a rolling standard deviation over an input
+    window length
+    
+    Parameters
+    ----------
+    force : Pandas series
+        pandas series of force from pressure insoles.
+    landing : List
+        list of landings calcualted from findLandings.
+    takeoff : List
+        list of takeoffs from findTakeoffs.
+    length : Integer
+        length of time in indices to calculate the moving average.
+
+    Returns
+    -------
+    avgF : list
+        smoothed rolling SD of pressure
+
+    """
+    newForce = np.array(force)
+    win_len = length; #window length for steady standing
+    avgF = []
+    for i in range(landing, takeoff):
+        avgF.append(np.std(newForce[i : i + win_len]))     
+    return avgF
+
+#estimated stability after 200 indices
+def findBW(force):
+    """
+    If you do not have the subject's body weight or want to find from the 
+    steady portion of force, this may be used. This is highly conditional on 
+    the data and how it was collected. The below assumes quiet standing from
+    100 to 200 indices. 
+    
+    Parameters
+    ----------
+    force : Pandas series
+        DESCRIPTION.
+
+    Returns
+    -------
+    BW : floating point number
+        estimate of body weight of the subject to find stabilized weight
+        in Newtons
+
+    """
+    BW = np.mean(avgF[100:200])
+    return BW
+
 #############################################################################################################################################################
 
 # Read in files
 # only read .asc files for this work
-fPath = 'C:/Users/milena.singletary/Boa Technology Inc/PFL Team - Documents/General/Testing Segments/WorkWear_Performance/EH_Workwear_MidCutStabilityII_CPDMech_Sept23/XSENSOR/cropped/'
+fPath = 'C:\\Users\\milena.singletary\\OneDrive - BOA Technology Inc\\General - PFL Team\\Testing Segments\\WorkWear_Performance\\2025_Performance_HighCutPFSWorkwearI_TimberlandPro\\Xsensor\\cropped\\'
 fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
 
@@ -496,56 +654,69 @@ for fName in entries:
     heelArea = []
     heelPres = []
 
+    sdFz = []
+    avgF = []
+    sdF = []
+    subBW = [] 
+    
+    stabilization = []
+
     try: 
         #fName = entries[2]
         subName = fName.split(sep = "_")[0]
         ConfigTmp = fName.split(sep="_")[1]
-        moveTmp = fName.split(sep = "_")[2].split(sep = '.')[0]
+        moveTmp = fName.split(sep = "_")[2].split(sep = '.')[0].lower()
         torder = fName.split(sep = "_")[3].split(sep = '.')[0]
         
         # Make sure the files are named FirstLast_Config_Movement_Trial# - The "if" statement won't work if there isn't a trial number next to the movement
         #if ('SLL' in moveTmp):# or ('SLLT' in moveTmp): # or ('Trail' in moveTmp):
-        if (moveTmp == 'SLL'):
+        if (moveTmp == 'sll') or ('sllt' in moveTmp):
             #dat = pd.read_csv(fPath+fName, sep=',', skiprows = 1, header = 'infer')
             
   
             tmpDat = createTSmat(fName)
-            ffoot = np.mean(tmpDat.plantarForefoot, axis = (1,2)) * 6895 * 0.014699
             
+            if len(tmpDat.RplantarMat != 0):
+                ffoot = np.mean(tmpDat.RplantarForefoot, axis = (1,2)) * 6895 * 0.014699
+                pForce = tmpDat.RForce
             
-            land = sig.find_peaks(tmpDat.RForce, height = 1000, distance = 600)[0]
-            land_ht =  sig.find_peaks(tmpDat.RForce, height = 1000, distance = 600)[1]['peak_heights']
+            elif len(tmpDat.LplantarMat != 0):
+                ffoot = np.mean(tmpDat.LplantarForefoot, axis = (1,2)) * 6895 * 0.014699
+                pForce = tmpDat.LForce    
+                
+               
+                
+            land = sig.find_peaks(pForce, height = 1000, distance = 600)[0]
+            land_ht =  sig.find_peaks(pForce, height = 1000, distance = 600)[1]['peak_heights']
             fft_pk = sig.find_peaks(ffoot, height = 1000, distance = 500)[0]
             fft_ht = sig.find_peaks(ffoot, height = 1000, distance = 500)[1]['peak_heights']
             
             htThrsh = np.mean(land_ht) - 400
                         
-            true_land = sig.find_peaks(tmpDat.RForce, height = htThrsh, distance = 500)[0]
-            land_ht =  sig.find_peaks(tmpDat.RForce, height = htThrsh, distance = 500)[1]['peak_heights']
+            true_land = sig.find_peaks(pForce, height = htThrsh, distance = 500)[0]
+            land_ht =  sig.find_peaks(pForce, height = htThrsh, distance = 500)[1]['peak_heights']
    
-  
+
             
             answer = True # if data check is off. 
             if data_check == 1:
                 plt.figure()
-                plt.plot(tmpDat.RForce, label = 'Right Foot Total Force') 
+                plt.plot(pForce, label = 'Right Foot Total Force') 
                 plt.plot(true_land, land_ht, marker = 'o', linestyle = 'none')
                 #plt.plot(range(len(ffoot)), ffoot)
                 #plt.plot(fft_pk, fft_ht, marker = 'v', linestyle = 'none')
-                
+                answer = messagebox.askyesno("Question","Is data clean?") 
+                saveFolder = fPath + 'SLLtDetections'
+                if os.path.exists(saveFolder) == False:
+                  os.mkdir(saveFolder) 
   
-                answer = messagebox.askyesno("Question","Is data clean?")    
   
-  
-  
-                
-            
             if answer == False:
                 disThrsh = np.mean(land)- 100
-                true_land = sig.find_peaks(tmpDat.RForce, height = htThrsh, distance = disThrsh)[0]
-                land_ht =  sig.find_peaks(tmpDat.RForce, height = htThrsh, distance = disThrsh)[1]['peak_heights']
+                true_land = sig.find_peaks(pForce, height = htThrsh, distance = disThrsh)[0]
+                land_ht =  sig.find_peaks(pForce, height = htThrsh, distance = disThrsh)[1]['peak_heights']
                 plt.figure()
-                plt.plot(tmpDat.RForce, label = 'Right Foot Total Force') 
+                plt.plot(pForce, label = 'Right Foot Total Force') 
                 plt.plot(land, land_ht, marker = 'o', linestyle = 'none')
                 plt.plot(range(len(ffoot)), ffoot)
                 plt.plot(fft_pk, fft_ht, marker = 'v', linestyle = 'none')
@@ -558,41 +729,75 @@ for fName in entries:
                 badFileList.append(fName)
                 
             if answer == True:
+                plt.savefig(saveFolder + '/' + fName.split('.csv')[0] +'.png')
                 plt.close('all')
                 print('Estimating point estimates')
                 
         
         
+                if len(tmpDat.RplantarMat != 0):
                 
-                # toe 39 ; fft 68 ; heel 43
-                for ii in range(len(land)):
-                    toeClawAvg.append(np.mean(tmpDat.plantarToe[land[ii]: land[ii]+100]))
-                    toeClawPk.append(np.max(tmpDat.plantarToe[land[ii]: land[ii]+100]))
-                    toeLatAvg.append(np.mean(tmpDat.plantarToeLat[land[ii]: land[ii]+100]))
-                    toeLatPk.append(np.max(tmpDat.plantarToeLat[land[ii]: land[ii]+100]))
-                    toeMedAvg.append(np.mean(tmpDat.plantarToeMed[land[ii]: land[ii]+100]))
-                    toeMedPk.append(np.max(tmpDat.plantarToeMed[land[ii]: land[ii]+100]))
+                    # toe 39 ; fft 68 ; heel 43
+                    for ii in range(len(land)):
+                        sdFz.append(np.std(pForce [ land[ii] + 100 : land[ii] + 400]))
+                        avgF = movAvgForce(pForce,land[ii] , land[ii] + 200 , 10)
+                        sdF = movSDForce(pForce, land[ii], land[ii] + 200, 10)
+                        subBW = findBW(avgF)
+                        try:
+                            stabilization.append(findStabilization(avgF, sdF)/100)
+                        except:
+                            stabilization.append('NaN')
+                            
+                        toeClawAvg.append(np.mean(tmpDat.RplantarToe[land[ii]: land[ii]+100]))
+                        toeClawPk.append(np.max(tmpDat.RplantarToe[land[ii]: land[ii]+100]))
+
+                
+                        ffAvg.append(np.mean(tmpDat.RplantarForefoot[land[ii]: land[ii]+100]))
+                        ffPk.append(np.max(tmpDat.RplantarForefoot[land[ii]: land[ii]+100]))
+                        ffConArea.append(np.count_nonzero(tmpDat.RplantarForefoot[land[ii]: land[ii]+100])/100/68*100) # divided by 100 frames
+
+                
+                        heelArea.append(np.count_nonzero(tmpDat.RplantarHeel[land[ii]: land[ii]+100])/ 100/ 43*100) # divided by 100 frames
+                        heelPres.append(np.mean(tmpDat.RplantarHeel[land[ii]: land[ii]+100]))
+                        
+                        config.append(tmpDat.config)
+                        subject.append(tmpDat.subject)
+                        movement.append(moveTmp)
+                        order.append(torder)
+                        
+                elif len(tmpDat.LplantarMat != 0):
+                        sdFz.append(np.std(pForce [ land[ii] + 100 : land[ii] + 400]))
+                        avgF = movAvgForce(pForce,land[ii] , land[ii] + 200 , 10)
+                        sdF = movSDForce(pForce, land[ii], land[ii] + 200, 10)
+                        subBW = findBW(avgF)
+                        try:
+                            stabilization.append(findStabilization(avgF, sdF)/100)
+                        except:
+                            stabilization.append('NaN')
+
+                    # toe 39 ; fft 68 ; heel 43
+                        for ii in range(len(land)):
+                            toeClawAvg.append(np.mean(tmpDat.LplantarToe[land[ii]: land[ii]+100]))
+                            toeClawPk.append(np.max(tmpDat.LplantarToe[land[ii]: land[ii]+100]))
+
+                            ffAvg.append(np.mean(tmpDat.LplantarForefoot[land[ii]: land[ii]+100]))
+                            ffPk.append(np.max(tmpDat.LplantarForefoot[land[ii]: land[ii]+100]))
+                            ffConArea.append(np.count_nonzero(tmpDat.LplantarForefoot[land[ii]: land[ii]+100])/100/68*100) # divided by 100 frames
+
+                        
+                            heelArea.append(np.count_nonzero(tmpDat.LplantarHeel[land[ii]: land[ii]+100])/ 100/ 43*100) # divided by 100 frames
+                            heelPres.append(np.mean(tmpDat.LplantarHeel[land[ii]: land[ii]+100]))
+                            
+                            config.append(tmpDat.config)
+                            subject.append(tmpDat.subject)
+                            movement.append(moveTmp)
+                            order.append(torder)
+                        
+                        
+                        
             
-                    ffAvg.append(np.mean(tmpDat.plantarForefoot[land[ii]: land[ii]+100]))
-                    ffPk.append(np.max(tmpDat.plantarForefoot[land[ii]: land[ii]+100]))
-                    ffConArea.append(np.count_nonzero(tmpDat.plantarForefoot[land[ii]: land[ii]+100])/100/68*100) # divided by 100 frames
-                    ffLatAvg.append(np.mean(tmpDat.plantarForefootLat[land[ii]: land[ii]+100]))
-                    ffLatPk.append(np.max(tmpDat.plantarForefootLat[land[ii]: land[ii]+100]))
-                    ffMedAvg.append(np.mean(tmpDat.plantarForefootMed[land[ii]: land[ii]+100]))
-                    ffMedPk.append(np.max(tmpDat.plantarForefootMed[land[ii]: land[ii]+100]))
-            
-                    heelArea.append(np.count_nonzero(tmpDat.plantarHeel[land[ii]: land[ii]+100])/ 100/ 43*100) # divided by 100 frames
-                    heelPres.append(np.mean(tmpDat.plantarHeel[land[ii]: land[ii]+100]))
-                    
-                    config.append(tmpDat.config)
-                    subject.append(tmpDat.subject)
-                    movement.append(moveTmp)
-                    order.append(torder)
-            
-                outcomes = pd.DataFrame({'Subject': list(subject), 'Movement':list(movement), 'Config':list(config), 'Order':list(order),
-                                 'ToeClaw': list(toeClawAvg), 'ToeClawPeak': list(toeClawPk), 'ToeLat': list(toeLatAvg), 'ToeLatPeak' : list(toeLatPk),
-                                 'ToeMed' : list(toeMedAvg), 'ToeMedPeak' : list(toeMedPk), 'ForefootAvg' : list(ffAvg), 'ForefootPeak' : list(ffPk), 'ForefootContA' : list(ffConArea),
-                                 'ForefootLat': list(ffLatAvg), 'ForefootLatPk': list(ffLatPk), 'ForefootMed': list(ffMedAvg), 'ForefootMedPk': list(ffMedPk),
+                outcomes = pd.DataFrame({'Subject': list(subject), 'Movement':list(movement), 'Config':list(config), 'Order':list(order), 'StabTime': list(stabilization),
+                                 'ToeClaw': list(toeClawAvg), 'ToeClawPeak': list(toeClawPk),  'ForefootAvg' : list(ffAvg), 'ForefootPeak' : list(ffPk), 'ForefootContA' : list(ffConArea), 
                                  'HeelConArea' : list(heelArea), 'HeelPressure' : list(heelPres)})
        
         
