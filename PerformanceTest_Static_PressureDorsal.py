@@ -96,17 +96,30 @@ def createAvgMat(inputName):
     subj = inputName.split(sep="_")[0]
     config = inputName.split(sep="_")[1].split(sep=".")[0]
     
-    insoleSide = dat['Insole.1'][0]
+    if 'Insole' in dat.columns:
+        if  dat['Insole'][0] == 'Left':      # check to see if right insole used
+           
+            plantarSensel = dat.loc[:,'S_1_5':'S_31_5']
     
-    if (insoleSide == 'Left'): 
+    if dat['Insole'][0] != 'Right' and dat['Insole'][0] != 'Left' :       # check to see if dorsal pad was used
         
-        # Left side
-        plantarSensel = dat.iloc[:,18:238]
-        dorsalSensel = dat.iloc[:,250:430]
-    else:  
-        dorsalSensel = dat.iloc[:,18:198]
-        plantarSensel = dat.iloc[:,210:430] 
+        dorsalSensel = dat.loc[:,'S_1_1':'S_18_10']
         
+    elif 'Insole.1' in dat.columns:
+        if dat['Insole.1'][0] != 'Right' and dat['Insole.1'][0] != 'Left' :
+
+            dorsalSensel = dat.loc[:,'S_1_1':'S_18_10']
+    
+    if  dat['Insole'][0] == 'Right':  # check to see if left insole used
+        
+        plantarSensel = dat.loc[:, 'S_1_2':'S_31_7'] 
+    
+    elif  'Insole.1' in dat.columns:
+        if dat['Insole.1'][0] == 'Right':  
+            
+            plantarSensel = dat.loc[:, 'S_1_2.1':'S_31_7']
+    
+
     
     
     headers = plantarSensel.columns
