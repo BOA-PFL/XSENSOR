@@ -616,9 +616,6 @@ for fName in entries:
     heelPLate = []
     maxmaxToes = []
     
-    ffAreaMid = []
-    ffPMid = []
-    
     latPmidstance = []
     latAreamidstance = []
     medPmidstance = []
