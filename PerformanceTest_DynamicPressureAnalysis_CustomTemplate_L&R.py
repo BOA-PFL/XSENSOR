@@ -552,6 +552,7 @@ for fName in entries:
     subject = []
     ct = []
     movement = []
+    oOrder = []
     side = []
 
     toePmidstance = []
@@ -605,6 +606,7 @@ for fName in entries:
         subName = fName.split(sep = "_")[0]
         ConfigTmp = fName.split(sep="_")[1]
         moveTmp = fName.split(sep = "_")[2].split(sep = '.')[0].lower()
+        orderTmp = fName.split(sep = "_")[3]
         
         # Make sure the files are named FirstLast_Config_Movement_Trial# - The "if" statement won't work if there isn't a trial number next to the movement
         # if ('skater' in moveTmp) or ('cmj' in moveTmp) or ('run' in moveTmp) or ('walk' in moveTmp):
@@ -715,7 +717,7 @@ for fName in entries:
 
         
 
-            outcomes = pd.DataFrame({'Subject': list(subject), 'Movement':list(movement), 'Config':list(config), 'ContactTime':list(ct),
+            outcomes = pd.DataFrame({'Subject': list(subject), 'Movement':list(movement), 'Config':list(config), 'Order':list(oOrder), 'ContactTime':list(ct),
                                      'toeP_mid':list(toePmidstance),'toeArea_mid':list(toeAreamidstance), 'maxmaxToes':list(maxmaxToes),
                                      'ffP_late':list(ffPLate), 'ffArea_late':list(ffAreaLate), 'ffP_Mid':list(ffPMid), 'ffArea_Mid':list(ffAreaMid), 'ffPMax_late':list(ffPMaxLate),
                                      'mfP_late':list(mfPLate), 'mfArea_late':list(mfAreaLate), 'mfP_Mid':list(mfPMid), 'mfArea_Mid':list(mfAreaMid),
