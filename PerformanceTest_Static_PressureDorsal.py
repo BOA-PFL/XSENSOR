@@ -15,16 +15,14 @@ from tkinter import messagebox
 
 import scipy.signal as sig
 
-save_on = 0
+save_on = 1
 
 # Read in files
 # only read .asc files for this work
 
-fPath = 'C:\\Users\\bethany.kilpatrick\\Boa Technology Inc\\PFL - General\\Testing Segments\\Cycling Performance Tests\\PP_CyclingUpperStiffnessII_May2024\\Xsensor\\Static\\'
-
-
+fPath = 'C:/Users/eric.honert/Boa Technology Inc/PFL Team - General/Testing Segments/Cycling Performance Tests/2025_Performance_CyclingLacevBOA_Specialized/Xsensor/Static/'
 fileExt = r".csv"
-entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt)]
+entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) and '0_' not in fName]
 
 
 ### set plot font size ###
@@ -44,6 +42,11 @@ plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 class avgData:
     avgDorsal: np.array
     avgPlantar: np.array
+    plantarSensNo: int
+    plantarToeSensNo: int
+    plantarForefootSensNo: int
+    plantarMidfootSensNo: int
+    plantarHeelSensNo: int
     config: str
     subject: str
     fullDat: pd.DataFrame #entire stored dataframe. 
@@ -101,6 +104,7 @@ def createAvgMat(inputName):
            
             plantarSensel = dat.loc[:,'S_1_5':'S_31_5']
     
+
     if dat['Insole'][0] != 'Right' and dat['Insole'][0] != 'Left' :       # check to see if dorsal pad was used
         
         dorsalSensel = dat.loc[:,'S_1_1':'S_18_10']
@@ -134,6 +138,14 @@ def createAvgMat(inputName):
     
     for ii in range(len(headers)-1):
         con_press[store_r[ii],store_c[ii]] = np.mean(plantarSensel.iloc[:,ii])
+    
+    # Sensel Number Computation
+    store_r = np.array(store_r)
+    plantarSensNo = len(store_r)
+    plantarToeSensNo = len(np.where(store_r < 7)[0])
+    plantarForefootSensNo = len(np.where((store_r >= 7)*(store_r < 15))[0])
+    plantarMidfootSensNo = len(np.where((store_r >= 15)*(store_r < 25))[0])
+    plantarHeelSensNo = len(np.where(store_r >= 25)[0])
         
     con_press[con_press < 1] = 0
     
@@ -148,7 +160,9 @@ def createAvgMat(inputName):
     
     
     
-    result = avgData(avgDorsalMat, avgPlantarMat, config, subj, dat)
+    result = avgData(avgDorsalMat, avgPlantarMat, 
+                     plantarSensNo, plantarToeSensNo, plantarForefootSensNo, plantarMidfootSensNo, plantarHeelSensNo,
+                     config, subj, dat)
     
     return(result)
 
@@ -156,6 +170,7 @@ def createAvgMat(inputName):
 meanDorsalPressure = []
 maxDorsalPressure = [] 
 sdDorsalPressure = []
+covDorsalPressure = []
 totalDorsalPressure = []
 config = []
 subject = []
@@ -171,10 +186,8 @@ heelArea = []
 heelAreaUP = []
 
 for entry in entries:
-    
-
-
-    # entry = entries[3]
+    print(entry)
+    # Deliniate the static type
     if 'tanding' in entry:
         Movement ='Standing'
     if 'tand' in entry:
@@ -184,13 +197,9 @@ for entry in entries:
     if 'it' in entry: 
         Movement ='Sitting'
             
-
-
     tmpAvgMat = createAvgMat(entry)
     tmpAvgMat.plotAvgPressure()
     answer = messagebox.askyesno("Question","Is data clean?") # If entire rows of sensels are blank, its not clean!
-    
-    plantar = tmpAvgMat.avgPlantar
     
     if answer == False:
         plt.close('all')
@@ -207,6 +216,7 @@ for entry in entries:
         meanDorsalPressure = float(np.mean(tmpAvgMat.avgDorsal)*6.895)
         maxDorsalPressure = float(np.max(tmpAvgMat.avgDorsal)*6.895)
         sdDorsalPressure = float(np.std(tmpAvgMat.avgDorsal)*6.895)
+        covDorsalPressure = float(np.std(tmpAvgMat.avgDorsal)/np.mean(tmpAvgMat.avgDorsal))
         totalDorsalPressure = float(np.sum(tmpAvgMat.avgDorsal)*6.895)
         dorsalContact = float(np.count_nonzero(tmpAvgMat.avgDorsal)/180*100)
         
@@ -222,27 +232,25 @@ for entry in entries:
         instepDorsalMaxPressure = float(np.mean(tmpAvgMat.avgDorsal[12:, :])*6.895)
 
 
-        plantarContact = float(np.count_nonzero(tmpAvgMat.avgPlantar)/220*100)
+        plantarContact = float(np.count_nonzero(tmpAvgMat.avgPlantar)/tmpAvgMat.plantarSensNo*100)
         plantarPeakPressure = float(np.max(tmpAvgMat.avgPlantar)*6.895)
         plantarAvgPressure = float(np.mean(tmpAvgMat.avgPlantar)*6.895)
         plantarSDPressure = float(np.std(tmpAvgMat.avgPlantar)*6.895)
         plantarTotalPressure = float(np.sum(tmpAvgMat.avgPlantar)*6.895)
         
-        toeContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[:7, :])/47*100)
+        toeContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[:7, :])/tmpAvgMat.plantarToeSensNo*100)
         toePressure = float(np.mean(tmpAvgMat.avgPlantar[:7, :])*6.895)
-        ffContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[7:15, :])/67*100)
+        ffContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[7:15, :])/tmpAvgMat.plantarForefootSensNo*100)
         ffPressure = float(np.mean(tmpAvgMat.avgPlantar[7:15, :])*6.895)
-        mfContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[15:25, :])/70*100)
+        mfContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[15:25, :])/tmpAvgMat.plantarMidfootSensNo*100)
         mfPressure = float(np.mean(tmpAvgMat.avgPlantar[15:25, :])*6.895)
         
-        heelContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[25:, :])/35*100)
+        heelContact = float(np.count_nonzero(tmpAvgMat.avgPlantar[25:, :])/tmpAvgMat.plantarHeelSensNo*100)
         heelPressure = float(np.mean(tmpAvgMat.avgPlantar[25:, :])*6.895)
 
-        
-
         outcomes = pd.DataFrame([[subject,config, Movement,
-                                  dorsalContact, meanDorsalPressure, maxDorsalPressure,sdDorsalPressure,totalDorsalPressure,
-
+                                  dorsalContact, meanDorsalPressure, maxDorsalPressure,sdDorsalPressure,covDorsalPressure,totalDorsalPressure,
+        
                                   ffDorsalContact, ffDorsalPressure, ffDorsalMaxPressure, mfDorsalContact, mfDorsalPressure,  mfDorsalMaxPressure, instepDorsalContact, instepDorsalPressure, instepDorsalMaxPressure,
                     
                                   plantarContact, plantarAvgPressure, plantarPeakPressure,  plantarSDPressure, plantarTotalPressure,
@@ -251,9 +259,9 @@ for entry in entries:
                                   ]],
                                 
                                 columns=['Subject','Config', 'Movement', 
-                                         'dorsalContact', 'meanDorsalPressure','maxDorsalPressure','sdDorsalPressure','totalDorsalPressure',
+                                         'dorsalContact', 'meanDorsalPressure','maxDorsalPressure','sdDorsalPressure','covDorsalPressure','totalDorsalPressure',
                                          
-
+        
                                          'ffDorsalContact', 'ffDorsalPressure', 'ffDorsalMaxPressure', 'mfDorsalContact', 'mfDorsalPressure', 
                                          'mfDorsalMaxPressure', 'instepDorsalContact', 'instepDorsalPressure','instepDorsalMaxPressure',
                                          
@@ -263,14 +271,12 @@ for entry in entries:
                                          'mfContact', 'mfPressure', 'heelContact', 'heelPressure'
                                          
                                          ])
-
-          
+        
+              
         outfileName = fPath + '0_CompiledResults_Static.csv'
         if save_on == 1:
             if os.path.exists(outfileName) == False:
-                
                 outcomes.to_csv(outfileName, header=True, index = False)
-            
             else:
                 outcomes.to_csv(outfileName, mode='a', header=False, index = False) 
             

@@ -13,6 +13,7 @@ import seaborn as sns
 from dataclasses import dataclass
 from tkinter import messagebox
 import scipy.signal as sig
+from datetime import datetime
 
 
 ### set plot font size ###
@@ -28,15 +29,19 @@ plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
 plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
 plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
-save_on = 1
-
-data_check = 0
+save_on = 0
+data_check = 1
 
 fwdLook = 30
 fThresh = 50
-freq = 100 # sampling frequency
 # list of functions 
 # finding landings on the force plate once the filtered force exceeds the force threshold
+
+# Read in files
+# only read .asc files for this work
+fPath = 'Z:\\Testing Segments\\WorkWear_Performance\\2025_Performance_HighCutPFSWorkwearI_TimberlandPro\\Xsensor\\cropped\\'
+fileExt = r".csv"
+entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) and '0_' not in fName]
 
 def delimitTrial(inputDF,FName):
     """
@@ -75,10 +80,10 @@ def delimitTrial(inputDF,FName):
         if (insoleSide == 'Left'): 
             
             # Left side
-            totForce = np.mean(inputDF.iloc[:,18:238], axis = 1)*6895*0.014699
+            totForce = inputDF['Est. Load (lbf)']*4.44822
         else:  
             
-            totForce = np.mean(inputDF.iloc[:,210:430], axis = 1)*6895*0.014699
+            totForce = inputDF['Est. Load (lbf).1']*4.44822
         print('Select a point on the plot to represent the beginning & end of trial')
 
 
@@ -92,8 +97,6 @@ def delimitTrial(inputDF,FName):
         np.save(fPath+FName+'TrialSeg.npy',trial_segment)
 
     return(outputDat)
-
-
 
 def zeroInsoleForce(vForce,freq):
     """
@@ -181,8 +184,6 @@ def findGaitEvents(vForce,freq):
     # Quasi-constants
     zcoeff = 0.9
     
-    
-        
     # Set the threshold to start to find possible gait events
     thresh = zcoeff*np.mean(vForce)
     
@@ -241,19 +242,20 @@ def findGaitEvents(vForce,freq):
             
     return(newHS,TO)
 
-
-
-
-
 ## setting up data classes for 6 possible combos: DorsalRightCOP, DorsalLeftCOP, RightLeftCOP, DorsalRightnoCOP, DorsalLeftnoCOP, RightLeftnoCOP
    
 @dataclass    
 class tsData:
+    time: np.array
+    
     dorsalMat: np.array
     dorsalForefoot: np.array
     dorsalMidfoot: np.array
     dorsalInstep: np.array 
-    
+    dorsalSensNo: int
+    dorsalForefootSensNo: int
+    dorsalMidfootSensNo: int
+    dorsalInstepSensNo: int
     
     LplantarMat: np.array
     LplantarToe: np.array 
@@ -262,6 +264,13 @@ class tsData:
     LplantarHeel: np.array 
     LplantarLateral: np.array
     LplantarMedial: np.array
+    LplantarSensNo: int
+    LplantarToeSensNo: int
+    LplantarForefootSensNo: int
+    LplantarMidfootSensNo: int
+    LplantarHeelSensNo: int
+    LplantarLateralSensNo: int
+    LplantarMedialSensNo: int
     
     RplantarMat: np.array
     RplantarToe: np.array 
@@ -270,6 +279,13 @@ class tsData:
     RplantarHeel: np.array 
     RplantarLateral: np.array
     RplantarMedial: np.array
+    RplantarSensNo: int
+    RplantarToeSensNo: int
+    RplantarForefootSensNo: int
+    RplantarMidfootSensNo: int
+    RplantarHeelSensNo: int
+    RplantarLateralSensNo: int
+    RplantarMedialSensNo: int
  
     LForce: np.array 
     LHS: np.array 
@@ -359,11 +375,8 @@ def createTSmat(inputName):
     """ 
     Reads in file, creates 3D time series matrix (foot length, foot width, time) to be plotted and features
     are extracted. The result is a dataclass which can be used for further plotting. Requires findGaitEvents function.
-    """
-
-    #inputName = entries[3]
+    """   
     
-    freq = 100
     dat = pd.read_csv(fPath+inputName, sep=',', header = 0, low_memory=False)
     if dat.shape[1] == 2:
         dat = pd.read_csv(fPath+inputName, sep=',', header = 1, low_memory=False)
@@ -372,7 +385,16 @@ def createTSmat(inputName):
     subj = inputName.split(sep="_")[0]
     config = inputName.split(sep="_")[1]
     movement = inputName.split(sep = '_')[2] 
-
+    
+    time = np.array([((datetime.strptime(timestr,' %H:%M:%S.%f')-datetime(1900,1,1)).total_seconds()) for timestr in dat.Time])
+    time = time - time[0]
+    freq = 1/np.mean(np.diff(time))
+    if freq < 50:
+        print('Time off for: ' + inputName)
+        print('Previous freq est:' + str(freq))
+        print('Defaulting to 50 Hz for contact event estimations')
+        freq = 50
+    
     RplantarMat = []
     RplantarToe = []
     RplantarForefoot = []
@@ -380,6 +402,13 @@ def createTSmat(inputName):
     RplantarHeel = []
     RplantarLateral = []
     RplantarMedial = []
+    RplantarSensNo = []
+    RplantarToeSensNo = []
+    RplantarForefootSensNo = []
+    RplantarMidfootSensNo = []
+    RplantarHeelSensNo = []
+    RplantarLateralSensNo = []
+    RplantarMedialSensNo = []
     RForce = []
     RForce = []
     RHS = []
@@ -394,6 +423,13 @@ def createTSmat(inputName):
     LplantarHeel = []
     LplantarLateral = []
     LplantarMedial = []
+    LplantarSensNo = []
+    LplantarToeSensNo = []
+    LplantarForefootSensNo = []
+    LplantarMidfootSensNo = []
+    LplantarHeelSensNo = []
+    LplantarLateralSensNo = []
+    LplantarMedialSensNo = []
     LForce = []
     LHS = []
     LTO = []
@@ -430,8 +466,18 @@ def createTSmat(inputName):
             LplantarHeel = LplantarMat[:,25:, :]
             LplantarLateral = LplantarMat[:,:,:4:]
             LplantarMedial =LplantarMat[:,:,4]
+            # Sensel Number Computation: note this needs to match the column/row
+            # callouts from the lines above
+            store_r = np.array(store_r); store_c = np.array(store_c)
+            LplantarSensNo = len(store_r)
+            LplantarToeSensNo = len(np.where(store_r < 7)[0])
+            LplantarForefootSensNo = len(np.where((store_r >= 7)*(store_r < 15))[0])
+            LplantarMidfootSensNo = len(np.where((store_r >= 15)*(store_r < 25))[0])
+            LplantarHeelSensNo = len(np.where(store_r >= 25)[0])
+            LplantarLateralSensNo = len(np.where(store_c >= 4)[0])
+            LplantarMedialSensNo = len(np.where(store_c < 4)[0])
             
-            LForce = np.mean(LplantarMat, axis = (1,2))*6895*0.014699
+            LForce = dat['Est. Load (lbf)']*4.44822
             LForce = zeroInsoleForce(LForce,freq)
             [LHS,LTO] = findGaitEvents(LForce,freq)
         
@@ -465,6 +511,13 @@ def createTSmat(inputName):
             dorsalForefoot = dorsalMat[:,:6,:]
             dorsalMidfoot = dorsalMat[:,6:12, :]
             dorsalInstep = dorsalMat[:,12:, :]
+            # Sensel Number Computation: note this needs to match the column/row
+            # callouts from the lines above
+            store_r = np.array(store_r)
+            dorsalSensNo = len(store_r)
+            dorsalForefootSensNo = len(np.where(store_r < 6)[0])
+            dorsalMidfootSensNo = len(np.where((store_r >= 6)*(store_r < 12))[0])
+            dorsalInstepSensNo = len(np.where(store_r >= 12)[0])
             
         
         if  dat['Insole'][0] == 'Right':  # check to see if left insole used
@@ -497,8 +550,18 @@ def createTSmat(inputName):
             RplantarHeel = RplantarMat[:,25:, :]
             RplantarLateral = RplantarMat[:,:,4:]
             RplantarMedial = RplantarMat[:,:,:4]
+            # Sensel Number Computation: note this needs to match the column/row
+            # callouts from the lines above
+            store_r = np.array(store_r); store_c = np.array(store_c)
+            RplantarSensNo = len(store_r)
+            RplantarToeSensNo = len(np.where(store_r < 7)[0])
+            RplantarForefootSensNo = len(np.where((store_r >= 7)*(store_r < 15))[0])
+            RplantarMidfootSensNo = len(np.where((store_r >= 15)*(store_r < 25))[0])
+            RplantarHeelSensNo = len(np.where(store_r >= 25)[0])
+            RplantarLateralSensNo = len(np.where(store_c >= 4)[0])
+            RplantarMedialSensNo = len(np.where(store_c < 4)[0])
           
-            RForce = np.mean(RplantarMat, axis = (1,2))*6895*0.014699
+            RForce = dat['Est. Load (lbf).1']*4.44822
             RForce = zeroInsoleForce(RForce,freq)
             [RHS,RTO] = findGaitEvents(RForce,freq)
 
@@ -521,9 +584,12 @@ def createTSmat(inputName):
                     RCOP_Y = dat['COP Column.1']
                     RCOP_X = dat['COP Row.1']
                 
-    result = tsData(dorsalMat, dorsalForefoot, dorsalMidfoot, dorsalInstep, 
+    result = tsData(time,dorsalMat, dorsalForefoot, dorsalMidfoot, dorsalInstep, 
+                     dorsalSensNo, dorsalForefootSensNo, dorsalMidfootSensNo, dorsalInstepSensNo,
                      LplantarMat, LplantarToe, LplantarForefoot, LplantarMidfoot, LplantarHeel, LplantarLateral, LplantarMedial,
+                     LplantarSensNo, LplantarToeSensNo, LplantarForefootSensNo, LplantarMidfootSensNo, LplantarHeelSensNo, LplantarLateralSensNo, LplantarMedialSensNo,
                      RplantarMat, RplantarToe, RplantarForefoot, RplantarMidfoot, RplantarHeel,  RplantarLateral, RplantarMedial,
+                     RplantarSensNo, RplantarToeSensNo, RplantarForefootSensNo, RplantarMidfootSensNo, RplantarHeelSensNo, RplantarLateralSensNo, RplantarMedialSensNo,
                      LForce, LHS, LTO, RForce, RHS, RTO,
                      LCOP_X, LCOP_Y, RCOP_X, RCOP_Y,
                      config, movement, subj, dat)
@@ -534,19 +600,10 @@ def createTSmat(inputName):
 
 #############################################################################################################################################################
 
-# Read in files
-# only read .asc files for this work
-fPath = 'C:\\Users\\milena.singletary\\OneDrive - BOA Technology Inc\\General - PFL Team\\Testing Segments\\WorkWear_Performance\\2025_Performance_HighCutPFSWorkwearI_TimberlandPro\\Xsensor\\cropped\\'
-fileExt = r".csv"
-entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) ]
-
-
-
 
 badFileList = []
 
 for fName in entries:
-    
     
     config = []
     subject = []
@@ -556,53 +613,21 @@ for fName in entries:
     side = []
 
     toePmidstance = []
-    toeAreamidstance = []
-    ffAreaLate = []
-    ffPLate = []
-    ffPMaxLate = []
     heelAreaLate = []
     heelPLate = []
     maxmaxToes = []
     
-    ffAreaMid = []
-    ffPMid = []
-    
-    mfAreaLate = []
-    mfPLate = []
-    mfAreaMid = []
-    mfPMid = []
-
     latPmidstance = []
     latAreamidstance = []
-    latPLate = []
-    latAreaLate = []
     medPmidstance = []
     medAreamidstance = []
-    medPLate = []
-    medAreaLate = []
     
     latPropMid = []
     medPropMid = []
     dorsalVar = []
     maxDorsal = []
     
-    ffDorsalEarlyP = []
-    ffDorsalMidP = []
-    ffDorsalLateP = []
-    mfDorsalEarlyP = []
-    mfDorsalMidP = []
-    mfDorsalLateP = []
-    instepEarlyP = []
-    instepMidP = []
-    instepLateP = []
-    
-    ffDorsalMax=[]
-    mfDorsalMax=[]
-    instepMax=[]
-    
-
     try: 
-        #fName = entries[2]
         subName = fName.split(sep = "_")[0]
         ConfigTmp = fName.split(sep="_")[1]
         moveTmp = fName.split(sep = "_")[2].split(sep = '.')[0].lower()
@@ -614,19 +639,16 @@ for fName in entries:
             #dat = pd.read_csv(fPath+fName, sep=',', skiprows = 1, header = 'infer')
         
             tmpDat = createTSmat(fName)
-            tmpDat.plotAvgPressure()
-            
             answer = True # if data check is off. 
             if data_check == 1:
+                tmpDat.plotAvgPressure()
                 plt.figure()
                 plt.plot(tmpDat.RForce, label = 'Right Foot Total Force')
                 for i in range(len(tmpDat.RHS)):
     
                     plt.axvspan(tmpDat.RHS[i], tmpDat.RTO[i], color = 'lightgray', alpha = 0.5)
                 answer = messagebox.askyesno("Question","Is data clean?")
-            
-            
-            
+    
             if answer == False:
                 plt.close('all')
                 print('Adding file to bad file list')
@@ -640,14 +662,12 @@ for fName in entries:
                 if len(tmpDat.RplantarMat) != 0:
                     
                     for i in range(len(tmpDat.RHS)):
-                    
-                        #i = 5
                         side.append('Right')
                         config.append(tmpDat.config)
                         subject.append(tmpDat.subject)
                         movement.append(moveTmp)
                         frames = tmpDat.RTO[i] - tmpDat.RHS[i]
-                        ct.append(frames/100)
+                        ct.append(tmpDat.time[tmpDat.RTO[i]]-tmpDat.time[tmpDat.RHS[i]])
                         pct10 = tmpDat.RHS[i] + round(frames*.1)
                         pct40 = tmpDat.RHS[i] + round(frames*.4)
                         pct50 = tmpDat.RHS[i] + round(frames*.5)
@@ -657,19 +677,19 @@ for fName in entries:
                         maxmaxToes.append(np.max(tmpDat.RplantarToe[tmpDat.RHS[i]:tmpDat.RTO[i]])*6.895)
                         toePmidstance.append(np.mean(tmpDat.RplantarToe[pct40:pct60,:,:])*6.895)
                                            
-                        heelAreaLate.append(np.count_nonzero(tmpDat.RplantarHeel[pct50:tmpDat.RTO[i], :, :])/(tmpDat.RTO[i] - pct50)/43*100) # making this from 50% stance time to toe off to match big data. Consider switing to 90% to toe off?
+                        heelAreaLate.append(np.count_nonzero(tmpDat.RplantarHeel[pct50:tmpDat.RTO[i], :, :])/(tmpDat.RTO[i] - pct50)/tmpDat.RplantarHeelSensNo*100) # making this from 50% stance time to toe off to match big data. Consider switing to 90% to toe off?
                         heelPLate.append(np.mean(tmpDat.RplantarHeel[pct90:tmpDat.RTO[i], :, :])*6.895)
         
                         latPmidstance.append(np.mean(tmpDat.RplantarLateral[pct40:pct60, :, :])*6.895)
-                        latAreamidstance.append(np.count_nonzero(tmpDat.RplantarLateral[pct40:pct60, :, :])/(pct60-pct40)/138*100)
+                        latAreamidstance.append(np.count_nonzero(tmpDat.RplantarLateral[pct40:pct60, :, :])/(pct60-pct40)/tmpDat.RplantarLateralSensNo*100)
                         medPmidstance.append(np.mean(tmpDat.RplantarMedial[pct40:pct60, :, :])*6.895)
-                        medAreamidstance.append(np.count_nonzero(tmpDat.RplantarMedial[pct40:pct60, :, :])/(pct60-pct40)/82*100)
+                        medAreamidstance.append(np.count_nonzero(tmpDat.RplantarMedial[pct40:pct60, :, :])/(pct60-pct40)/tmpDat.RplantarMedialSensNo*100)
                         latPropMid.append(np.sum(tmpDat.RplantarLateral[pct40:pct60, :, :])/np.sum(tmpDat.RplantarMat[pct40:pct60, :, :]))
                         medPropMid.append(np.sum(tmpDat.RplantarMedial[pct40:pct60, :, :])/np.sum(tmpDat.RplantarMat[pct40:pct60, :, :]))
                         
                         if len(tmpDat.dorsalMat) != 0: 
                             
-                            dorsalVar.append(np.std(tmpDat.dorsalMat[tmpDat.RHS[i]:tmpDat.RTO[i], :, :])/np.mean(tmpDat.dorsalMat[tmpDat.RHS[i]:tmpDat.RTO[i], :, :])*6.895)
+                            dorsalVar.append(np.std(tmpDat.dorsalMat[tmpDat.RHS[i]:tmpDat.RTO[i], :, :])/np.mean(tmpDat.dorsalMat[tmpDat.RHS[i]:tmpDat.RTO[i], :, :]))
                             maxDorsal.append(np.max(tmpDat.dorsalMat[tmpDat.RHS[i]:tmpDat.RTO[i], :, :])*6.895)
                             
                         else:
@@ -679,14 +699,12 @@ for fName in entries:
                 if len(tmpDat.LplantarMat) != 0:
                     
                     for i in range(len(tmpDat.LHS)):
-                    
-                        #i = 5
                         side.append('Left')
                         config.append(tmpDat.config)
                         subject.append(tmpDat.subject)
                         movement.append(moveTmp)
                         frames = tmpDat.LTO[i] - tmpDat.LHS[i]
-                        ct.append(frames/100)
+                        ct.append(tmpDat.time(tmpDat.LTO[i])-tmpDat.time(tmpDat.LHS[i]))
                         pct10 = tmpDat.LHS[i] + round(frames*.1)
                         pct40 = tmpDat.LHS[i] + round(frames*.4)
                         pct50 = tmpDat.LHS[i] + round(frames*.5)
@@ -696,43 +714,37 @@ for fName in entries:
                         maxmaxToes.append(np.max(tmpDat.LplantarToe[tmpDat.LHS[i]:tmpDat.LTO[i]])*6.895)
                         toePmidstance.append(np.mean(tmpDat.LplantarToe[pct40:pct60,:,:])*6.895)
                                            
-                        heelAreaLate.append(np.count_nonzero(tmpDat.LplantarHeel[pct50:tmpDat.LTO[i], :, :])/(tmpDat.LTO[i] - pct50)/43*100) # making this from 50% stance time to toe off to match big data. Consider switing to 90% to toe off?
+                        heelAreaLate.append(np.count_nonzero(tmpDat.LplantarHeel[pct50:tmpDat.LTO[i], :, :])/(tmpDat.LTO[i] - pct50)/tmpDat.LplantarHeelSensNo*100) # making this from 50% stance time to toe off to match big data. Consider switing to 90% to toe off?
                         heelPLate.append(np.mean(tmpDat.LplantarHeel[pct90:tmpDat.LTO[i], :, :])*6.895)
         
                         latPmidstance.append(np.mean(tmpDat.LplantarLateral[pct40:pct60, :, :])*6.895)
-                        latAreamidstance.append(np.count_nonzero(tmpDat.LplantarLateral[pct40:pct60, :, :])/(pct60-pct40)/138*100)
+                        latAreamidstance.append(np.count_nonzero(tmpDat.LplantarLateral[pct40:pct60, :, :])/(pct60-pct40)/tmpDat.LplantarLateralSensNo*100)
                         medPmidstance.append(np.mean(tmpDat.LplantarMedial[pct40:pct60, :, :])*6.895)
-                        medAreamidstance.append(np.count_nonzero(tmpDat.LplantarMedial[pct40:pct60, :, :])/(pct60-pct40)/82*100)
+                        medAreamidstance.append(np.count_nonzero(tmpDat.LplantarMedial[pct40:pct60, :, :])/(pct60-pct40)/tmpDat.LplantarMedialSensNo*100)
                         latPropMid.append(np.sum(tmpDat.LplantarLateral[pct40:pct60, :, :])/np.sum(tmpDat.LplantarMat[pct40:pct60, :, :]))
                         medPropMid.append(np.sum(tmpDat.LplantarMedial[pct40:pct60, :, :])/np.sum(tmpDat.LplantarMat[pct40:pct60, :, :]))
                         
                         if len(tmpDat.dorsalMat) != 0: 
                             
-                            dorsalVar.append(np.std(tmpDat.dorsalMat[tmpDat.LHS[i]:tmpDat.LTO[i], :, :])/np.mean(tmpDat.dorsalMat[tmpDat.LHS[i]:tmpDat.LTO[i], :, :])*6.895)
+                            dorsalVar.append(np.std(tmpDat.dorsalMat[tmpDat.LHS[i]:tmpDat.LTO[i], :, :])/np.mean(tmpDat.dorsalMat[tmpDat.LHS[i]:tmpDat.LTO[i], :, :]))
                             maxDorsal.append(np.max(tmpDat.dorsalMat[tmpDat.LHS[i]:tmpDat.LTO[i], :, :])*6.895)
                             
                         else:
                             dorsalVar.append('nan')
                             maxDorsal.append('nan')
-
+    
         
-
             outcomes = pd.DataFrame({'Subject': list(subject), 'Movement':list(movement), 'Config':list(config), 'Order':list(oOrder), 'ContactTime':list(ct),
                                      'toeP_mid':list(toePmidstance),'toeArea_mid':list(toeAreamidstance), 'maxmaxToes':list(maxmaxToes),
                                      'ffP_late':list(ffPLate), 'ffArea_late':list(ffAreaLate), 'ffP_Mid':list(ffPMid), 'ffArea_Mid':list(ffAreaMid), 'ffPMax_late':list(ffPMaxLate),
                                      'mfP_late':list(mfPLate), 'mfArea_late':list(mfAreaLate), 'mfP_Mid':list(mfPMid), 'mfArea_Mid':list(mfAreaMid),
                                      'heelPressure_late':list(heelPLate), 'heelAreaP':list(heelAreaLate),  
-                                     'latP_mid':list(latPmidstance), 'latArea_mid':list(latAreamidstance), 'latP_late':list(latPLate), 'latArea_late':list(latAreaLate), 'latPropMid':list(latPropMid),
-                                     'medP_mid':list(medPmidstance), 'medArea_mid':list(medAreamidstance), 'medP_late':list(medPLate), 'medArea_late':list(medAreaLate), 'medPropMid':list(medPropMid),
-                                     'dorsalVar':list(dorsalVar), 'maxDorsalP':list(maxDorsal),
-                                     'ffDorsalEarlyP':list(ffDorsalEarlyP), 'ffDorsalMidP':list(ffDorsalMidP), 'ffDorsalLateP':list(ffDorsalLateP),
-                                     'mfDorsalEarlyP':list(mfDorsalEarlyP), 'mfDorsalMidP':list(mfDorsalMidP), 'mfDorsalLateP':list(mfDorsalLateP),
-
-                                     'instepEarlyP':list(instepEarlyP), 'instepMidP':list(instepMidP), 'instepLateP':list(instepLateP),
-                                     'ffDorsalMax':list(ffDorsalMax), 'mfDorsalMax':list(mfDorsalMax), 'instepMax':list(instepMax)
+                                     'latP_mid':list(latPmidstance), 'latArea_mid':list(latAreamidstance), 'latPropMid':list(latPropMid),
+                                     'medP_mid':list(medPmidstance), 'medArea_mid':list(medAreamidstance), 'medPropMid':list(medPropMid),
+                                     'dorsalVar':list(dorsalVar), 'maxDorsalP':list(maxDorsal)
                                      
                                      })
-
+    
             outfileName = fPath + '0_CompiledResults.csv'
             if save_on == 1:
                 if os.path.exists(outfileName) == False:
@@ -741,9 +753,7 @@ for fName in entries:
             
                 else:
                     outcomes.to_csv(outfileName, mode='a', header=False, index = False) 
-            
-        
-        
+
     except:
             print('Not usable data')
             badFileList.append(fName)             
