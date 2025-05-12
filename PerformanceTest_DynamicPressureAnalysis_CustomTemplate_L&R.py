@@ -482,12 +482,10 @@ def createTSmat(inputName):
             [LHS,LTO] = findGaitEvents(LForce,freq)
         
         if dat['Insole'][0] != 'Right' and dat['Insole'][0] != 'Left' :       # check to see if dorsal pad was used
-            
             dorsalSensel = dat.loc[:,'S_1_1':'S_18_10']
             
         elif 'Insole.1' in dat.columns:
             if dat['Insole.1'][0] != 'Right' and dat['Insole.1'][0] != 'Left' :
-    
                 dorsalSensel = dat.loc[:,'S_1_1':'S_18_10']
                 
         if 'dorsalSensel' in locals():        
@@ -506,7 +504,7 @@ def createTSmat(inputName):
             
             
             dorsalMat = np.flip(dorsalMat, axis = 0) 
-            dorsalMat[dorsalMat <1] = 0  
+            dorsalMat[dorsalMat < 0.1] = 0  # 0.1 used here due to the lower calibration range of the dorsal sensor pad
             
             dorsalForefoot = dorsalMat[:,:6,:]
             dorsalMidfoot = dorsalMat[:,6:12, :]
@@ -521,12 +519,10 @@ def createTSmat(inputName):
             
         
         if  dat['Insole'][0] == 'Right':  # check to see if left insole used
-            
             RplantarSensel = dat.loc[:, 'S_1_2':'S_31_7'] 
         
         elif  'Insole.1' in dat.columns:
             if dat['Insole.1'][0] == 'Right':  
-                
                 RplantarSensel = dat.loc[:, 'S_1_2.1':'S_31_7']
             
         if 'RplantarSensel' in locals():  
