@@ -209,6 +209,28 @@ def findGaitEvents(vForce,freq):
             
     return(newHS,TO)
 
+def readXSENSORFile(inputName,FilePath):
+    """
+    Open and provide a dataframe for an XSENSOR file
+
+    Parameters
+    ----------
+    inputName : str
+        File name (.csv)
+    FilePath : str
+        Destination where the file is stored
+
+    Returns
+    -------
+    dat : pandas dataframe
+        Dataframe of the XSENSOR data
+
+    """
+    dat = pd.read_csv(FilePath+inputName, sep=',', header = 0, low_memory=False)
+    if dat.shape[1] == 2:
+        dat = pd.read_csv(FilePath+inputName, sep=',', header = 1, low_memory=False)
+    return(dat)
+
 ## setting up data classes for 6 possible combos: DorsalRightCOP, DorsalLeftCOP, RightLeftCOP, DorsalRightnoCOP, DorsalLeftnoCOP, RightLeftnoCOP
    
 @dataclass    
@@ -275,28 +297,6 @@ class tsData:
     
     fullDat: pd.DataFrame #entire stored dataframe. 
 
-def readXSENSORFile(inputName,FilePath):
-    """
-    Open and provide a dataframe for an XSENSOR file
-
-    Parameters
-    ----------
-    inputName : str
-        File name (.csv)
-    FilePath : str
-        Destination where the file is stored
-
-    Returns
-    -------
-    dat : pandas dataframe
-        Dataframe of the XSENSOR data
-
-    """
-    dat = pd.read_csv(FilePath+inputName, sep=',', header = 0, low_memory=False)
-    if dat.shape[1] == 2:
-        dat = pd.read_csv(FilePath+inputName, sep=',', header = 1, low_memory=False)
-    return(dat)
-
 def createTSmat(inputName,FilePath,dat):
     """ 
     Reads in file, creates 3D time series matrix (foot length, foot width, time) to be plotted and features
@@ -354,6 +354,10 @@ def createTSmat(inputName,FilePath,dat):
     dorsalForefoot = []
     dorsalMidfoot = []
     dorsalInstep = []
+    dorsalSensNo =[]
+    dorsalForefootSensNo = []
+    dorsalMidfootSensNo = []
+    dorsalInstepSensNo = []
 
     if 'Insole' in dat.columns:
         if  dat['Insole'][0] == 'Left':      # check to see if right insole used
@@ -379,7 +383,7 @@ def createTSmat(inputName,FilePath,dat):
             LplantarMidfoot = LplantarMat[:,15:25,:]
             LplantarHeel = LplantarMat[:,25:, :]
             LplantarLateral = LplantarMat[:,:,:4:]
-            LplantarMedial =LplantarMat[:,:,4]
+            LplantarMedial =LplantarMat[:,:,:4]
             # Sensel Number Computation: note this needs to match the column/row
             # callouts from the lines above
             store_r = np.array(store_r); store_c = np.array(store_c)
@@ -404,7 +408,7 @@ def createTSmat(inputName,FilePath,dat):
             if dat['Insole.1'][0] != 'Right' and dat['Insole.1'][0] != 'Left' :
                 dorsalSensel = dat.loc[:,'S_1_1':'S_18_10']
                 
-        if 'dorsalSensel' in locals():        
+        if 'dorsalSensel' in locals():
             headers = dorsalSensel.columns
             store_r = []
             store_c = []
@@ -438,8 +442,11 @@ def createTSmat(inputName,FilePath,dat):
             RplantarSensel = dat.loc[:, 'S_1_2':'S_31_7'] 
         
         elif  'Insole.1' in dat.columns:
-            if dat['Insole.1'][0] == 'Right':  
-                RplantarSensel = dat.loc[:, 'S_1_2.1':'S_31_7']
+            if dat['Insole.1'][0] == 'Right':
+                if 'dorsalSensel' in locals():
+                    RplantarSensel = dat.loc[:, 'S_1_2.1':'S_31_7']
+                else:
+                    RplantarSensel = dat.loc[:, 'S_1_2':'S_31_7']
             
         if 'RplantarSensel' in locals():  
             headers = RplantarSensel.columns
