@@ -166,7 +166,7 @@ medAreaLate = []
 latPropMid = []
 medPropMid = []
 
-for fName in entries[0:2]:
+for fName in entries:
     print(fName)
     subName = fName.split(sep = "_")[0]
     ConfigTmp = fName.split(sep="_")[1]
