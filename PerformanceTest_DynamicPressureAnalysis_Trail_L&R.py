@@ -16,19 +16,18 @@ from tkinter import messagebox
 import scipy.signal as sig
 import scipy.interpolate
 import scipy
-from XSENSORFunctions import readXSENSORFile, delimitTrial, createTSmat, zeroInsoleForce, findGaitEvents
-
+from XSENSORFunctions import readXSENSORFile, createTSmat, zeroInsoleForce, findGaitEvents
 
 save_on = 0
-data_check = 0
+data_check = 1
 
 # Read in files
 # only read .csv files for this work
-fPath = 'Z:\\Testing Segments\\EndurancePerformance\\2024\\EH_Trail_AltraMidsole_Perf_Mar24\\Xsensor\\'
+fPath = 'Z:\\Testing Segments\\EndurancePerformance\\2024\\EH_Trail_Kailas_Perf_Jun24\\XSENSOR\\RemoteFiles\\'
 fileExt = r".csv"
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) ]
 
-GPStiming = pd.read_csv('Z:\\Testing Segments\\EndurancePerformance\\2024\\EH_Trail_AltraMidsole_Perf_Mar24\\GPS\\CombinedGPS.csv')
+GPStiming = pd.read_csv('Z:\\Testing Segments\\EndurancePerformance\\2024\\EH_Trail_Kailas_Perf_Jun24\\CombinedGPS.csv')
 SeshConf = GPStiming[['Config', 'Sesh']]
 
 ### set plot font size ###
@@ -44,11 +43,55 @@ plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
 plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
 plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
-
-
-
 ###############################################################################
 # Function list specific for this code
+def delimitTrialTrailRun(inputDF,FName,FilePath):
+    """
+    This function uses ginput to delimit the start and end of a trial
+    You will need to indicate on the plot when to start/end the trial. 
+    You must use tkinter or plotting outside the console to use this function
+    Parameters
+    ----------
+    inputDF : Pandas DataFrame
+        DF containing all desired output variables.
+    fName : str 
+        File name
+    FilePath : str
+        Path of the desired file
+
+    Returns
+    -------
+    outputDat: dataframe subset to the beginning and end of jumps.
+
+    """
+
+    # generic function to plot and start/end trial #
+    if os.path.exists(FilePath+FName+'TrialSeg.npy'):
+        trial_segment_old = np.load(FilePath+FName+'TrialSeg.npy', allow_pickle =True)
+        trialStart = trial_segment_old[1][0,0]
+        trialEnd = trial_segment_old[1][1,0]
+        inputDF = inputDF.iloc[int(np.floor(trialStart)) : int(np.floor(trialEnd)),:]
+        outputDat = inputDF.reset_index(drop = True)
+        
+    else: 
+        fig, ax = plt.subplots()
+        leftForce = inputDF['Est. Load (lbf)']*4.44822
+        rightForce = inputDF['Est. Load (lbf).1']*4.44822
+                   
+        print('Select a point on the plot to represent the beginning & end of trial')
+
+        ax.plot(leftForce, label = 'Left Force')
+        ax.plot(rightForce, label = 'Right Force')
+        fig.legend()
+        pts = np.asarray(plt.ginput(2, timeout=-1))
+        plt.close()
+        outputDat = inputDF.iloc[int(np.floor(pts[0,0])) : int(np.floor(pts[1,0])),:]
+        outputDat = outputDat.reset_index(drop = True)
+        trial_segment = np.array([FName, pts], dtype = object)
+        np.save(FilePath+FName+'TrialSeg.npy',trial_segment)
+
+    return(outputDat)
+
 def intp_steps(var,landings,takeoffs,GS):
     """
     Function to interpolate the variable of interest across a step
@@ -82,8 +125,6 @@ def intp_steps(var,landings,takeoffs,GS):
     return intp_var
 
 ###############################################################################
-
-
 
 badFileList = []
 config = []
@@ -125,20 +166,17 @@ medAreaLate = []
 latPropMid = []
 medPropMid = []
 
-
-
 for fName in entries[0:2]:
     print(fName)
     subName = fName.split(sep = "_")[0]
     ConfigTmp = fName.split(sep="_")[1]
-    moveTmp = fName.split(sep = "_")[2].split(sep = '.')[0].lower()
+    trialTmp = int(fName.split(sep = "_")[2].split(sep = '.')[0].lower())
     
     # Find the correct GPS trial
-    #GPStrial = np.array(GPStiming.Subject == subName) * np.array(GPStiming.Config == ConfigTmp) * np.array(GPStiming.Sesh == Sesh)
-    GPStrial = np.array(GPStiming.Subject == subName) * np.array(GPStiming.Config == ConfigTmp)
+    GPStrial = np.array(GPStiming.Subject == subName) * np.array(GPStiming.Config == ConfigTmp) * np.array(GPStiming.Sesh == trialTmp) # This will be the go-to in the future
     
     tmpDat = readXSENSORFile(fName,fPath)
-    # tmpDat = delimitTrial(tmpDat,fName,fPath) make one specfic for trail running
+    tmpDat = delimitTrialTrailRun(tmpDat,fName,fPath)
     tmpDat = createTSmat(fName, fPath, tmpDat)
     
     # Estimate the frequency from the time stamps
@@ -155,18 +193,9 @@ for fName in entries[0:2]:
     
     tmpDat.RForce = zeroInsoleForce(tmpDat.RForce,freq)
     [RHS,RTO] = findGaitEvents(tmpDat.RForce,freq)
-
     
-    start_LHS = []; start_RHS = []
-    if subName == 'ChadPrichard': # change 25 to more or less depending on time standing around before start of run
-        checkwnd = 25
-        checkless = 20
-    else:  
-        checkwnd = 15 
-        checkless = 15
-
-        
-        
+    checkwnd = 15 # Number of foot contacts to check
+    checkless = 15 # Number of frames between foot contacts to check between
     for jj in range(checkwnd): 
         jump_check = np.where(np.abs(LHS[jj] - np.array(RHS[0:checkwnd])) < checkless) 
         if jump_check[0].size > 0:
@@ -187,14 +216,13 @@ for fName in entries[0:2]:
     timemin = 0.5
     timemax = 1.25
 
-    LGS = []    
-    # May need to exclude poor toe-off dectections here as well
+    LGS = [] # GS indicates good step
     for jj in range(len(LHS)-1):
         if np.max(tmpDat.LForce[LHS[jj]:LTO[jj]]) > pk and np.max(tmpDat.LForce[LHS[jj]:LTO[jj]]) < upper:
             if (LHS[jj+1] - LHS[jj]) > timemin*freq and LHS[jj+1] - LHS[jj] < timemax*freq:
                 LGS.append(jj)
     
-    RGS = []
+    RGS = [] # GS indicates good step
     for jj in range(len(RHS)-1):
         if np.max(tmpDat.RForce[RHS[jj]:RTO[jj]]) > pk and np.max(tmpDat.RForce[RHS[jj]:RTO[jj]]) < upper :
             if (RHS[jj+1] - RHS[jj]) > timemin*freq and RHS[jj+1] - RHS[jj] < timemax*freq:
@@ -210,10 +238,17 @@ for fName in entries[0:2]:
         plt.subplot(1,2,2)
         plt.plot(intp_steps(tmpDat.RForce,RHS,RTO,RGS))
         plt.ylabel('Total Right Insole Force (N)')
+        plt.tight_layout()
+        plt.margins(0.1)
+        
+        saveFolder= fPath + 'SubStepForce'
+        
+        if os.path.exists(saveFolder) == False:
+            os.mkdir(saveFolder)
+            
+        plt.savefig(saveFolder + '/' + subName +' '+ ConfigTmp +' '+ str(trialTmp) + '.png')
 
         answer = messagebox.askyesno("Question","Is data clean?")
-    
-    
     
     if answer == False:
         plt.close('all')
@@ -228,12 +263,10 @@ for fName in entries[0:2]:
         Rlabel = np.zeros([len(RGS),1])
         Llabel = np.zeros([len(LGS),1])
         
-
         for kk in RGS:
             config.append(tmpDat.config)
             subject.append(tmpDat.subject)
-            sesh.append(moveTmp)
-            #movement.append(moveTmp)
+            sesh.append(trialTmp)
             movement.append('run')
             side.append('R')
             frames = RTO[kk] - RHS[kk]
@@ -260,8 +293,7 @@ for fName in entries[0:2]:
         for kk in LGS:
             config.append(tmpDat.config)
             subject.append(tmpDat.subject)
-            sesh.append(moveTmp)
-            #movement.append(moveTmp)
+            sesh.append(trialTmp)
             movement.append('run')
             side.append('L')
             frames = LTO[kk] - LHS[kk]
