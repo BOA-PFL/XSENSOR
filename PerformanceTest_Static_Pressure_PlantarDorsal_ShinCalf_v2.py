@@ -431,7 +431,7 @@ for entry in parentList:
                             
                        
           
-    outfileName = fPath + '0_CompiledResults_Static_TEST.csv'
+    outfileName = fPath + '0_CompiledResults_Static.csv'
     if save_on == 1:
         if os.path.exists(outfileName) == False:
             outcomes.to_csv(outfileName, header=True, index = False)
