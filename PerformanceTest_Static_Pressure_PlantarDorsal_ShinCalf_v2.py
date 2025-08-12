@@ -19,7 +19,7 @@ from XSENSORFunctions import readXSENSORFile, delimitTrial, createTSmat, zeroIns
 
 
 save_on = 1
-data_check = 1
+data_check = 0
 
 
 # Read in files
@@ -58,55 +58,30 @@ class FB_avgData:
     config: str
     subject: str
     
-    # dat_FD: pd.DataFrame
-    dat_FB: pd.DataFrame
-    #entire stored dataframe. 
    
-    # def plotAvgFBPressure(self):
-    #     fig, (ax1, ax2) = plt.subplots(1,2)
-    #     ax1 = sns.heatmap(self.avgshinMat, ax = ax1, cmap="mako", vmin = 0, vmax = np.max(self.avgshinMat) * 2)
-    #     ax1.set(xticklabels=[])
-    #     ax1.set_title('Shin Pressure') 
-    #     ax2 = sns.heatmap(self.avgcalfMat, ax = ax2, cmap="mako", vmin = 0, vmax = np.max(self.avgcalfMat) * 2)
-    #     ax2.set(xticklabels=[])
-    #     ax2.set_title('Calf Pressure') 
-    #     plt.suptitle(self.config)
-    #     plt.tight_layout() 
-        
-    #     saveFolder= fPath + '2DPlots'
-        
-    #     if os.path.exists(saveFolder) == False:
-    #         os.mkdir(saveFolder)
-            
-    #     plt.savefig(saveFolder + '/' + self.subject + self.config + '.png')
-         
-    #     return fig  
+    dat_FB: pd.DataFrame
+   
     
-def createAvg_FB_Mat(inputName):
+def createAvg_FB_Mat(inputName,FilePath):
     """ 
     Reads in file, creates average matrix data, in the shape of the pressure sensor(s), to be plotted and features
     are extracted. The result is a dataclass which can be used for further plotting
     
     inputName: string
-        filename of data static trial you are processing. 
+        filename of data static trial you are processing.  
+        
+     FilePath : str
+         file path string
     """
    
-    # entries_frontBack = [fName for fName in os.listdir(fPath) if (fName.endswith(fileExt) and 'FrontBack' in fName) ]
-    # entries_FootDorsum = [fName for fName in os.listdir(fPath) if (fName.endswith(fileExt) and 'FootDorsum' in fName) ] 
-
-    
-
-    # Front back 
+   
    
 
-    subj = inputName.split(sep="_")[0]
+    subj = inputName.split(sep="_")[0]  
     config = inputName.split(sep="_")[1]
-    trial = inputName.split(sep="_")[3].split(sep='.')[0]
     
-    
-    frontBack =  [fName for fName in os.listdir(fPath) if (fName.endswith(fileExt) and 'FrontBack' in fName)]
-    # dat_FB = pd.read_csv(fPath+frontBack, sep=',', header =1 , low_memory=False)
-    dat_FB = pd.read_csv(os.path.join(fPath, inputName), sep=',', header=1, low_memory=False)
+
+    dat_FB = pd.read_csv(os.path.join(FilePath, inputName), sep=',', header=1, low_memory=False)
     
    
 
@@ -142,7 +117,7 @@ def createAvg_FB_Mat(inputName):
     return(result)  
 
 
-def plotAvgStaticFDPressure(plantarMat, inputFD, inputFB, FilePath):
+def plotAvgStaticFDPressure(plantarMat, inputFD, FilePath):
     """
     Plot the average static plantar and dorsal pressure
     Function dependencies: need to use createTSmat for the appropriate array
@@ -166,25 +141,17 @@ def plotAvgStaticFDPressure(plantarMat, inputFD, inputFB, FilePath):
     
     avgPlantar = np.mean(plantarMat, axis = 0)
     avgDorsal = np.mean(inputFD.dorsalMat, axis = 0)
-    avgShin = inputFB.avgshinMat
-    avgCalf = inputFB.avgcalfMat
 
-    
-    # fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)
 
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2,2)
+
+    fig, ((ax1, ax2)) = plt.subplots(1,2)
     ax1 = sns.heatmap(avgDorsal, ax = ax1, cmap="mako", vmin = 0, vmax = np.max(avgDorsal) * 2)
     ax1.set(xticklabels=[])
     ax1.set_title('Dorsal Pressure') 
     ax2 = sns.heatmap(avgPlantar, ax = ax2, cmap="mako", vmin = 0, vmax = np.max(avgPlantar) * 2)
     ax2.set(xticklabels=[])
     ax2.set_title('Plantar Pressure')  
-    ax3 = sns.heatmap(avgShin, ax = ax3, cmap="mako", vmin = 0, vmax = np.max(avgShin) * 2)
-    ax3.set(xticklabels=[])
-    ax3.set_title('Shin Pressure')  
-    ax4 = sns.heatmap(avgCalf, ax = ax4, cmap="mako", vmin = 0, vmax = np.max(avgCalf) * 2)
-    ax4.set(xticklabels=[])
-    ax4.set_title('Calf Pressure')  
+ 
     
     plt.suptitle(inputFD.config)
     plt.tight_layout() 
@@ -197,6 +164,52 @@ def plotAvgStaticFDPressure(plantarMat, inputFD, inputFB, FilePath):
     plt.savefig(saveFolder + '/' + inputFD.subject + inputFD.config + '.png')
     return fig
 
+def plotAvgStaticFBPressure( inputFB, FilePath):
+    """
+    Plot the average static plantar and dorsal pressure
+    Function dependencies: need to use createTSmat for the appropriate array
+    shape for the plantar and dorsal pressure
+
+    Parameters
+    ----------
+    plantarMat : numpy array
+        DESCRIPTION.
+    inputDC : dataclass
+        Created from the function "createTSmat"
+    FilePath : str
+        file path string
+
+    Returns
+    -------
+    fig : matplotlib figure
+        Figure showing average dorsal and plantar pressure during the static trial
+
+    """
+    
+
+    avgShin = inputFB.avgshinMat
+    avgCalf = inputFB.avgcalfMat
+
+
+    fig, ((ax1, ax2)) = plt.subplots(1,2)
+
+    ax1 = sns.heatmap(avgShin, ax = ax1, cmap="mako", vmin = 0, vmax = np.max(avgShin) * 2)
+    ax1.set(xticklabels=[])
+    ax1.set_title('Shin Pressure')  
+    ax2 = sns.heatmap(avgCalf, ax = ax2, cmap="mako", vmin = 0, vmax = np.max(avgCalf) * 2)
+    ax2.set(xticklabels=[])
+    ax2.set_title('Calf Pressure')  
+    
+    plt.suptitle(inputFB.config)
+    plt.tight_layout() 
+    
+    saveFolder= FilePath + '2DPlots'
+    
+    if os.path.exists(saveFolder) == False:
+        os.mkdir(saveFolder)
+        
+    plt.savefig(saveFolder + '/' + inputFB.subject + inputFB.config + '.png')
+    return fig
 
 
 
@@ -212,7 +225,7 @@ plantarSDPressure = []
 plantarTotalPressure = []
 
 heelArea = [] 
-heelAreaUP = []
+
 
 parentList = entries_FootDorsum 
 
@@ -237,10 +250,10 @@ if len(entries_FrontBack) > len(entries_FootDorsum):
             
         
 
-for entry in parentList[1:3]:
+for entry in parentList:
     print(entry )  
     
-    # entry = parentList[6]
+  
     if "FootDorsum" in entry:  
         fd_found = 1
 
@@ -263,7 +276,7 @@ for entry in parentList[1:3]:
                 print(entries_FrontBack[ii]) 
                 print(' ')
                 fb_found = 1
-                frontBackDat = createAvg_FB_Mat(entries_FrontBack[ii])  
+                frontBackDat = createAvg_FB_Mat(entries_FrontBack[ii],fPath)  
                 
     elif "FrontBack" in entry: 
         fb_found = 1  
@@ -276,20 +289,23 @@ for entry in parentList[1:3]:
     answer = True
     if data_check == 1:
         if len(plantDorDat.LplantarMat) != 0:
-            plotAvgStaticFDPressure(plantDorDat.LplantarMat,plantDorDat,frontBackDat, fPath)
+            plotAvgStaticFDPressure(plantDorDat.LplantarMat,plantDorDat, fPath)
         if len(plantDorDat.RplantarMat) != 0:
-            plotAvgStaticFDPressure(plantDorDat.RplantarMat,plantDorDat,frontBackDat , fPath)
+            plotAvgStaticFDPressure(plantDorDat.RplantarMat,plantDorDat,fPath) 
+        if len(frontBackDat.avgshinMat):
+            plotAvgStaticFBPressure( frontBackDat , fPath)
+        
 
         answer = messagebox.askyesno("Question","Is data clean?") # If entire rows of sensels are blank, its not clean!
     
-    # if answer == False:
-    #     plt.close('all')
-    #     print('Adding file to bad file list')
-    #     #badFileList.append(fName)
-    
-    # if answer == True:
-    #     plt.close('all')
-    #     print('Estimating point estimates')
+        if answer == False:
+            plt.close('all')
+            print('Adding file to bad file list')
+            #badFileList.append(fName)
+        
+        if answer == True:
+            plt.close('all')
+            print('Estimating point estimates')
 
 
 
@@ -374,16 +390,29 @@ for entry in parentList[1:3]:
 
         
     else: 
-        fd_outcomes =  pd.DataFrame([['NA']*20])
+        fd_outcomes =   pd.DataFrame(
+                        
+                                   columns=['Subject','Config', 'Trial',
+                                'dorsalContact', 'meanDorsalPressure','maxDorsalPressure','sdDorsalPressure','covDorsalPressure','totalDorsalPressure',
+                             
+
+                                'ffDorsalContact', 'ffDorsalPressure', 'ffDorsalMaxPressure', 'mfDorsalContact', 'mfDorsalPressure', 
+                                'mfDorsalMaxPressure', 'instepDorsalContact', 'instepDorsalPressure','instepDorsalMaxPressure',
+                             
+                                'plantarContact', 'meanPlantarPressure', 'maxPlantarPressure', 'sdPlantarPressure', 'totalPlantarPressure',
+                             
+                                'toeContact', 'toePressure', 'ffContact', 'ffPressure',
+                                'mfContact', 'mfPressure', 'heelContact', 'heelPressure'])
+
         
     if fb_found == 1: 
         
-        # avgCalf = np.mean(frontBackDat.avgcalfMat,axis = 0)
+       
         meanCalf = float(np.mean(frontBackDat.avgcalfMat)*6.895)
         pkCalf = float(np.max(frontBackDat.avgcalfMat) *6.895)
         varCalf = float(np.std(frontBackDat.avgcalfMat)  / np.mean(frontBackDat.avgcalfMat) *6.895)
  
-        # avgShin = np.mean(frontBackDat.avgshinMat, axis = 0)
+      
         meanShin = float(np.mean(frontBackDat.avgshinMat)*6.895)
         pkShin = float(np.max(frontBackDat.avgshinMat) *6.895) 
         varShin = float(np.std(frontBackDat.avgshinMat)  / np.mean(frontBackDat.avgshinMat) *6.895) 
@@ -392,7 +421,8 @@ for entry in parentList[1:3]:
                                     columns=[ 'avgCalf', 'pkCalf', 'varCalf', 'avgShin','pkShin','varShin'])
 
     else: 
-        fb_outcomes =  pd.DataFrame([['NA']*6])
+        fb_outcomes = pd.DataFrame(
+                                    columns=[ 'avgCalf', 'pkCalf', 'varCalf', 'avgShin','pkShin','varShin'])
 
    
     
