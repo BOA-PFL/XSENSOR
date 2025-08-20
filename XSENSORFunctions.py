@@ -396,10 +396,6 @@ def createTSmat(inputName,FilePath,dat):
             LplantarMedialSensNo = len(np.where(store_c < 4)[0])
             
             LForce = dat['Est. Load (lbf)']*4.44822
-            
-            if 'IMU AX' in dat.columns:
-                Lacc = np.array([dat['IMU AX'], dat['IMU AY'], dat['IMU AZ']]).T
-                Lgyr = np.array([dat['IMU GX'], dat['IMU GY'], dat['IMU GZ']]).T
         
         if dat['Insole'][0] != 'Right' and dat['Insole'][0] != 'Left' :       # check to see if dorsal pad was used
             dorsalSensel = dat.loc[:,'S_1_1':'S_18_10']
@@ -481,12 +477,8 @@ def createTSmat(inputName,FilePath,dat):
             RplantarMedialSensNo = len(np.where(store_c < 4)[0])
           
             RForce = dat['Est. Load (lbf).1']*4.44822
-            
-            if 'IMU AX.1' in dat.columns:
-                Racc = np.array([dat['IMU AX'], dat['IMU AY'], dat['IMU AZ']]).T
-                Rgyr = np.array([dat['IMU GX'], dat['IMU GY'], dat['IMU GZ']]).T
                 
-
+        # Store COP metrics
         if 'COP Row' in dat.columns:  
             if dat['Insole'][0] == 'Left':
                 LCOP_Y = dat['COP Column']
@@ -500,6 +492,22 @@ def createTSmat(inputName,FilePath,dat):
                 if dat['Insole.1'][0] == 'Right':
                     RCOP_Y = dat['COP Column.1']
                     RCOP_X = dat['COP Row.1']
+        
+        # Store IMU metrics 
+        if 'IMU AX' in dat.columns:  
+            if dat['Insole'][0] == 'Left':
+                Lacc = np.array([dat['IMU AX'], dat['IMU AY'], dat['IMU AZ']]).T
+                Lgyr = np.array([dat['IMU GX'], dat['IMU GY'], dat['IMU GZ']]).T
+                
+            if dat['Insole'][0] == 'Right':
+                Racc = np.array([dat['IMU AX'], dat['IMU AY'], dat['IMU AZ']]).T
+                Rgyr = np.array([dat['IMU GX'], dat['IMU GY'], dat['IMU GZ']]).T
+               
+            if 'Insole.1' in dat.columns:
+                if dat['Insole.1'][0] == 'Right':
+                    Racc = np.array([dat['IMU AX.1'], dat['IMU AY.1'], dat['IMU AZ.1']]).T
+                    Rgyr = np.array([dat['IMU GX.1'], dat['IMU GY.1'], dat['IMU GZ.1']]).T
+        
                 
     result = tsData(time,dorsalMat, dorsalForefoot, dorsalMidfoot, dorsalInstep, 
                      dorsalSensNo, dorsalForefootSensNo, dorsalMidfootSensNo, dorsalInstepSensNo,
