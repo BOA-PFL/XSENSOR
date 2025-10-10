@@ -2,8 +2,18 @@
 """
 Created on Tue Jan 17 11:23:50 2023
 
-@author: Kate.Harrison
+@author: Bethany
 """
+
+"""
+This code directly pulls in two dorsal pads used to measure shin/thigh and calf pressure 
+and indirectly pulls in dorsal and plantar pressure from XSENSORfuntions. 
+
+Both files get analyzed and combined in the export
+
+
+"""
+
 
 import pandas as pd
 import numpy as np
@@ -25,7 +35,7 @@ data_check = 0
 # Read in files
 # only read .asc files for this work
 
-fPath = 'C:\\Users\\bethany.kilpatrick\\BOA Technology Inc\\PFL Team - General\\Testing Segments\\Snow Performance\\2025_Performance_LassoPressure_Ride\\XSENSOR\\Exported\\'
+fPath = 'C:\\Users\\bethany.kilpatrick\\BOA Technology Inc\\PFL Team - General\\Testing Segments\\EndurancePerformance\\2025_Mechanistic_KneeSleeveStability_Baurfeind\\Xsensor\\FullTrials\\'
 fileExt = r".csv"
 
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) and '0_' not in fName]
@@ -83,17 +93,21 @@ def createAvg_FB_Mat(inputName,FilePath):
 
     dat_FB = pd.read_csv(os.path.join(FilePath, inputName), sep=',', header=1, low_memory=False)
     
-   
+   # HX210.10.18.04-L S0003 == the Thigh Low Max dorsal pad 
+   # HX210.10.18.04-L S0002 == Calf High Max dorsal pad
 
-    if dat_FB["Sensor"][0] == "HX210.10.18.04-L S0002":  # check to see if right insole used
+    if dat_FB["Sensor"][0] == "HX210.10.18.04-L S0003":  # check to see if Shin/Thigh first
         shinSensel = dat_FB.loc[:, 'S_1_1':'S_18_10']
         calfSensel = dat_FB.loc[:, 'S_1_1.1':'S_18_10.1']
     
     # if "Sensor" in dat_FB.columns:
-    if dat_FB["Sensor"][0] == "HX210.10.18.04-L S0004":  # check to see if right insole used
+    if dat_FB["Sensor"][0] == "HX210.10.18.04-L S0002":  # check to see if Low Max pad was used - Calf first
+        calfSensel = dat_FB.loc[:, 'S_1_1':'S_18_10']
+        shinSensel = dat_FB.loc[:, 'S_1_1.1':'S_18_10.1'] 
+      
+    if dat_FB["Sensor"][0] == "HX210.10.18.04-L S0004":  # check to see if Calf first
         calfSensel = dat_FB.loc[:, 'S_1_1':'S_18_10']
         shinSensel = dat_FB.loc[:, 'S_1_1.1':'S_18_10.1']
-    
     
     #Shin
     avgshinMat = np.array(np.mean(shinSensel, axis = 0)).reshape((18,10))
@@ -227,7 +241,16 @@ plantarTotalPressure = []
 heelArea = [] 
 
 
-parentList = entries_FootDorsum 
+
+
+
+if entries_FootDorsum == [0] or not entries_FootDorsum:
+    parentList = entries
+else:
+    parentList = entries_FootDorsum
+
+
+
 
 fd_outcomes = []
  
@@ -253,7 +276,8 @@ if len(entries_FrontBack) > len(entries_FootDorsum):
 for entry in parentList:
     print(entry )  
     
-  
+    # entry = parentList[12] 
+    
     if "FootDorsum" in entry:  
         fd_found = 1
 
@@ -261,7 +285,8 @@ for entry in parentList:
         config = entry.split(sep="_")[1]
         trial = entry.split(sep="_")[3].split(sep='.')[0]  
         tmpDat = readXSENSORFile(entry,fPath) 
-        plantDorDat = createTSmat(entry,fPath,tmpDat) 
+        plantDorDat = createTSmat(entry,fPath,tmpDat)  
+        
         
         fb_found = 0 
             
@@ -281,19 +306,32 @@ for entry in parentList:
     elif "FrontBack" in entry: 
         fb_found = 1  
         fd_found = 0 
-        frontBackDat = createAvg_FB_Mat(entry)  
+        frontBackDat = createAvg_FB_Mat(entry)   
+    else:  
+        # Fallback if neither FootDorsum nor FrontBack is in entry
+        subject = entry.split(sep="_")[0] 
+        config = entry.split(sep="_")[1]
+        trial = entry.split(sep="_")[3].split(sep='.')[0]  
+        
+        fb_found = 1
+        fd_found = 0
+        frontBackDat = createAvg_FB_Mat(entry, fPath)
+
         
                 
    
         
     answer = True
-    if data_check == 1:
-        if len(plantDorDat.LplantarMat) != 0:
-            plotAvgStaticFDPressure(plantDorDat.LplantarMat,plantDorDat, fPath)
-        if len(plantDorDat.RplantarMat) != 0:
-            plotAvgStaticFDPressure(plantDorDat.RplantarMat,plantDorDat,fPath) 
-        if len(frontBackDat.avgshinMat):
-            plotAvgStaticFBPressure( frontBackDat , fPath)
+    if data_check == 1 and "FootDorsum" in entry:  
+        if  len(plantDorDat.LplantarMat) != 0:
+            plotAvgStaticFDPressure(plantDorDat.LplantarMat,plantDorDat, fPath) 
+       
+            
+        if  len(plantDorDat.RplantarMat) != 0:
+            plotAvgStaticFDPressure(plantDorDat.RplantarMat,plantDorDat,fPath)   
+
+    else:
+        plotAvgStaticFBPressure( frontBackDat , fPath)
         
 
         answer = messagebox.askyesno("Question","Is data clean?") # If entire rows of sensels are blank, its not clean!
@@ -370,12 +408,12 @@ for entry in parentList:
         
         
         
-        fd_outcomes = pd.DataFrame([[subject, config, trial, dorsalContact, meanDorsalPressure, maxDorsalPressure,sdDorsalPressure,covDorsalPressure,totalDorsalPressure,
+        fd_outcomes = pd.DataFrame([[dorsalContact, meanDorsalPressure, maxDorsalPressure,sdDorsalPressure,covDorsalPressure,totalDorsalPressure,
                        ffDorsalContact, ffDorsalPressure, ffDorsalMaxPressure, mfDorsalContact, mfDorsalPressure,mfDorsalMaxPressure,
                        instepDorsalContact, instepDorsalPressure,instepDorsalMaxPressure,plantarContact, plantarAvgPressure, plantarPeakPressure,
                        plantarSDPressure, plantarTotalPressure,toeContact, toePressure, ffContact, ffPressure, mfContact, mfPressure, heelContact, heelPressure]], 
                         
-                                   columns=['Subject','Config', 'Trial',
+                                   columns=[
                                 'dorsalContact', 'meanDorsalPressure','maxDorsalPressure','sdDorsalPressure','covDorsalPressure','totalDorsalPressure',
                              
 
@@ -392,7 +430,7 @@ for entry in parentList:
     else: 
         fd_outcomes =   pd.DataFrame(
                         
-                                   columns=['Subject','Config', 'Trial',
+                                   columns=[
                                 'dorsalContact', 'meanDorsalPressure','maxDorsalPressure','sdDorsalPressure','covDorsalPressure','totalDorsalPressure',
                              
 
@@ -417,18 +455,22 @@ for entry in parentList:
         pkShin = float(np.max(frontBackDat.avgshinMat) *6.895) 
         varShin = float(np.std(frontBackDat.avgshinMat)  / np.mean(frontBackDat.avgshinMat) *6.895) 
         
-        fb_outcomes =  pd.DataFrame([[meanCalf, pkCalf, varCalf, meanShin, pkShin, varShin]], 
-                                    columns=[ 'avgCalf', 'pkCalf', 'varCalf', 'avgShin','pkShin','varShin'])
+        fb_outcomes =  pd.DataFrame([[subject, config, trial, meanCalf, pkCalf, varCalf, meanShin, pkShin, varShin]], 
+                                    columns=['Subject','Config', 'Order', 'avgCalf', 'pkCalf', 'varCalf', 'avgShin','pkShin','varShin'])
 
     else: 
         fb_outcomes = pd.DataFrame(
-                                    columns=[ 'avgCalf', 'pkCalf', 'varCalf', 'avgShin','pkShin','varShin'])
+                                    columns=['Subject','Config', 'Order', 'avgCalf', 'pkCalf', 'varCalf','avgShin','pkShin','varShin'])
 
    
+   
     
-    outcomes = pd.concat([ fd_outcomes, fb_outcomes], axis = 1) 
-                            
-                            
+
+    outcomes = pd.concat([ fb_outcomes,fd_outcomes], axis = 1)   
+
+    
+    
+
                        
           
     outfileName = fPath + '0_CompiledResults_Static.csv'
