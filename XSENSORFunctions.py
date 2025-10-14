@@ -480,7 +480,7 @@ def createTSmat(inputName,FilePath,dat):
             RplantarLateralSensNo = len(np.where(store_c >= 4)[0])
             RplantarMedialSensNo = len(np.where(store_c < 4)[0])
           
-            RForce = dat['Est. Load (lbf).1']*4.44822
+            # RForce = dat['Est. Load (lbf).1']*4.44822
                 
         # Store COP metrics
         if 'COP Row' in dat.columns:  
