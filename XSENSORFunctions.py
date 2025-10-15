@@ -436,13 +436,17 @@ def createTSmat(inputName,FilePath,dat):
         
         if  dat['Insole'][0] == 'Right':  # check to see if left insole used
             RplantarSensel = dat.loc[:, 'S_1_2':'S_31_7'] 
+            RForce = dat['Est. Load (lbf)']*4.44822
         
         elif  'Insole.1' in dat.columns:
             if dat['Insole.1'][0] == 'Right':
                 if 'dorsalSensel' in locals():
                     RplantarSensel = dat.loc[:, 'S_1_2.1':'S_31_7']
+                    RForce = dat['Est. Load (lbf).1']*4.44822
+
                 else:
                     RplantarSensel = dat.loc[:, 'S_1_2':'S_31_7']
+
             
         if 'RplantarSensel' in locals():  
             headers = RplantarSensel.columns
@@ -476,7 +480,7 @@ def createTSmat(inputName,FilePath,dat):
             RplantarLateralSensNo = len(np.where(store_c >= 4)[0])
             RplantarMedialSensNo = len(np.where(store_c < 4)[0])
           
-            RForce = dat['Est. Load (lbf).1']*4.44822
+            # RForce = dat['Est. Load (lbf).1']*4.44822
                 
         # Store COP metrics
         if 'COP Row' in dat.columns:  
