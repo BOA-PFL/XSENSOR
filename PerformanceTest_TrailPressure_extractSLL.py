@@ -271,18 +271,26 @@ for fName in entries:
             true_land = sig.find_peaks(pForce, height = htThrsh, distance = 500)[0]
             land_ht =  sig.find_peaks(pForce, height = htThrsh, distance = 500)[1]['peak_heights']
        
-            saveFolder= fPath + 'SLLtDetections'
             answer = True # if data check is off. 
             if data_check == 1:
                 plt.figure()
                 plt.plot(pForce, label = 'Right Foot Total Force') 
                 plt.plot(true_land, land_ht, marker = 'o', linestyle = 'none')
-                # plt.plot(range(len(avgFFPress)), avgFFPress)
-                # plt.plot(fft_pk, fft_ht, marker = 'v', linestyle = 'none')
+                for ii in range(len(true_land)):
+                    sdFz = np.std(pForce [ true_land[ii] + 100 : true_land[ii] + 400])
+                    avgF = movAvgForce(pForce,true_land[ii] , true_land[ii] + 200 , 10)
+                    sdF = movSDForce(pForce, true_land[ii], true_land[ii] + 200, 10)
+                    subBW = findBW(avgF)
+                    stabArg = findStabilization(avgF,sdF,subBW)+true_land[ii]
+                    plt.scatter(stabArg, 1000, marker = 'x', color = 'red')
+                    
                 answer = messagebox.askyesno("Question","Is data clean?") 
                 saveFolder = fPath + 'SLLtDetections'
                 if os.path.exists(saveFolder) == False:
                   os.mkdir(saveFolder) 
+                  if answer == True:
+                      plt.savefig(saveFolder + '/' + fName.split('.csv')[0] +'.png')
+                      plt.close('all')
       
       
             if answer == False:
@@ -302,8 +310,6 @@ for fName in entries:
                 badFileList.append(fName)
                 
             if answer == True:
-                plt.savefig(saveFolder + '/' + fName.split('.csv')[0] +'.png')
-                plt.close('all')
                 print('Estimating point estimates')
                 
                 if len(tmpDat.RplantarMat != 0):
