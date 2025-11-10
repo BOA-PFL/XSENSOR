@@ -93,24 +93,10 @@ def createAvg_FB_Mat(inputName,FilePath):
 
     dat_FB = pd.read_csv(os.path.join(FilePath, inputName), sep=',', header=1, low_memory=False)
     
-   # HX210.10.18.04-L S0003 == the Thigh Low Max dorsal pad 
-   # HX210.10.18.04-L S0002 == Calf High Max dorsal pad
 
-    # if dat_FB["Sensor"][0] == "HX210.10.18.04-L S0003":  # check to see if Shin/Thigh first
     pad1Sensel = dat_FB.loc[:, 'S_1_1':'S_18_10']
     pad2Sensel = dat_FB.loc[:, 'S_1_1.1':'S_18_10.1']
     
-    # if "Sensor" in dat_FB.columns:
-    # if dat_FB["Sensor"][0] == "HX210.10.18.04-L S0002":  # check to see if Low Max pad was used - Calf first
-    #     calfSensel = dat_FB.loc[:, 'S_1_1':'S_18_10']
-    #     shinSensel = dat_FB.loc[:, 'S_1_1.1':'S_18_10.1'] 
-      
-    # if dat_FB["Sensor"][0] == "HX210.10.18.04-L S0004":  # check to see if Calf first
-    #     calfSensel = dat_FB.loc[:, 'S_1_1':'S_18_10']
-    #     shinSensel = dat_FB.loc[:, 'S_1_1.1':'S_18_10.1']
-    
-    #Shin
-    # avgshinMat = np.array(np.mean(shinSensel, axis = 0)).reshape((18,10))
    
     
     if 'pad1Sensel' in locals():
