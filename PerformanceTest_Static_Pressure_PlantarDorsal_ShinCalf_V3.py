@@ -57,7 +57,7 @@ plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
 plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
 @dataclass
-class FB_avgData:
+class FB_Data:
     
     pad1Mat: np.array 
 
@@ -72,7 +72,7 @@ class FB_avgData:
     dat_FB: pd.DataFrame
    
     
-def createAvg_FB_Mat(inputName,FilePath):
+def create_FB_Mat(inputName,FilePath):
     """ 
     Reads in file, creates average matrix data, in the shape of the pressure sensor(s), to be plotted and features
     are extracted. The result is a dataclass which can be used for further plotting
@@ -81,7 +81,11 @@ def createAvg_FB_Mat(inputName,FilePath):
         filename of data static trial you are processing.  
         
      FilePath : str
-         file path string
+         file path string 
+         
+         
+
+
     """
    
    
@@ -143,7 +147,7 @@ def createAvg_FB_Mat(inputName,FilePath):
   
     
     
-    result = FB_avgData(pad1Mat, pad2Mat,config, subj, dat_FB)
+    result = FB_Data(pad1Mat, pad2Mat,config, subj, dat_FB)
     
     return(result)  
 
@@ -297,7 +301,7 @@ for entry in parentList:
     
     
     
-    entry = parentList[1] 
+    # entry = parentList[1] 
     
 
      
@@ -324,7 +328,7 @@ for entry in parentList:
                 print(entries_FrontBack[ii]) 
                 print(' ')
                 fb_found = 1
-                frontBackDat = createAvg_FB_Mat(entries_FrontBack[ii],fPath)  
+                frontBackDat = create_FB_Mat(entries_FrontBack[ii],fPath)  
                 
                 if frontBackDat.dat_FB["Sensor"][0] == "HX210.10.18.04-L S0003":  # check to see if Shin/Thigh first
                     shin = frontBackDat.pad1Mat 
@@ -341,7 +345,7 @@ for entry in parentList:
     elif "FrontBack" in entry: 
         fb_found = 1  
         fd_found = 0 
-        frontBackDat = createAvg_FB_Mat(entry)   
+        frontBackDat = create_FB_Mat(entry)   
     else:  
         # Fallback if neither FootDorsum or FrontBack is in entry
         subject = entry.split(sep="_")[0] 
@@ -350,7 +354,7 @@ for entry in parentList:
         
         fb_found = 1
         fd_found = 0
-        frontBackDat = createAvg_FB_Mat(entry, fPath)  
+        frontBackDat = create_FB_Mat(entry, fPath)  
         
         if frontBackDat.dat_FB["Sensor"][0] == "HX210.10.18.04-L S0003":  # check to see if Shin/Thigh first
             shin = frontBackDat.pad1Mat 
