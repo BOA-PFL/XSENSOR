@@ -28,14 +28,14 @@ from XSENSORFunctions import readXSENSORFile, delimitTrial, createTSmat, zeroIns
 
 
 
-save_on = 1
+save_on = 0
 data_check = 0
 
 
 # Read in files
 # only read .asc files for this work
 
-fPath = 'C:\\Users\\bethany.kilpatrick\\BOA Technology Inc\\PFL Team - General\\Testing Segments\\EndurancePerformance\\2025_Mechanistic_KneeSleeveStability_Baurfeind\\Xsensor\\FullTrials\\'
+fPath = 'Z:\\Testing Segments\\EndurancePerformance\\2025_Mechanistic_KneeSleeveStability_Baurfeind\\Xsensor\\FullTrials\\'
 fileExt = r".csv"
 
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) and '0_' not in fName]
@@ -57,12 +57,12 @@ plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
 plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
 @dataclass
-class FB_avgData:
+class FB_Data:
     
-    avgshinMat: np.array 
+    pad1Mat: np.array 
 
     
-    avgcalfMat: np.array   
+    pad2Mat: np.array   
 
     
     config: str
@@ -72,7 +72,7 @@ class FB_avgData:
     dat_FB: pd.DataFrame
    
     
-def createAvg_FB_Mat(inputName,FilePath):
+def create_FB_Mat(inputName,FilePath):
     """ 
     Reads in file, creates average matrix data, in the shape of the pressure sensor(s), to be plotted and features
     are extracted. The result is a dataclass which can be used for further plotting
@@ -81,7 +81,11 @@ def createAvg_FB_Mat(inputName,FilePath):
         filename of data static trial you are processing.  
         
      FilePath : str
-         file path string
+         file path string 
+         
+         
+
+
     """
    
    
@@ -93,40 +97,57 @@ def createAvg_FB_Mat(inputName,FilePath):
 
     dat_FB = pd.read_csv(os.path.join(FilePath, inputName), sep=',', header=1, low_memory=False)
     
-   # HX210.10.18.04-L S0003 == the Thigh Low Max dorsal pad 
-   # HX210.10.18.04-L S0002 == Calf High Max dorsal pad
 
-    if dat_FB["Sensor"][0] == "HX210.10.18.04-L S0003":  # check to see if Shin/Thigh first
-        shinSensel = dat_FB.loc[:, 'S_1_1':'S_18_10']
-        calfSensel = dat_FB.loc[:, 'S_1_1.1':'S_18_10.1']
+    pad1Sensel = dat_FB.loc[:, 'S_1_1':'S_18_10']
+    pad2Sensel = dat_FB.loc[:, 'S_1_1.1':'S_18_10.1']
     
-    # if "Sensor" in dat_FB.columns:
-    if dat_FB["Sensor"][0] == "HX210.10.18.04-L S0002":  # check to see if Low Max pad was used - Calf first
-        calfSensel = dat_FB.loc[:, 'S_1_1':'S_18_10']
-        shinSensel = dat_FB.loc[:, 'S_1_1.1':'S_18_10.1'] 
-      
-    if dat_FB["Sensor"][0] == "HX210.10.18.04-L S0004":  # check to see if Calf first
-        calfSensel = dat_FB.loc[:, 'S_1_1':'S_18_10']
-        shinSensel = dat_FB.loc[:, 'S_1_1.1':'S_18_10.1']
-    
-    #Shin
-    avgshinMat = np.array(np.mean(shinSensel, axis = 0)).reshape((18,10))
    
-    avgshinMat = np.flip(avgshinMat, axis = 0) 
     
-    avgshinMat[avgshinMat <.1] = 0   
+    if 'pad1Sensel' in locals():
+        headers = pad1Sensel.columns
+        store_r = []
+        store_c = []
+
+        for name in headers:
+            store_r.append(int(name.split(sep = "_")[1])-1)
+            store_c.append(int(name.split(sep = "_")[2].split(sep=".")[0])-1)
+        
+        pad1Mat = np.zeros((dat_FB.shape[0], np.max(store_r)+1,np.max(store_c)+1))
+        
+        for ii in range(len(headers)):
+            pad1Mat[:, store_r[ii],store_c[ii]] = pad1Sensel.iloc[:,ii]
+       
+        
     
-    #Calf 
-    avgcalfMat = np.array(np.mean(calfSensel, axis = 0)).reshape((18,10))
-   
-    avgcalfMat = np.flip(avgcalfMat , axis = 0) 
     
-    avgcalfMat [avgcalfMat  <.1] = 0   
+    pad1Mat = np.flip(pad1Mat , axis = 0) 
+    
+    pad1Mat[pad1Mat  <.1] = 0   
+    
+
+    if 'pad2Sensel' in locals():
+        headers = pad2Sensel.columns
+        store_r = []
+        store_c = []
+ 
+        for name in headers:
+            store_r.append(int(name.split(sep = "_")[1])-1)
+            store_c.append(int(name.split(sep = "_")[2].split(sep=".")[0])-1)
+        
+        pad2Mat = np.zeros((dat_FB.shape[0], np.max(store_r)+1,np.max(store_c)+1))
+        
+        for ii in range(len(headers)):
+            pad2Mat[:, store_r[ii],store_c[ii]] = pad2Sensel.iloc[:,ii]
+               
+               
+    pad2Mat = np.flip(pad2Mat , axis = 0) 
+    
+    pad2Mat [pad2Mat  <.1] = 0   
     
   
     
     
-    result = FB_avgData(avgshinMat, avgcalfMat,config, subj, dat_FB)
+    result = FB_Data(pad1Mat, pad2Mat,config, subj, dat_FB)
     
     return(result)  
 
@@ -201,8 +222,10 @@ def plotAvgStaticFBPressure( inputFB, FilePath):
     """
     
 
-    avgShin = inputFB.avgshinMat
-    avgCalf = inputFB.avgcalfMat
+
+    
+    avgShin = np.mean(inputFB.pad1Mat, axis = 0)
+    avgCalf = np.mean(inputFB.pad2Mat, axis = 0)
 
 
     fig, ((ax1, ax2)) = plt.subplots(1,2)
@@ -276,8 +299,12 @@ if len(entries_FrontBack) > len(entries_FootDorsum):
 for entry in parentList:
     print(entry )  
     
-    # entry = parentList[12] 
     
+    
+    # entry = parentList[1] 
+    
+
+     
     if "FootDorsum" in entry:  
         fd_found = 1
 
@@ -301,24 +328,46 @@ for entry in parentList:
                 print(entries_FrontBack[ii]) 
                 print(' ')
                 fb_found = 1
-                frontBackDat = createAvg_FB_Mat(entries_FrontBack[ii],fPath)  
+                frontBackDat = create_FB_Mat(entries_FrontBack[ii],fPath)  
+                
+                if frontBackDat.dat_FB["Sensor"][0] == "HX210.10.18.04-L S0003":  # check to see if Shin/Thigh first
+                    shin = frontBackDat.pad1Mat 
+                    calf = frontBackDat.pad2Mat 
+            
+                if frontBackDat.dat_FB["Sensor"][0] == "HX210.10.18.04-L S0002":  # check to see if Low Max pad was used - Calf first
+                    calf = frontBackDat.pad1Mat 
+                    shin = frontBackDat.pad2Mat
+                 
+                if frontBackDat.dat_FB["Sensor"][0] == "HX210.10.18.04-L S0004":  # check to see if Calf first
+                    calf =  frontBackDat.pad1Mat 
+                    shin =  frontBackDat.pad2Mat
                 
     elif "FrontBack" in entry: 
         fb_found = 1  
         fd_found = 0 
-        frontBackDat = createAvg_FB_Mat(entry)   
+        frontBackDat = create_FB_Mat(entry)   
     else:  
-        # Fallback if neither FootDorsum nor FrontBack is in entry
+        # Fallback if neither FootDorsum or FrontBack is in entry
         subject = entry.split(sep="_")[0] 
         config = entry.split(sep="_")[1]
         trial = entry.split(sep="_")[3].split(sep='.')[0]  
         
         fb_found = 1
         fd_found = 0
-        frontBackDat = createAvg_FB_Mat(entry, fPath)
-
+        frontBackDat = create_FB_Mat(entry, fPath)  
         
-                
+        if frontBackDat.dat_FB["Sensor"][0] == "HX210.10.18.04-L S0003":  # check to see if Shin/Thigh first
+            shin = frontBackDat.pad1Mat 
+            calf = frontBackDat.pad2Mat 
+    
+        if frontBackDat.dat_FB["Sensor"][0] == "HX210.10.18.04-L S0002":  # check to see if Low Max pad was used - Calf first
+            calf = frontBackDat.pad1Mat 
+            shin = frontBackDat.pad2Mat
+         
+        if frontBackDat.dat_FB["Sensor"][0] == "HX210.10.18.04-L S0004":  # check to see if Calf first
+            calf =  frontBackDat.pad1Mat 
+            shin =  frontBackDat.pad2Mat
+
    
         
     answer = True
@@ -446,14 +495,14 @@ for entry in parentList:
     if fb_found == 1: 
         
        
-        meanCalf = float(np.mean(frontBackDat.avgcalfMat)*6.895)
-        pkCalf = float(np.max(frontBackDat.avgcalfMat) *6.895)
-        varCalf = float(np.std(frontBackDat.avgcalfMat)  / np.mean(frontBackDat.avgcalfMat) *6.895)
+        meanCalf = float(np.mean(calf)*6.895)
+        pkCalf = float(np.max(calf) *6.895)
+        varCalf = float(np.std(calf)  / np.mean(calf) *6.895)
  
       
-        meanShin = float(np.mean(frontBackDat.avgshinMat)*6.895)
-        pkShin = float(np.max(frontBackDat.avgshinMat) *6.895) 
-        varShin = float(np.std(frontBackDat.avgshinMat)  / np.mean(frontBackDat.avgshinMat) *6.895) 
+        meanShin = float(np.mean(shin)*6.895)
+        pkShin = float(np.max(shin) *6.895) 
+        varShin = float(np.std(shin)  / np.mean(shin) *6.895) 
         
         fb_outcomes =  pd.DataFrame([[subject, config, trial, meanCalf, pkCalf, varCalf, meanShin, pkShin, varShin]], 
                                     columns=['Subject','Config', 'Order', 'avgCalf', 'pkCalf', 'varCalf', 'avgShin','pkShin','varShin'])
