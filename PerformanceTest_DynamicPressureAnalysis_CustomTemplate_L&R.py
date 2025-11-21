@@ -145,14 +145,13 @@ dorsalVar = []
 maxDorsal = []
 
 for fName in entries:   
-    # try:
     subName = fName.split(sep = "_")[0]
     ConfigTmp = fName.split(sep="_")[1]
     moveTmp = fName.split(sep = "_")[2].split(sep = '.')[0].lower()
     orderTmp = fName.split(sep = "_")[3][0]
     
     # Make sure the files are named FirstLast_Config_Movement_Trial# - The "if" statement won't work if there isn't a trial number next to the movement
-    # if ('skater' in moveTmp) or ('cmj' in moveTmp) or ('run' in moveTmp) or ('walk' in moveTmp):
+    # if ('skater' in moveTmp) or ('cmj' in moveTmp) or ('run' in moveTmp) or ('walk' in moveTmp): # Note: good stride exclusion might need to be updated for agility movements
     if ('dh' in moveTmp) or ('uh' in moveTmp) or ('walk' in moveTmp):    
         tmpDat = readXSENSORFile(fName,fPath)
         tmpDat = delimitTrial(tmpDat,fName,fPath)
@@ -166,29 +165,43 @@ for fName in entries:
             print('Defaulting to 50 Hz for contact event estimations')
             freq = 50
         
+        # Remove strides that are below 0.3 and above 2 seconds    
+        timemin = 0.3
+        timemax = 2
+        
         # Compute cyclic events
         if len(tmpDat.LplantarMat) != 0:
             tmpDat.LForce = zeroInsoleForce(tmpDat.LForce,freq)
             [LHS,LTO] = findGaitEvents(tmpDat.LForce,freq)
+            
+            LGS = [] # GS indicates good step
+            for jj in range(len(LHS)-1):
+                if (LHS[jj+1] - LHS[jj]) > timemin*freq and LHS[jj+1] - LHS[jj] < timemax*freq:
+                    LGS.append(jj)
+                    
         if len(tmpDat.RplantarMat) != 0:
             tmpDat.RForce = zeroInsoleForce(tmpDat.RForce,freq)
             [RHS,RTO] = findGaitEvents(tmpDat.RForce,freq)
-        
-        
+            
+            RGS = [] # GS indicates good step
+            for jj in range(len(RHS)-1):
+                if (RHS[jj+1] - RHS[jj]) > timemin*freq and RHS[jj+1] - RHS[jj] < timemax*freq:
+                    RGS.append(jj)
+
         answer = True # if data check is off. 
         if data_check == 1:
             if len(tmpDat.RplantarMat) != 0:
                 plotAvgGaitPressure(tmpDat.RplantarMat,tmpDat,fPath,RHS,RTO)
                 plt.figure()
                 plt.plot(tmpDat.RForce, label = 'Right Foot Total Force')
-                for ii in range(len(RHS)):
-                    plt.axvspan(RHS[ii], RTO[ii], color = 'lightgray', alpha = 0.5)
+                for ii in range(len(RGS)):
+                    plt.axvspan(RHS[RGS[ii]], RTO[RGS[ii]], color = 'lightgray', alpha = 0.5)
             elif len(tmpDat.LplantarMat) != 0:
                 plotAvgGaitPressure(tmpDat.LplantarMat,tmpDat,fPath,LHS,LTO)
                 plt.figure()
                 plt.plot(tmpDat.LForce, label = 'Left Foot Total Force')
                 for ii in range(len(LHS)):
-                    plt.axvspan(LHS[ii], LTO[ii], color = 'lightgray', alpha = 0.5)
+                    plt.axvspan(LHS[LGS[ii]], LTO[LGS[ii]], color = 'lightgray', alpha = 0.5)
             answer = messagebox.askyesno("Question","Is data clean?")
 
         plt.close('all')
@@ -199,24 +212,24 @@ for fName in entries:
         if answer == True:
             print('Estimating point estimates')
             if len(tmpDat.RplantarMat) != 0: 
-                for ii in range(len(RHS)):
+                for ii in range(len(RGS)):
                     side.append('Right')
                     config.append(tmpDat.config)
                     subject.append(tmpDat.subject)
                     movement.append(moveTmp)
                     oOrder.append(orderTmp)
-                    frames = RTO[ii] - RHS[ii]
+                    frames = RTO[RGS[ii]] - RHS[RGS[ii]]
                     ct.append(tmpDat.time[RTO[ii]]-tmpDat.time[RHS[ii]])
-                    pct40 = RHS[ii] + round(frames*.4)
-                    pct50 = RHS[ii] + round(frames*.5)
-                    pct60 = RHS[ii] + round(frames*.6)
-                    pct90 = RHS[ii] + round(frames*.9)
+                    pct40 = RHS[RGS[ii]] + round(frames*.4)
+                    pct50 = RHS[RGS[ii]] + round(frames*.5)
+                    pct60 = RHS[RGS[ii]] + round(frames*.6)
+                    pct90 = RHS[RGS[ii]] + round(frames*.9)
                     
-                    maxmaxToes.append(np.max(tmpDat.RplantarToe[RHS[ii]:RTO[ii]])*6.895)
+                    maxmaxToes.append(np.max(tmpDat.RplantarToe[RHS[RGS[ii]]:RTO[RGS[ii]]])*6.895)
                     toePmidstance.append(np.mean(tmpDat.RplantarToe[pct40:pct60,:,:])*6.895)
                                        
-                    heelAreaLate.append(np.count_nonzero(tmpDat.RplantarHeel[pct50:RTO[ii], :, :])/(RTO[ii] - pct50)/tmpDat.RplantarHeelSensNo*100) # making this from 50% stance time to toe off to match big data. Consider switing to 90% to toe off?
-                    heelPLate.append(np.mean(tmpDat.RplantarHeel[pct90:RTO[ii], :, :])*6.895)
+                    heelAreaLate.append(np.count_nonzero(tmpDat.RplantarHeel[pct50:RTO[RGS[ii]], :, :])/(RTO[RGS[ii]] - pct50)/tmpDat.RplantarHeelSensNo*100) # making this from 50% stance time to toe off to match big data. Consider switing to 90% to toe off?
+                    heelPLate.append(np.mean(tmpDat.RplantarHeel[pct90:RTO[RGS[ii]], :, :])*6.895)
     
                     latPmidstance.append(np.mean(tmpDat.RplantarLateral[pct40:pct60, :, :])*6.895)
                     latAreamidstance.append(np.count_nonzero(tmpDat.RplantarLateral[pct40:pct60, :, :])/(pct60-pct40)/tmpDat.RplantarLateralSensNo*100)
@@ -226,32 +239,32 @@ for fName in entries:
                     medPropMid.append(np.sum(tmpDat.RplantarMedial[pct40:pct60, :, :])/np.sum(tmpDat.RplantarMat[pct40:pct60, :, :]))
                     
                     if len(tmpDat.dorsalMat) != 0: 
-                        dorsalVar.append(np.std(tmpDat.dorsalMat[RHS[ii]:RTO[ii], :, :])/np.mean(tmpDat.dorsalMat[RHS[ii]:RTO[ii], :, :]))
-                        maxDorsal.append(np.max(tmpDat.dorsalMat[RHS[ii]:RTO[ii], :, :])*6.895)
+                        dorsalVar.append(np.std(tmpDat.dorsalMat[RHS[RGS[ii]]:RTO[RGS[ii]], :, :])/np.mean(tmpDat.dorsalMat[RHS[ii]:RTO[ii], :, :]))
+                        maxDorsal.append(np.max(tmpDat.dorsalMat[RHS[RGS[ii]]:RTO[RGS[ii]], :, :])*6.895)
                         
                     else:
                         dorsalVar.append('nan')
                         maxDorsal.append('nan')
                         
             if len(tmpDat.LplantarMat) != 0:
-                for ii in range(len(LHS)):
+                for ii in range(len(LGS)):
                     side.append('Left')
                     config.append(tmpDat.config)
                     subject.append(tmpDat.subject)
                     movement.append(moveTmp)
                     oOrder.append(orderTmp)
-                    frames = LTO[ii] - LHS[ii]
-                    ct.append(tmpDat.time(LTO[ii])-tmpDat.time(LHS[ii]))
+                    frames = LTO[LGS[ii]] - LHS[LGS[ii]]
+                    ct.append(tmpDat.time(LTO[LGS[ii]])-tmpDat.time(LHS[LGS[ii]]))
                     pct40 = LHS[ii] + round(frames*.4)
                     pct50 = LHS[ii] + round(frames*.5)
                     pct60 = LHS[ii] + round(frames*.6)
                     pct90 = LHS[ii] + round(frames*.9)
                     
-                    maxmaxToes.append(np.max(tmpDat.LplantarToe[LHS[ii]:LTO[ii]])*6.895)
+                    maxmaxToes.append(np.max(tmpDat.LplantarToe[LHS[LGS[ii]]:LTO[LGS[ii]]])*6.895)
                     toePmidstance.append(np.mean(tmpDat.LplantarToe[pct40:pct60,:,:])*6.895)
                                        
-                    heelAreaLate.append(np.count_nonzero(tmpDat.LplantarHeel[pct50:LTO[ii], :, :])/(LTO[ii] - pct50)/tmpDat.LplantarHeelSensNo*100) # making this from 50% stance time to toe off to match big data. Consider switing to 90% to toe off?
-                    heelPLate.append(np.mean(tmpDat.LplantarHeel[pct90:LTO[ii], :, :])*6.895)
+                    heelAreaLate.append(np.count_nonzero(tmpDat.LplantarHeel[pct50:LTO[LGS[ii]], :, :])/(LTO[LGS[ii]] - pct50)/tmpDat.LplantarHeelSensNo*100) # making this from 50% stance time to toe off to match big data. Consider switing to 90% to toe off?
+                    heelPLate.append(np.mean(tmpDat.LplantarHeel[pct90:LTO[LGS[ii]], :, :])*6.895)
     
                     latPmidstance.append(np.mean(tmpDat.LplantarLateral[pct40:pct60, :, :])*6.895)
                     latAreamidstance.append(np.count_nonzero(tmpDat.LplantarLateral[pct40:pct60, :, :])/(pct60-pct40)/tmpDat.LplantarLateralSensNo*100)
@@ -261,16 +274,12 @@ for fName in entries:
                     medPropMid.append(np.sum(tmpDat.LplantarMedial[pct40:pct60, :, :])/np.sum(tmpDat.LplantarMat[pct40:pct60, :, :]))
                     
                     if len(tmpDat.dorsalMat) != 0: 
-                        dorsalVar.append(np.std(tmpDat.dorsalMat[LHS[ii]:LTO[ii], :, :])/np.mean(tmpDat.dorsalMat[LHS[ii]:tmpDat.LTO[ii], :, :]))
-                        maxDorsal.append(np.max(tmpDat.dorsalMat[LHS[ii]:LTO[ii], :, :])*6.895)
+                        dorsalVar.append(np.std(tmpDat.dorsalMat[LHS[LGS[ii]]:LTO[LGS[ii]], :, :])/np.mean(tmpDat.dorsalMat[LHS[ii]:tmpDat.LTO[ii], :, :]))
+                        maxDorsal.append(np.max(tmpDat.dorsalMat[LHS[LGS[ii]]:LTO[LGS[ii]], :, :])*6.895)
                         
                     else:
                         dorsalVar.append('nan')
-                        maxDorsal.append('nan')
-
-    # except:
-    #         print('Not usable data')
-    #         badFileList.append(fName)             
+                        maxDorsal.append('nan')         
             
             
 outcomes = pd.DataFrame({'Subject': list(subject), 'Movement':list(movement), 'Config':list(config), 'Order':list(oOrder), 'ContactTime':list(ct),
