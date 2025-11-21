@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import os
 import seaborn as sns
 from tkinter import messagebox
-from XSENSORFunctions import readXSENSORFile, createTSmat
+from XSENSORFunctions import readXSENSORFile, createTSmat, delimitTrial
 
 save_on = 0
 data_check = 1
@@ -127,18 +127,16 @@ heelPressure = []
 for entry in entries:
     print(entry)
     # Deliniate the static type
-    if 'tanding' in entry:
+    if 'stand' in entry.lower():
         tmpMove = 'Standing'
-    elif 'tand' in entry:
-        tmpMove = 'Standing'
-    elif 'itting' in entry: 
-        tmpMove = 'Sitting'
-    elif 'it' in entry: 
+    elif 'sit' in entry.lower(): 
         tmpMove = 'Sitting'
     else:
-        tmpMove = 'Sitting'
+        print('Defaulting to standing')
+        tmpMove = 'Standing'
         
     tmpDat = readXSENSORFile(entry,fPath)
+    tmpDat = delimitTrial(tmpDat,entry,fPath)
     tmpDat = createTSmat(entry, fPath, tmpDat)
     
     answer = True
