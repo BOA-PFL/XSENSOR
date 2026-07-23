@@ -38,9 +38,9 @@ def delimitTrial(inputDF,FName,FilePath):
     # generic function to plot and start/end trial #
     if os.path.exists(FilePath+FName+'TrialSeg.npy'):
         trial_segment_old = np.load(FilePath+FName+'TrialSeg.npy', allow_pickle =True)
-        trialStart = trial_segment_old[1][0,0]
-        trialEnd = trial_segment_old[1][1,0]
-        inputDF = inputDF.iloc[int(np.floor(trialStart)) : int(np.floor(trialEnd)),:]
+        trialStart = round(trial_segment_old[1][0,0])
+        trialEnd = round(trial_segment_old[1][1,0])
+        inputDF = inputDF.iloc[trialStart :trialEnd,:]
         outputDat = inputDF.reset_index(drop = True)
         
     else: 
@@ -324,7 +324,6 @@ def createTSmat(inputName,FilePath,dat):
     RplantarLateralSensNo = []
     RplantarMedialSensNo = []
     RForce = []
-    RForce = []
     RCOP_Y = []
     RCOP_X = []
     Racc = []
@@ -445,8 +444,9 @@ def createTSmat(inputName,FilePath,dat):
                     RForce = dat['Est. Load (lbf).1']*4.44822
 
                 else:
-                    RplantarSensel = dat.loc[:, 'S_1_2':'S_31_7']
-
+                    # RplantarSensel = dat.loc[:, 'S_1_2':'S_31_7'] # original xsensor export columns
+                    RplantarSensel = dat.loc[:, 'S_1_2.1':'S_31_7.1'] # updated xsensor export columns as of Jan 26?
+                    RForce = dat['Est. Load (lbf).1']*4.44822
             
         if 'RplantarSensel' in locals():  
             headers = RplantarSensel.columns
