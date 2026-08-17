@@ -67,6 +67,48 @@ def delimitTrial(inputDF,FName,FilePath):
 
     return(outputDat)
 
+def pressureProminence(pressureArray):
+    
+    prominence = []
+    
+    for fr in range(0, len(pressureArray)):
+        
+        
+        promtemp = []
+        pressureArrayfr  = pressureArray[fr]
+        maxpress = np.max(pressureArrayfr)
+        maxpressidx = np.unravel_index(np.argmax(pressureArrayfr), pressureArrayfr.shape)
+        
+        flatidx = np.argsort(pressureArrayfr, axis=None)[-3:][::-1]
+        top3press = pressureArrayfr.flatten()[flatidx]
+        top3idx = [np.unravel_index(idx, pressureArrayfr.shape) for idx in flatidx]
+        i = 0
+        for maxpressidx in top3idx:
+            
+            
+            r0_1 = max(maxpressidx[0]-1, 0)
+            r1_1 = maxpressidx[0]+2
+            c0_1 = max(maxpressidx[1]-1, 0)
+            c1_1 = maxpressidx[1]+2
+            window = pressureArrayfr[r0_1:r1_1, c0_1:c1_1]
+            
+            r0_2 = max(maxpressidx[0]-2, 0)
+            r1_2 = maxpressidx[0]+3
+            c0_2 = max(maxpressidx[1]-2, 0)
+            c1_2 = maxpressidx[1]+3
+            window2 = pressureArrayfr[r0_2:r1_2, c0_2:c1_2]
+            
+            ring1avg = (np.sum(window) - maxpress) / (window.size - 1)
+            ring2avg = (np.sum(window2) - np.sum(window)) / (window2.size - window.size)
+            
+            surroundgrad = ring1avg + ring2avg
+                    
+            promtemp.append(top3press[i] - surroundgrad)
+            
+            i = i + 1
+        prominence.append(np.max(promtemp))
+    return np.max(prominence)
+
 def zeroInsoleForce(vForce,freq):
     """
     Function to detect "foot-off" pressure to zero the insole force during swing
@@ -436,17 +478,13 @@ def createTSmat(inputName,FilePath,dat):
         
         if  dat['Insole'][0] == 'Right':  # check to see if left insole used
             RplantarSensel = dat.loc[:, 'S_1_2':'S_31_7'] 
-            RForce = dat['Est. Load (lbf)']*4.44822
         
         elif  'Insole.1' in dat.columns:
             if dat['Insole.1'][0] == 'Right':
                 if 'dorsalSensel' in locals():
                     RplantarSensel = dat.loc[:, 'S_1_2.1':'S_31_7']
-                    RForce = dat['Est. Load (lbf).1']*4.44822
-
                 else:
                     RplantarSensel = dat.loc[:, 'S_1_2':'S_31_7']
-
             
         if 'RplantarSensel' in locals():  
             headers = RplantarSensel.columns
@@ -480,7 +518,7 @@ def createTSmat(inputName,FilePath,dat):
             RplantarLateralSensNo = len(np.where(store_c >= 4)[0])
             RplantarMedialSensNo = len(np.where(store_c < 4)[0])
           
-            # RForce = dat['Est. Load (lbf).1']*4.44822
+            RForce = dat['Est. Load (lbf).1']*4.44822
                 
         # Store COP metrics
         if 'COP Row' in dat.columns:  
