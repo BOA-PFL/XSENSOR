@@ -381,7 +381,7 @@ def createTSmat(inputName,FilePath,dat):
             LplantarForefoot = LplantarMat[:,7:15, :]
             LplantarMidfoot = LplantarMat[:,15:25,:]
             LplantarHeel = LplantarMat[:,25:, :]
-            LplantarLateral = LplantarMat[:,:,:4:]
+            LplantarLateral = LplantarMat[:,:,4:]
             LplantarMedial =LplantarMat[:,:,:4]
             # Sensel Number Computation: note this needs to match the column/row
             # callouts from the lines above
