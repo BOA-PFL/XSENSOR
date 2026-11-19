@@ -319,9 +319,6 @@ outcomes = pd.DataFrame({'Subject': list(subject), 'Config':list(config),'trialN
 
 outfileName = fPath + '0_CompiledResults.csv'
 if save_on == 1:
-     if os.path.exists(outfileName) == False:
-     
-         outcomes.to_csv(outfileName, header=True, index = False)
- 
-     else:
-         outcomes.to_csv(outfileName, mode='a', header=False, index = False)
+    # Note: written fresh each run, never appended. Appending duplicates
+    # every row when a study is re-processed after more data is collected.
+    outcomes.to_csv(outfileName, header=True, index = False)

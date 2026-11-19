@@ -21,22 +21,56 @@ import matplotlib.pyplot as plt
 import os
 import seaborn as sns
 from dataclasses import dataclass
+import tkinter as tk
 from tkinter import messagebox
-import scipy.signal as sig
-from XSENSORFunctions import readXSENSORFile, delimitTrial, createTSmat, zeroInsoleForce, findGaitEvents
-
-
-
+from XSENSORFunctions import (readXSENSORFile, delimitTrial, createTSmat,
+                              loadProcessingDecisions, saveProcessingDecision)
 
 save_on = 0
-data_check = 0
+# 0 = no data check, nothing is asked or recorded
+# 1 = ask only about trials with no recorded decision (the normal setting)
+# 2 = re-review EVERY trial, including ones previously rejected. Use after
+#     changing processing, when earlier decisions may no longer hold. This
+#     mode is good for reruning files with a different threshold or examining
+#     files after a different filter has been applied.
+data_check = 1
 
+# Names this script's decision file, 0_ProcessingDecisions_<scriptName>.csv.
+# One data folder is often read by several scripts, and a trial that is no
+# good for one analysis can be fine for another, so each keeps its own
+# record rather than one script's rejection governing the rest.
+scriptName = 'ShinCalf_V3'
 
 # Read in files
-# only read .asc files for this work
-
-fPath = 'Z:\\Testing Segments\\EndurancePerformance\\2025_Mechanistic_KneeSleeveStability_Baurfeind\\Xsensor\\FullTrials\\'
+# only read .csv files for this work
+fPath = 'Z:\\Testing Segments\\Medical\\2025\\2025_Mechanistic_KneeSleeveStability_Baurfeind\\Xsensor\\FullTrials\\'
 fileExt = r".csv"
+
+# Data-quality decisions recorded by previous runs of this script. Loading
+# these is what stops a trial being judged twice. Rejected files are left
+# where they are so they can still be opened and looked at - it is this
+# record, not the folder, that decides what gets processed.
+decisions = loadProcessingDecisions(fPath, scriptName)
+
+# Results from an out-of-date copy of this script will not match anyone
+# else's. Asked only when nothing has been decided here yet: a decision file
+# means the question was answered on an earlier run of this dataset.
+if len(decisions) == 0:
+    # Give this dialog its own window and put it in front. It is the first
+    # thing the script does, so unlike the data check further down there is no
+    # figure on screen to pull focus, and a borrowed default root can open the
+    # box behind Spyder - which just looks like the script has hung.
+    dialogRoot = tk.Tk()
+    dialogRoot.withdraw()
+    dialogRoot.attributes('-topmost', True)
+    upToDate = messagebox.askyesno("Question", "Is this script up to date with main?",
+                                   parent = dialogRoot)
+    dialogRoot.destroy()
+    # A plain error rather than SystemExit: these scripts get run a cell at a
+    # time, and SystemExit can take the console with it. This stops just as
+    # firmly, prints the reason, and leaves the console alone.
+    if upToDate == False:
+        raise RuntimeError('Pull this script from main before processing')
 
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) and '0_' not in fName]
 entries_FrontBack = [fName for fName in os.listdir(fPath) if (fName.endswith(fileExt) and 'FrontBack' in fName)]
@@ -59,16 +93,10 @@ plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 @dataclass
 class FB_Data:
     
-    pad1Mat: np.array 
-
-    
-    pad2Mat: np.array   
-
-    
+    pad1Mat: np.array     
+    pad2Mat: np.array 
     config: str
     subject: str
-    
-   
     dat_FB: pd.DataFrame
    
     
@@ -83,26 +111,15 @@ def create_FB_Mat(inputName,FilePath):
      FilePath : str
          file path string 
          
-         
-
-
     """
-   
-   
-   
 
     subj = inputName.split(sep="_")[0]  
     config = inputName.split(sep="_")[1]
-    
-
     dat_FB = pd.read_csv(os.path.join(FilePath, inputName), sep=',', header=1, low_memory=False)
     
-
     pad1Sensel = dat_FB.loc[:, 'S_1_1':'S_18_10']
     pad2Sensel = dat_FB.loc[:, 'S_1_1.1':'S_18_10.1']
-    
-   
-    
+
     if 'pad1Sensel' in locals():
         headers = pad1Sensel.columns
         store_r = []
@@ -117,14 +134,18 @@ def create_FB_Mat(inputName,FilePath):
         for ii in range(len(headers)):
             pad1Mat[:, store_r[ii],store_c[ii]] = pad1Sensel.iloc[:,ii]
        
-        
-    
-    
-    pad1Mat = np.flip(pad1Mat , axis = 0) 
-    
-    pad1Mat[pad1Mat  <.1] = 0   
-    
 
+    # axis 1 is the sensor rows. This array is frames x rows x columns, so
+    # axis 0 would reverse the trial in time and leave the map unflipped.
+    pad1Mat = np.flip(pad1Mat, axis = 1)
+
+    # Anything under 0.1 is below the sensor's calibration range, so it is
+    # not a reading worth keeping. Cut here, on the raw frames, rather than
+    # on the averaged map: an unreliable sample should not reach the mean
+    # in the first place.
+    pad1Mat[pad1Mat < .1] = 0
+    
+    
     if 'pad2Sensel' in locals():
         headers = pad2Sensel.columns
         store_r = []
@@ -140,13 +161,10 @@ def create_FB_Mat(inputName,FilePath):
             pad2Mat[:, store_r[ii],store_c[ii]] = pad2Sensel.iloc[:,ii]
                
                
-    pad2Mat = np.flip(pad2Mat , axis = 0) 
-    
-    pad2Mat [pad2Mat  <.1] = 0   
-    
-  
-    
-    
+    pad2Mat = np.flip(pad2Mat, axis = 1)
+
+    pad2Mat[pad2Mat < .1] = 0
+
     result = FB_Data(pad1Mat, pad2Mat,config, subj, dat_FB)
     
     return(result)  
@@ -199,7 +217,7 @@ def plotAvgStaticFDPressure(plantarMat, inputFD, FilePath):
     plt.savefig(saveFolder + '/' + inputFD.subject + inputFD.config + '.png')
     return fig
 
-def plotAvgStaticFBPressure( inputFB, FilePath):
+def plotAvgStaticFBPressure(shinMat, calfMat, inputFB, FilePath):
     """
     Plot the average static plantar and dorsal pressure
     Function dependencies: need to use createTSmat for the appropriate array
@@ -220,12 +238,9 @@ def plotAvgStaticFBPressure( inputFB, FilePath):
         Figure showing average dorsal and plantar pressure during the static trial
 
     """
-    
 
-
-    
-    avgShin = np.mean(inputFB.pad1Mat, axis = 0)
-    avgCalf = np.mean(inputFB.pad2Mat, axis = 0)
+    avgShin = np.mean(shinMat, axis = 0)
+    avgCalf = np.mean(calfMat, axis = 0)
 
 
     fig, ((ax1, ax2)) = plt.subplots(1,2)
@@ -261,22 +276,12 @@ plantarAvgPressure = []
 plantarSDPressure = []
 plantarTotalPressure = []
 
-heelArea = [] 
-
-
-
-
+fd_outcomes = []
 
 if entries_FootDorsum == [0] or not entries_FootDorsum:
     parentList = entries
 else:
     parentList = entries_FootDorsum
-
-
-
-
-fd_outcomes = []
- 
 
 # check if front back has more data
 if len(entries_FrontBack) > len(entries_FootDorsum):    
@@ -294,16 +299,17 @@ if len(entries_FrontBack) > len(entries_FootDorsum):
         if counter == 0: 
             parentList.append(entry) 
             
-        
+# Each trial contributes one row, gathered here
+allOutcomes = []
 
 for entry in parentList:
-    print(entry )  
-    
-    
-    
-    # entry = parentList[1] 
-    
-
+    print(entry)  
+    # A trial rejected in a previous run is skipped. The file is still there
+    # to open and look at: the recorded decision governs, not the folder
+    priorDecision = decisions.get(entry, '')
+    if priorDecision == 'bad' and data_check != 2:
+        print('Previously excluded, skipping: ' + entry)
+        continue
      
     if "FootDorsum" in entry:  
         fd_found = 1
@@ -342,12 +348,11 @@ for entry in parentList:
                     calf =  frontBackDat.pad1Mat 
                     shin =  frontBackDat.pad2Mat
                 
-    elif "FrontBack" in entry: 
-        fb_found = 1  
-        fd_found = 0 
-        frontBackDat = create_FB_Mat(entry)   
-    else:  
-        # Fallback if neither FootDorsum or FrontBack is in entry
+    else:
+        # Everything that is not a FootDorsum entry is read as a FrontBack
+        # file. The FrontBack test that used to sit above this did the same
+        # thing, but called the reader with the file path missing and left
+        # the subject, config and trial as the previous trial's.
         subject = entry.split(sep="_")[0] 
         config = entry.split(sep="_")[1]
         trial = entry.split(sep="_")[3].split(sep='.')[0]  
@@ -371,32 +376,47 @@ for entry in parentList:
    
         
     answer = True
-    if data_check == 1 and "FootDorsum" in entry:  
-        if  len(plantDorDat.LplantarMat) != 0:
-            plotAvgStaticFDPressure(plantDorDat.LplantarMat,plantDorDat, fPath) 
-       
-            
-        if  len(plantDorDat.RplantarMat) != 0:
-            plotAvgStaticFDPressure(plantDorDat.RplantarMat,plantDorDat,fPath)   
+    # Show whatever this trial actually has, then ask once. fd_found and
+    # fb_found say which of the two sensor sets this entry ended up with - a
+    # FootDorsum trial does not always have a matching FrontBack file, and
+    # plotting one that is not there shows the previous trial's data.
+    if priorDecision == 'good' and data_check == 1:
+        print('Previously accepted, not asking again: ' + entry)
+    elif data_check >= 1:
+        if fd_found == 1:
+            if len(plantDorDat.LplantarMat) != 0:
+                plotAvgStaticFDPressure(plantDorDat.LplantarMat, plantDorDat, fPath)
 
-    else:
-        plotAvgStaticFBPressure( frontBackDat , fPath)
-        
+            if len(plantDorDat.RplantarMat) != 0:
+                plotAvgStaticFDPressure(plantDorDat.RplantarMat, plantDorDat, fPath)
+
+        if fb_found == 1:
+            plotAvgStaticFBPressure(shin, calf, frontBackDat, fPath)
 
         answer = messagebox.askyesno("Question","Is data clean?") # If entire rows of sensels are blank, its not clean!
-    
+        plt.close('all')
+
         if answer == False:
-            plt.close('all')
             print('Adding file to bad file list')
-            #badFileList.append(fName)
-        
-        if answer == True:
-            plt.close('all')
+        else:
             print('Estimating point estimates')
+    
+    # Record the decision straight away, inside the loop, so a run that
+    # fails later keeps every decision made so far
+    if priorDecision == '' or data_check == 2:
+        if answer == False:
+            saveProcessingDecision(fPath, scriptName, entry, 'bad',
+                                   Subject=subject, Config=config,
+                                   reason='rejected at the data check')
+        else:
+            saveProcessingDecision(fPath, scriptName, entry, 'good',
+                                   Subject=subject, Config=config)
 
-
-
-
+    # A rejected trial is skipped, not just noted. Until now the answer
+    # only printed - the metrics below ran either way, so rejecting a
+    # trial still put it in the results file.
+    if answer == False:
+        continue
 
     if fd_found == 1:
         avgDorsal = np.mean(plantDorDat.dorsalMat, axis = 0)
@@ -495,14 +515,21 @@ for entry in parentList:
     if fb_found == 1: 
         
        
-        meanCalf = float(np.mean(calf)*6.895)
-        pkCalf = float(np.max(calf) *6.895)
-        varCalf = float(np.std(calf)  / np.mean(calf) *6.895)
+        # The same averaged map the plot shows. Taken straight off the frames
+        # instead, np.max would give the peak over the whole trial rather
+        # than the peak of the average, which is a much larger number.
+        avgCalfMat = np.mean(calf, axis = 0)
+
+        meanCalf = float(np.mean(avgCalfMat)*6.895)
+        pkCalf = float(np.max(avgCalfMat) *6.895)
+        varCalf = float(np.std(avgCalfMat)  / np.mean(avgCalfMat) *6.895)
  
       
-        meanShin = float(np.mean(shin)*6.895)
-        pkShin = float(np.max(shin) *6.895) 
-        varShin = float(np.std(shin)  / np.mean(shin) *6.895) 
+        avgShinMat = np.mean(shin, axis = 0)
+
+        meanShin = float(np.mean(avgShinMat)*6.895)
+        pkShin = float(np.max(avgShinMat) *6.895)
+        varShin = float(np.std(avgShinMat)  / np.mean(avgShinMat) *6.895)
         
         fb_outcomes =  pd.DataFrame([[subject, config, trial, meanCalf, pkCalf, varCalf, meanShin, pkShin, varShin]], 
                                     columns=['Subject','Config', 'Order', 'avgCalf', 'pkCalf', 'varCalf', 'avgShin','pkShin','varShin'])
@@ -517,17 +544,18 @@ for entry in parentList:
 
     outcomes = pd.concat([ fb_outcomes,fd_outcomes], axis = 1)   
 
-    
-    
+    # One row per trial, written out after the loop
+    allOutcomes.append(outcomes)
 
-                       
-          
-    outfileName = fPath + '0_CompiledResults_Static.csv'
-    if save_on == 1:
-        if os.path.exists(outfileName) == False:
-            outcomes.to_csv(outfileName, header=True, index = False)
-        else:
-            outcomes.to_csv(outfileName, mode='a', header=False, index = False) 
+# Collected across the loop and written once. Writing from inside the
+# loop meant appending, and appending duplicates every row whenever a
+# study is re-processed after more data has been collected.
+outcomes = pd.concat(allOutcomes, ignore_index = True)
+
+outfileName = fPath + '0_CompiledResults_Static.csv'
+if save_on == 1 and data_check < 2:
+    outcomes.to_csv(outfileName, header=True, index = False)
+
             
     
              

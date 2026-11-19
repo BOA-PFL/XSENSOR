@@ -11,16 +11,56 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import seaborn as sns
+import tkinter as tk
 from tkinter import messagebox
-from XSENSORFunctions import readXSENSORFile, createTSmat, delimitTrial
+from XSENSORFunctions import (readXSENSORFile, createTSmat, delimitTrial,
+                              loadProcessingDecisions, saveProcessingDecision)
 
 save_on = 0
+# 0 = no data check, nothing is asked or recorded
+# 1 = ask only about trials with no recorded decision (the normal setting)
+# 2 = re-review EVERY trial, including ones previously rejected. Use after
+#     changing processing, when earlier decisions may no longer hold. This
+#     mode is good for reruning files with a different threshold or examining
+#     files after a different filter has been applied.
 data_check = 1
+
+# Names this script's decision file, 0_ProcessingDecisions_<scriptName>.csv.
+# One data folder is often read by several scripts, and a trial that is no
+# good for one analysis can be fine for another, so each keeps its own
+# record rather than one script's rejection governing the rest.
+scriptName = 'Static_PressureDorsal'
 
 # Read in files
 # only read .csv files for this work
 fPath = 'C:/Users/eric.honert/Boa Technology Inc/PFL Team - General/Testing Segments/Cycling Performance Tests/2025_Performance_CyclingLacevBOA_Specialized/Xsensor/Static/'
 fileExt = r".csv"
+# Data-quality decisions recorded by previous runs of this script. Loading
+# these is what stops a trial being judged twice. Rejected files are left
+# where they are so they can still be opened and looked at - it is this
+# record, not the folder, that decides what gets processed.
+decisions = loadProcessingDecisions(fPath, scriptName)
+
+# Results from an out-of-date copy of this script will not match anyone
+# else's. Asked only when nothing has been decided here yet: a decision file
+# means the question was answered on an earlier run of this dataset.
+if len(decisions) == 0:
+    # Give this dialog its own window and put it in front. It is the first
+    # thing the script does, so unlike the data check further down there is no
+    # figure on screen to pull focus, and a borrowed default root can open the
+    # box behind Spyder - which just looks like the script has hung.
+    dialogRoot = tk.Tk()
+    dialogRoot.withdraw()
+    dialogRoot.attributes('-topmost', True)
+    upToDate = messagebox.askyesno("Question", "Is this script up to date with main?",
+                                   parent = dialogRoot)
+    dialogRoot.destroy()
+    # A plain error rather than SystemExit: these scripts get run a cell at a
+    # time, and SystemExit can take the console with it. This stops just as
+    # firmly, prints the reason, and leaves the console alone.
+    if upToDate == False:
+        raise RuntimeError('Pull this script from main before processing')
+
 entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) and '0_' not in fName]
 
 
@@ -126,6 +166,13 @@ heelPressure = []
 
 for entry in entries:
     print(entry)
+    # A trial rejected in a previous run is skipped. The file is still there
+    # to open and look at: the recorded decision governs, not the folder
+    priorDecision = decisions.get(entry, '')
+    if priorDecision == 'bad' and data_check != 2:
+        print('Previously excluded, skipping: ' + entry)
+        continue
+    
     # Deliniate the static type
     if 'stand' in entry.lower():
         tmpMove = 'Standing'
@@ -140,13 +187,26 @@ for entry in entries:
     tmpDat = createTSmat(entry, fPath, tmpDat)
     
     answer = True
-    if data_check == 1:
+    if priorDecision == 'good' and data_check == 1:
+        print('Previously accepted, not asking again: ' + entry)
+    elif data_check >= 1:
         if len(tmpDat.LplantarMat) != 0:
             plotAvgStaticPressure(tmpDat.LplantarMat,tmpDat, fPath, tmpMove)
         if len(tmpDat.RplantarMat) != 0:
             plotAvgStaticPressure(tmpDat.RplantarMat,tmpDat, fPath, tmpMove)
 
         answer = messagebox.askyesno("Question","Is data clean?") # If entire rows of sensels are blank, its not clean!
+    
+    # Record the decision straight away, inside the loop, so a run that
+    # fails later keeps every decision made so far
+    if priorDecision == '' or data_check == 2:
+        if answer == False:
+            saveProcessingDecision(fPath, scriptName, entry, 'bad',
+                                   Subject=tmpDat.subject, Config=tmpDat.config,
+                                   reason='rejected at the data check')
+        else:
+            saveProcessingDecision(fPath, scriptName, entry, 'good',
+                                   Subject=tmpDat.subject, Config=tmpDat.config)
     
     if answer == False:
         plt.close('all')
@@ -241,11 +301,10 @@ outcomes = pd.DataFrame({'Subject': list(subject), 'Movement':list(Movement), 'C
                          
       
 outfileName = fPath + '0_CompiledResults_Static.csv'
-if save_on == 1:
-    if os.path.exists(outfileName) == False:
-        outcomes.to_csv(outfileName, header=True, index = False)
-    else:
-        outcomes.to_csv(outfileName, mode='a', header=False, index = False) 
+if save_on == 1 and data_check < 2:
+    # Note: written fresh each run, never appended. Appending duplicates
+    # every row when a study is re-processed after more data is collected.
+    outcomes.to_csv(outfileName, header=True, index = False)
             
     
     
