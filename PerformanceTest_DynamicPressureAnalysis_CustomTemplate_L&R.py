@@ -62,7 +62,7 @@ if len(decisions) == 0:
     if upToDate == False:
         raise RuntimeError('Pull this script from main before processing')
 
-entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) and '0_' not in fName]
+entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) and not fName.startswith('0_')]
 
 ### set plot font size ###
 SMALL_SIZE = 14

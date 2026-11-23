@@ -382,8 +382,13 @@ def createTSmat(inputName,FilePath,dat):
             LplantarForefoot = LplantarMat[:,7:15, :]
             LplantarMidfoot = LplantarMat[:,15:25,:]
             LplantarHeel = LplantarMat[:,25:, :]
-            LplantarLateral = LplantarMat[:,:,:4:]
-            LplantarMedial =LplantarMat[:,:,:4]
+            # Lateral is the high columns and medial the low ones, the same
+            # sense as the right foot below. These previously read [:,:,:4:]
+            # and [:,:,:4] - the same columns twice - so left lateral and
+            # left medial came back as the identical array. The SensNo counts
+            # underneath were already on this convention and are unchanged.
+            LplantarLateral = LplantarMat[:,:,4:]
+            LplantarMedial = LplantarMat[:,:,:4]
             # Sensel Number Computation: note this needs to match the column/row
             # callouts from the lines above
             store_r = np.array(store_r); store_c = np.array(store_c)
@@ -445,8 +450,16 @@ def createTSmat(inputName,FilePath,dat):
                     RForce = dat['Est. Load (lbf).1']*4.44822
 
                 else:
-                    # RplantarSensel = dat.loc[:, 'S_1_2':'S_31_7'] # original xsensor export columns
-                    RplantarSensel = dat.loc[:, 'S_1_2.1':'S_31_7.1'] # updated xsensor export columns as of Jan 26?
+                    # Which block the right plantar lives in depends on how many
+                    # sensel blocks the export carries, not on Insole.1 naming
+                    # the foot. A trial with a right insole and no dorsal pad
+                    # still has Insole and Insole.1 columns, but only ONE sensel
+                    # block, and that block is unsuffixed. Pick on what is
+                    # actually there rather than assuming the newer export.
+                    if 'S_1_2.1' in dat.columns and 'S_31_7.1' in dat.columns:
+                        RplantarSensel = dat.loc[:, 'S_1_2.1':'S_31_7.1']
+                    else:
+                        RplantarSensel = dat.loc[:, 'S_1_2':'S_31_7']
                     RForce = dat['Est. Load (lbf).1']*4.44822
             
         if 'RplantarSensel' in locals():  
@@ -527,6 +540,84 @@ def createTSmat(inputName,FilePath,dat):
     
     return(result)
 
+
+#______________________________________________________________________________
+# Turn detection. Used by the snowboard script to make toe-edge and heel-edge
+# peaks alternate; the ski script carried a byte-identical copy that nothing
+# in it ever called.
+
+
+def EnsureTurnsAlternate(turndet1,turndet2,peaks1,peaks2):
+    """
+    This function takes 2 signals that alternate (such as left and right) with
+    events that have been detected within those signals. It makes sure that the
+    detected events (or peaks) oscillates between the two signals. If there are
+    multiple events detected between events from the other signal, the event
+    with the highest peak will be kept and the others eliminated.
+
+    Parameters
+    ----------
+    turndet1 : numpy array
+        Signal associated with the detected peaks from peaks1
+    turndet2 : numpy array
+        Signal associated with the detected peaks from peaks2
+    peaks1 : numpy array
+        Peaks detected from the function "find_peaks" (scipy library) from turndet1
+    peaks2 : numpy array
+        Peaks detected from the function "find_peaks" (scipy library) from turndet2
+
+    Returns
+    -------
+    peaks1 : numpy array
+        Cleaned peaks1 that oscillates with peaks2
+    peaks2 : numpy array
+        Cleaned peaks1 that oscillates with peaks1
+
+    """
+    # If the are multiple detected peaks after the last turn detection
+    if peaks1[-2] > peaks2[-1]:
+        idx_multiple = np.where(peaks1>peaks2[-1])[0]
+        idx = np.argmax(turndet1[peaks1[idx_multiple]])
+        # Remove the other detected peaks
+        idx_remove = np.delete(idx_multiple,idx)
+        peaks1 = np.delete(peaks1,idx_remove)
+    
+    if peaks2[-2] > peaks1[-1]:
+        idx_multiple = np.where(peaks2>peaks1[-1])[0]
+        idx = np.argmax(turndet2[peaks2[idx_multiple]])
+        # Remove the other detected peaks
+        idx_remove = np.delete(idx_multiple,idx)
+        peaks2 = np.delete(peaks2,idx_remove)
+    
+    # Ensure that the entire signal oscillates between peaks1 and peaks2
+    jj = 0
+    it = 0
+    while jj <= len(peaks2)-2 and it < 1000:
+        it = it + 1
+        if peaks1[jj] < peaks2[jj] and peaks1[jj+1] > peaks2 [jj] and peaks1[jj+1] < peaks2 [jj+1]:
+            # A normal turn
+            jj = jj+1
+        else:
+            if peaks2[jj+1] < peaks1[jj+1]:
+                # Multiple detected peaks from the following signal before a peak from the leading signal
+                idx_multiple = np.where((peaks2>peaks1[jj])*(peaks2<peaks1[jj+1])==True)[0]
+                # Figure out which of multiple peaks is higher
+                idx = np.argmax(turndet2[peaks2[idx_multiple]])
+                # Remove the other detected peaks
+                idx_remove = np.delete(idx_multiple,idx)
+                peaks2 = np.delete(peaks2,idx_remove)
+            else:
+                # Multiple detected peaks from the leading signal before a peak from the following signal
+                if jj == 0:
+                    idx_multiple = np.where(peaks1<peaks2[jj])[0]  
+                else:
+                    idx_multiple = np.where((peaks1>peaks2[jj-1])*(peaks1<peaks2[jj])==True)[0]    
+                idx = np.argmax(turndet1[peaks1[idx_multiple]])
+                # Remove the other detected peaks
+                idx_remove = np.delete(idx_multiple,idx)
+                peaks1 = np.delete(peaks1,idx_remove)
+        
+    return(peaks1,peaks2)
 
 #______________________________________________________________________________
 # Processing-decision helpers.

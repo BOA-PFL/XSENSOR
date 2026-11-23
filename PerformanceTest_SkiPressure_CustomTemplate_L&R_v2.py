@@ -14,7 +14,7 @@ from tkinter import messagebox
 import scipy.signal as sig
 from scipy.fft import fft, fftfreq
 from scipy.integrate import cumulative_trapezoid as cumtrapz
-from scipy.integrate import trapz
+from scipy.integrate import trapezoid as trapz
 from XSENSORFunctions import (readXSENSORFile, createTSmat, delimitTrial,
                               loadProcessingDecisions, saveProcessingDecision)
 
@@ -38,7 +38,7 @@ turn_det_nob = 0.5 # filter frequency for turn detection: may need to be differe
 
 # Read in files
 # only read .csv files for this work
-fPath = 'C:/Users/eric.honert/Boa Technology Inc/PFL Team - General/Testing Segments/Snow Performance/2025_Mech_AlpineRace/SuperG/XSENSOR/'
+fPath = 'Z:/Testing Segments/SnowSports/Ski/2025/2025_Mech_AlpineRace/SuperG/XSENSOR/'
 fileExt = r".csv"
 # Data-quality decisions recorded by previous runs of this script. Loading
 # these is what stops a trial being judged twice. Rejected files are left
@@ -66,7 +66,7 @@ if len(decisions) == 0:
     if upToDate == False:
         raise RuntimeError('Pull this script from main before processing')
 
-entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) and '0_' not in fName]
+entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) and not fName.startswith('0_')]
 
 ### set plot font size ###
 SMALL_SIZE = 14
@@ -122,77 +122,6 @@ def findSkiTurns(dat, cut_hz):
     return Rpeaks, Lpeaks, Rgyro_det, Lgyro_det
 
 # Keeping this function just in case
-def EnsureTurnsAlternate(turndet1,turndet2,peaks1,peaks2):
-    """
-    This function takes 2 signals that alternate (such as left and right) with
-    events that have been detected within those signals. It makes sure that the
-    detected events (or peaks) oscillates between the two signals. If there are
-    multiple events detected between events from the other signal, the event
-    with the highest peak will be kept and the others eliminated.
-
-    Parameters
-    ----------
-    turndet1 : numpy array
-        Signal associated with the detected peaks from peaks1
-    turndet2 : numpy array
-        Signal associated with the detected peaks from peaks2
-    peaks1 : numpy array
-        Peaks detected from the function "find_peaks" (scipy library) from turndet1
-    peaks2 : numpy array
-        Peaks detected from the function "find_peaks" (scipy library) from turndet2
-
-    Returns
-    -------
-    peaks1 : numpy array
-        Cleaned peaks1 that oscillates with peaks2
-    peaks2 : numpy array
-        Cleaned peaks1 that oscillates with peaks1
-
-    """
-    # If the are multiple detected peaks after the last turn detection
-    if peaks1[-2] > peaks2[-1]:
-        idx_multiple = np.where(peaks1>peaks2[-1])[0]
-        idx = np.argmax(turndet1[peaks1[idx_multiple]])
-        # Remove the other detected peaks
-        idx_remove = np.delete(idx_multiple,idx)
-        peaks1 = np.delete(peaks1,idx_remove)
-    
-    if peaks2[-2] > peaks1[-1]:
-        idx_multiple = np.where(peaks2>peaks1[-1])[0]
-        idx = np.argmax(turndet2[peaks2[idx_multiple]])
-        # Remove the other detected peaks
-        idx_remove = np.delete(idx_multiple,idx)
-        peaks2 = np.delete(peaks2,idx_remove)
-    
-    # Ensure that the entire signal oscillates between peaks1 and peaks2
-    jj = 0
-    it = 0
-    while jj <= len(peaks2)-2 and it < 1000:
-        it = it + 1
-        if peaks1[jj] < peaks2[jj] and peaks1[jj+1] > peaks2 [jj] and peaks1[jj+1] < peaks2 [jj+1]:
-            # A normal turn
-            jj = jj+1
-        else:
-            if peaks2[jj+1] < peaks1[jj+1]:
-                # Multiple detected peaks from the following signal before a peak from the leading signal
-                idx_multiple = np.where((peaks2>peaks1[jj])*(peaks2<peaks1[jj+1])==True)[0]
-                # Figure out which of multiple peaks is higher
-                idx = np.argmax(turndet2[peaks2[idx_multiple]])
-                # Remove the other detected peaks
-                idx_remove = np.delete(idx_multiple,idx)
-                peaks2 = np.delete(peaks2,idx_remove)
-            else:
-                # Multiple detected peaks from the leading signal before a peak from the following signal
-                if jj == 0:
-                    idx_multiple = np.where(peaks1<peaks2[jj])[0]  
-                else:
-                    idx_multiple = np.where((peaks1>peaks2[jj-1])*(peaks1<peaks2[jj])==True)[0]    
-                idx = np.argmax(turndet1[peaks1[idx_multiple]])
-                # Remove the other detected peaks
-                idx_remove = np.delete(idx_multiple,idx)
-                peaks1 = np.delete(peaks1,idx_remove)
-        
-    return(peaks1,peaks2)
 
 def crop_turns_fft(var,turns,freq):
     """
@@ -284,8 +213,10 @@ for fName in entries:
     tmpDat = readXSENSORFile(fName,fPath)
     tmpDat = delimitTrial(tmpDat,fName,fPath)
     tmpDat = createTSmat(fName, fPath, tmpDat)
-
     
+    # Estimate the frequency from the time stamps
+    freq = 1/np.mean(np.diff(tmpDat.time))
+
     # Turn detection: Turn indicies are     
     [RTurnIdx, LTurnIdx, Rturn_sig, Lturn_sig] = findSkiTurns(tmpDat, turn_det_nob)
         
@@ -343,16 +274,15 @@ for fName in entries:
         plt.close('all')
         print('Estimating point estimates')
         
-        [Lfft_out,Lxf,Lfreq90] = crop_turns_fft(tmpDat.LForce,LTurnIdx,1/np.mean(np.diff(tmpDat.time)))
-        [Rfft_out,Rxf,Rfreq90] = crop_turns_fft(tmpDat.RForce,RTurnIdx,1/np.mean(np.diff(tmpDat.time)))
+        [Lfft_out,Lxf,Lfreq90] = crop_turns_fft(tmpDat.LForce,LTurnIdx,freq)
+        [Rfft_out,Rxf,Rfreq90] = crop_turns_fft(tmpDat.RForce,RTurnIdx,freq)
         
         freq90.extend(Lfreq90)
         freq90.extend(Rfreq90)
         
         # Filter the forces
         # Set Up the filter
-        fs = 1.0 / np.mean(np.diff(tmpDat.time))
-        w = 20 / (fs / 2.0)  # normalized cutoff
+        w = 20 / (freq / 2.0)  # normalized cutoff
         b, a = sig.butter(3, w, 'low') # 3rd order filter
         
         LForce = sig.filtfilt(b, a, tmpDat.LForce)

@@ -74,7 +74,7 @@ if len(decisions) == 0:
     if maxDetection == False:
         raise RuntimeError("Bring in the landing detection from Max's work before processing")
 
-entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) and '0_' not in fName]
+entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) and not fName.startswith('0_')]
 
 ### set plot font size ###
 SMALL_SIZE = 14

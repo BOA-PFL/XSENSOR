@@ -33,7 +33,7 @@ scriptName = 'Static_PressureDorsal'
 
 # Read in files
 # only read .csv files for this work
-fPath = 'C:/Users/eric.honert/Boa Technology Inc/PFL Team - General/Testing Segments/Cycling Performance Tests/2025_Performance_CyclingLacevBOA_Specialized/Xsensor/Static/'
+fPath = 'C:/Users/eric.honert/OneDrive - BOA Technology Inc/PFL Team - General/Testing Segments/Cycling/Road & Mountain/2026_Pressure_NimblPerformance_Nimbl/XSENSOR/static/'
 fileExt = r".csv"
 # Data-quality decisions recorded by previous runs of this script. Loading
 # these is what stops a trial being judged twice. Rejected files are left
@@ -61,7 +61,7 @@ if len(decisions) == 0:
     if upToDate == False:
         raise RuntimeError('Pull this script from main before processing')
 
-entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) and '0_' not in fName]
+entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) and not fName.startswith('0_')]
 
 
 ### set plot font size ###
@@ -176,7 +176,7 @@ for entry in entries:
     # Deliniate the static type
     if 'stand' in entry.lower():
         tmpMove = 'Standing'
-    elif 'sit' in entry.lower(): 
+    elif 'sit' in entry.lower() or 'Cycling' in fPath: 
         tmpMove = 'Sitting'
     else:
         print('Defaulting to standing')

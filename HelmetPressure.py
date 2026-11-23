@@ -35,7 +35,7 @@ scriptName = 'HelmetPressure'
 
 # Read in files
 # only read .csv files for this work
-fPath = 'C:\\Users\\Kate.Harrison\\Boa Technology Inc\\PFL Team - General\\Testing Segments\\Helmets\\HelmetTest_Sept2024\\Xsensor\\Cropped\\'
+fPath = 'C:\\Users\\Eric.Honert\\OneDrive - Boa Technology Inc\\PFL Team - General\\Testing Segments\\Helmets\\2024\\HelmetTest_Sept2024\\Xsensor\\Cropped\\'
 
 fileExt = r".csv" # Don't call all .csv files, only the ones that were collected in lab
 # Data-quality decisions recorded by previous runs of this script. Loading
@@ -64,7 +64,7 @@ if len(decisions) == 0:
     if upToDate == False:
         raise RuntimeError('Pull this script from main before processing')
 
-entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) and '0_' not in fName]
+entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) and not fName.startswith('0_')]
 
 ### set plot font size ###
 SMALL_SIZE = 14
@@ -102,16 +102,24 @@ def reformat_sensels(dat_sensels):
     store_r = []
     store_c = []
     
-    # Store the header names into row and columns
+    # Store the header names into row and columns. A column that is not a
+    # sensel is named here rather than left to int() to complain, because
+    # the useful part is which column it was.
     for name in headers:
-        store_r.append(int(name.split(sep = "_")[1])-1)
-        store_c.append(int(name.split(sep = "_")[2].split(sep=".")[0])-1)
+        parts = name.split(sep = "_")
+        if len(parts) < 3:
+            raise ValueError('not a sensel column: ' + str(name)
+                             + ' - expected the S_row_column naming')
+        store_r.append(int(parts[1])-1)
+        store_c.append(int(parts[2].split(sep=".")[0])-1)
     
     # Place the data in the affiliated row/column
     updated_sensels = np.zeros((np.max(store_r)+1,np.max(store_c)+1))
     #updated_sensels[updated_sensels==0] = np.nan
-    for ii in range(len(headers)-1):
-        updated_sensels[store_r[ii],store_c[ii]] = dat_sensels[ii]
+    # range(len(headers)), not len(headers)-1: the last sensel was being
+    # left at zero in every map and every average taken from one
+    for ii in range(len(headers)):
+        updated_sensels[store_r[ii],store_c[ii]] = dat_sensels.iloc[ii]
 
     return(updated_sensels)
 
@@ -169,9 +177,11 @@ pP_Back = []
 
 
 # Index through all of the selected entries
-for entry in entries[1:]:          
+# Every trial, not entries[1:]. That slice was skipping the first file, which
+# used to be an output csv sitting in the listing - the 0_ filter above keeps
+# those out now, so the slice would drop a real trial.
+for entry in entries:
     # load the file
-    #entry = entries[1]
     print(entry)
     # A trial rejected in a previous run is skipped. The file is still there
     # to open and look at: the recorded decision governs, not the folder
@@ -196,16 +206,14 @@ for entry in entries[1:]:
     
     
         
+    answer = True # if data check is off
     # Evaluate pressure with the data check plots
     if priorDecision == 'good' and data_check == 1:
         print('Previously accepted, not asking again: ' + entry)
     elif data_check >= 1:
-
         plot_helmet_avgs(avg)
         answer = messagebox.askyesno("Question","Is data clean?")
         plt.close()
-    else:
-        answer = True
     
     # Record the decision straight away, inside the loop, so a run that
     # fails later keeps every decision made so far
@@ -253,6 +261,8 @@ outcomes = pd.DataFrame({'Subject':list(subject), 'Config': list(config),'Condit
                          'AveragePressure_Side':list(avgP_Side), 'PeakPressure_Side':list(pP_Side),
                          'AveragePressure_Back':list(avgP_Back), 'PeakPressure_Back':list(pP_Back)
                          })
+
+outfileName = fPath + '0_HelmetPressureStatic.csv'
 
 if save_on == 1 and data_check < 2:
     # Note: written fresh each run, never appended. Appending duplicates

@@ -37,7 +37,7 @@ scriptName = 'DynamicPressure_Trail_LR'
 
 # Read in files
 # only read .csv files for this work
-fPath = 'Z:\\Testing Segments\\EndurancePerformance\\2024\\EH_Trail_Kailas_Perf_Jun24\\XSENSOR\\RemoteFiles\\'
+fPath = 'Z:\\Testing Segments\\Outdoor\\TrailRunning\\2024\\EH_Trail_Kailas_Perf_Jun24\\XSENSOR\\RemoteFiles\\'
 fileExt = r".csv"
 # Data-quality decisions recorded by previous runs of this script. Loading
 # these is what stops a trial being judged twice. Rejected files are left
@@ -65,9 +65,9 @@ if len(decisions) == 0:
     if upToDate == False:
         raise RuntimeError('Pull this script from main before processing')
 
-entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) and '0_' not in fName]
+entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) and not fName.startswith('0_')]
 
-GPStiming = pd.read_csv('Z:\\Testing Segments\\EndurancePerformance\\2024\\EH_Trail_Kailas_Perf_Jun24\\CombinedGPS.csv')
+GPStiming = pd.read_csv('Z:\\Testing Segments\\Outdoor\\TrailRunning\\2024\\EH_Trail_Kailas_Perf_Jun24\\CombinedGPS.csv')
 SeshConf = GPStiming[['Config', 'Sesh']]
 
 ### set plot font size ###
@@ -231,8 +231,17 @@ for fName in entries:
     ConfigTmp = fName.split(sep="_")[1]
     trialTmp = int(fName.split(sep = "_")[2].split(sep = '.')[0].lower())
     
-    # Find the correct GPS trial
-    GPStrial = np.array(GPStiming.Subject == subName) * np.array(GPStiming.Config == ConfigTmp) * np.array(GPStiming.Sesh == trialTmp) # This will be the go-to in the future
+    # Find the correct GPS trial. The three comparisons multiply out to a
+    # True/False mask over the GPS rows, so indexing a column with it hands
+    # back a one-element Series rather than a number. float() used to take
+    # one of those and no longer does, so the matching row is pulled out
+    # here once and its times are read by name below.
+    GPSmask = np.array(GPStiming.Subject == subName) * np.array(GPStiming.Config == ConfigTmp) * np.array(GPStiming.Sesh == trialTmp) # This will be the go-to in the future
+    GPSmatches = np.count_nonzero(GPSmask)
+    if GPSmatches != 1:
+        raise ValueError('Expected one GPS timing row for ' + fName
+                         + ', found ' + str(GPSmatches))
+    GPStrial = GPStiming[GPSmask].iloc[0]
     
     tmpDat = readXSENSORFile(fName,fPath)
     tmpDat = delimitTrialTrailRun(tmpDat,fName,fPath)
@@ -393,28 +402,28 @@ for fName in entries:
         LHS = np.array(LHS)
         LGS = np.array(LGS)
         # Uphill label
-        idx = LHS[LGS]/freq < float(GPStiming.EndS1[GPStrial])
+        idx = LHS[LGS]/freq < float(GPStrial.EndS1)
         Llabel[idx] = 1
         # Top label
-        idx = (LHS[LGS]/freq > float(GPStiming.StartS2[GPStrial]))*(LHS[LGS]/freq < float(GPStiming.EndS2[GPStrial]))
+        idx = (LHS[LGS]/freq > float(GPStrial.StartS2))*(LHS[LGS]/freq < float(GPStrial.EndS2))
         Llabel[idx] = 2
         # Bottom label
-        idx = LHS[LGS]/freq > float(GPStiming.StartS3[GPStrial])
+        idx = LHS[LGS]/freq > float(GPStrial.StartS3)
         Llabel[idx] = 3
         
         Rlabel = np.zeros([len(RGS),1])
         RHS = np.array(RHS)
         RGS = np.array(RGS)
         # Uphill label
-        idx = RHS[RGS]/freq < float(GPStiming.EndS1[GPStrial])
+        idx = RHS[RGS]/freq < float(GPStrial.EndS1)
         Rlabel[idx] = 1
         
         # Top label
-        idx = (RHS[RGS]/freq > float(GPStiming.StartS2[GPStrial]))*(RHS[RGS]/freq < float(GPStiming.EndS2[GPStrial]))
+        idx = (RHS[RGS]/freq > float(GPStrial.StartS2))*(RHS[RGS]/freq < float(GPStrial.EndS2))
         Rlabel[idx] = 2
         
         # Bottom label
-        idx = RHS[RGS]/freq > float(GPStiming.StartS3[GPStrial])
+        idx = RHS[RGS]/freq > float(GPStrial.StartS3)
         Rlabel[idx] = 3
         oLabel = np.concatenate((oLabel,Llabel,Rlabel),axis = None)
     
@@ -427,6 +436,7 @@ outcomes = pd.DataFrame({'Subject': list(subject), 'Movement':list(movement), 'C
                          })
 
 outfileName = fPath + '0_CompiledResults.csv'
+
 if save_on == 1 and data_check < 2:
     # Note: written fresh each run, never appended. Appending duplicates
     # every row when a study is re-processed after more data is collected.

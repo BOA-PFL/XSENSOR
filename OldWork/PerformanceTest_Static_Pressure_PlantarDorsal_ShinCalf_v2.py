@@ -78,7 +78,7 @@ if len(decisions) == 0:
     if upToDate == False:
         raise RuntimeError('Pull this script from main before processing')
 
-entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) and '0_' not in fName]
+entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) and not fName.startswith('0_')]
 entries_FrontBack = [fName for fName in os.listdir(fPath) if (fName.endswith(fileExt) and 'FrontBack' in fName)]
 entries_FootDorsum = [fName for fName in os.listdir(fPath) if (fName.endswith(fileExt) and 'FootDorsum' in fName)  ]
 
