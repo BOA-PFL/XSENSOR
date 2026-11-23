@@ -12,22 +12,62 @@ import matplotlib.pyplot as plt
 import os
 import seaborn as sns
 from dataclasses import dataclass
+import tkinter as tk
 from tkinter import messagebox
 import scipy.signal as sig
 import scipy.interpolate
 import scipy
-from XSENSORFunctions import readXSENSORFile, createTSmat, zeroInsoleForce, findGaitEvents
+from XSENSORFunctions import (readXSENSORFile, createTSmat, zeroInsoleForce, findGaitEvents,
+                              loadProcessingDecisions, saveProcessingDecision)
 
 save_on = 0
+# 0 = no data check, nothing is asked or recorded
+# 1 = ask only about trials with no recorded decision (the normal setting)
+# 2 = re-review EVERY trial, including ones previously rejected. Use after
+#     changing processing, when earlier decisions may no longer hold. This
+#     mode is good for reruning files with a different threshold or examining
+#     files after a different filter has been applied.
 data_check = 1
+
+# Names this script's decision file, 0_ProcessingDecisions_<scriptName>.csv.
+# One data folder is often read by several scripts, and a trial that is no
+# good for one analysis can be fine for another, so each keeps its own
+# record rather than one script's rejection governing the rest.
+scriptName = 'DynamicPressure_Trail_LR'
 
 # Read in files
 # only read .csv files for this work
-fPath = 'Z:\\Testing Segments\\EndurancePerformance\\2024\\EH_Trail_Kailas_Perf_Jun24\\XSENSOR\\RemoteFiles\\'
+fPath = 'Z:\\Testing Segments\\Outdoor\\TrailRunning\\2024\\EH_Trail_Kailas_Perf_Jun24\\XSENSOR\\RemoteFiles\\'
 fileExt = r".csv"
-entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) ]
+# Data-quality decisions recorded by previous runs of this script. Loading
+# these is what stops a trial being judged twice. Rejected files are left
+# where they are so they can still be opened and looked at - it is this
+# record, not the folder, that decides what gets processed.
+decisions = loadProcessingDecisions(fPath, scriptName)
 
-GPStiming = pd.read_csv('Z:\\Testing Segments\\EndurancePerformance\\2024\\EH_Trail_Kailas_Perf_Jun24\\CombinedGPS.csv')
+# Results from an out-of-date copy of this script will not match anyone
+# else's. Asked only when nothing has been decided here yet: a decision file
+# means the question was answered on an earlier run of this dataset.
+if len(decisions) == 0:
+    # Give this dialog its own window and put it in front. It is the first
+    # thing the script does, so unlike the data check further down there is no
+    # figure on screen to pull focus, and a borrowed default root can open the
+    # box behind Spyder - which just looks like the script has hung.
+    dialogRoot = tk.Tk()
+    dialogRoot.withdraw()
+    dialogRoot.attributes('-topmost', True)
+    upToDate = messagebox.askyesno("Question", "Is this script up to date with main?",
+                                   parent = dialogRoot)
+    dialogRoot.destroy()
+    # A plain error rather than SystemExit: these scripts get run a cell at a
+    # time, and SystemExit can take the console with it. This stops just as
+    # firmly, prints the reason, and leaves the console alone.
+    if upToDate == False:
+        raise RuntimeError('Pull this script from main before processing')
+
+entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) and not fName.startswith('0_')]
+
+GPStiming = pd.read_csv('Z:\\Testing Segments\\Outdoor\\TrailRunning\\2024\\EH_Trail_Kailas_Perf_Jun24\\CombinedGPS.csv')
 SeshConf = GPStiming[['Config', 'Sesh']]
 
 ### set plot font size ###
@@ -168,12 +208,40 @@ medPropMid = []
 
 for fName in entries:
     print(fName)
+    # A trial rejected in a previous run is skipped. The file is still there
+    # to open and look at: the recorded decision governs, not the folder
+    priorDecision = decisions.get(fName, '')
+    if priorDecision == 'bad' and data_check != 2:
+        print('Previously excluded, skipping: ' + fName)
+        continue
+    
+    # Clear the previous trial's cyclic detections. They are assigned
+    # inside conditionals, so a trial that skips a detection would keep
+    # the last trial's events and be processed against them silently.
+    LHS = []
+    LTO = []
+    LGS = []
+    RHS = []
+    RTO = []
+    RGS = []
+    start_LHS = 0
+    start_RHS = 0
+
     subName = fName.split(sep = "_")[0]
     ConfigTmp = fName.split(sep="_")[1]
     trialTmp = int(fName.split(sep = "_")[2].split(sep = '.')[0].lower())
     
-    # Find the correct GPS trial
-    GPStrial = np.array(GPStiming.Subject == subName) * np.array(GPStiming.Config == ConfigTmp) * np.array(GPStiming.Sesh == trialTmp) # This will be the go-to in the future
+    # Find the correct GPS trial. The three comparisons multiply out to a
+    # True/False mask over the GPS rows, so indexing a column with it hands
+    # back a one-element Series rather than a number. float() used to take
+    # one of those and no longer does, so the matching row is pulled out
+    # here once and its times are read by name below.
+    GPSmask = np.array(GPStiming.Subject == subName) * np.array(GPStiming.Config == ConfigTmp) * np.array(GPStiming.Sesh == trialTmp) # This will be the go-to in the future
+    GPSmatches = np.count_nonzero(GPSmask)
+    if GPSmatches != 1:
+        raise ValueError('Expected one GPS timing row for ' + fName
+                         + ', found ' + str(GPSmatches))
+    GPStrial = GPStiming[GPSmask].iloc[0]
     
     tmpDat = readXSENSORFile(fName,fPath)
     tmpDat = delimitTrialTrailRun(tmpDat,fName,fPath)
@@ -229,7 +297,9 @@ for fName in entries:
                 RGS.append(jj)
     
     answer = True # if data check is off. 
-    if data_check == 1:
+    if priorDecision == 'good' and data_check == 1:
+        print('Previously accepted, not asking again: ' + fName)
+    elif data_check >= 1:
         plt.figure()
         plt.subplot(1,2,1)
         plt.plot(intp_steps(tmpDat.LForce,LHS,LTO,LGS))
@@ -249,6 +319,17 @@ for fName in entries:
         plt.savefig(saveFolder + '/' + subName +' '+ ConfigTmp +' '+ str(trialTmp) + '.png')
 
         answer = messagebox.askyesno("Question","Is data clean?")
+    
+    # Record the decision straight away, inside the loop, so a run that
+    # fails later keeps every decision made so far
+    if priorDecision == '' or data_check == 2:
+        if answer == False:
+            saveProcessingDecision(fPath, scriptName, fName, 'bad',
+                                   Subject=subName, Config=ConfigTmp,
+                                   reason='rejected at the data check')
+        else:
+            saveProcessingDecision(fPath, scriptName, fName, 'good',
+                                   Subject=subName, Config=ConfigTmp)
     
     if answer == False:
         plt.close('all')
@@ -321,28 +402,28 @@ for fName in entries:
         LHS = np.array(LHS)
         LGS = np.array(LGS)
         # Uphill label
-        idx = LHS[LGS]/freq < float(GPStiming.EndS1[GPStrial])
+        idx = LHS[LGS]/freq < float(GPStrial.EndS1)
         Llabel[idx] = 1
         # Top label
-        idx = (LHS[LGS]/freq > float(GPStiming.StartS2[GPStrial]))*(LHS[LGS]/freq < float(GPStiming.EndS2[GPStrial]))
+        idx = (LHS[LGS]/freq > float(GPStrial.StartS2))*(LHS[LGS]/freq < float(GPStrial.EndS2))
         Llabel[idx] = 2
         # Bottom label
-        idx = LHS[LGS]/freq > float(GPStiming.StartS3[GPStrial])
+        idx = LHS[LGS]/freq > float(GPStrial.StartS3)
         Llabel[idx] = 3
         
         Rlabel = np.zeros([len(RGS),1])
         RHS = np.array(RHS)
         RGS = np.array(RGS)
         # Uphill label
-        idx = RHS[RGS]/freq < float(GPStiming.EndS1[GPStrial])
+        idx = RHS[RGS]/freq < float(GPStrial.EndS1)
         Rlabel[idx] = 1
         
         # Top label
-        idx = (RHS[RGS]/freq > float(GPStiming.StartS2[GPStrial]))*(RHS[RGS]/freq < float(GPStiming.EndS2[GPStrial]))
+        idx = (RHS[RGS]/freq > float(GPStrial.StartS2))*(RHS[RGS]/freq < float(GPStrial.EndS2))
         Rlabel[idx] = 2
         
         # Bottom label
-        idx = RHS[RGS]/freq > float(GPStiming.StartS3[GPStrial])
+        idx = RHS[RGS]/freq > float(GPStrial.StartS3)
         Rlabel[idx] = 3
         oLabel = np.concatenate((oLabel,Llabel,Rlabel),axis = None)
     
@@ -355,12 +436,10 @@ outcomes = pd.DataFrame({'Subject': list(subject), 'Movement':list(movement), 'C
                          })
 
 outfileName = fPath + '0_CompiledResults.csv'
-if save_on == 1:
-    if os.path.exists(outfileName) == False:
-    
-        outcomes.to_csv(outfileName, header=True, index = False)
 
-    else:
-        outcomes.to_csv(outfileName, mode='a', header=False, index = False) 
+if save_on == 1 and data_check < 2:
+    # Note: written fresh each run, never appended. Appending duplicates
+    # every row when a study is re-processed after more data is collected.
+    outcomes.to_csv(outfileName, header=True, index = False)
             
 

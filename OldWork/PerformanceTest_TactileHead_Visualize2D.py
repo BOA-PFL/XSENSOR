@@ -30,7 +30,7 @@ lookUpTables = 'C:\\Users\\bethany.kilpatrick\\BOA Technology Inc\\PFL Team - Ge
 fPath    = 'C:\\Users\\bethany.kilpatrick\\Boa Technology Inc\\PFL Team - General\\Testing Segments\\Helmets\\Specialized_Apr26\\Export\\'
 fileExt  = r".csv"
 
-entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) and '0_' not in fName]
+entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) and not fName.startswith('0_')]
 
 save_on    = 0
 data_check = 0

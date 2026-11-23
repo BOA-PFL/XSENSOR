@@ -10,10 +10,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import seaborn as sns
+import tkinter as tk
 from tkinter import messagebox
 import scipy
 import scipy.signal as sig
-from XSENSORFunctions import readXSENSORFile, createTSmat 
+from XSENSORFunctions import (readXSENSORFile, createTSmat,
+                              loadProcessingDecisions, saveProcessingDecision)
 
 
 ### set plot font size ###
@@ -30,13 +32,51 @@ plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
 plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
 save_on = 0
-data_check = 0
+# 0 = no data check, nothing is asked or recorded
+# 1 = ask only about trials with no recorded decision (the normal setting)
+# 2 = re-review EVERY trial, including ones previously rejected. Use after
+#     changing processing, when earlier decisions may no longer hold. This
+#     mode is good for reruning files with a different threshold or examining
+#     files after a different filter has been applied.
+data_check = 1
+
+# Names this script's decision file, 0_ProcessingDecisions_<scriptName>.csv.
+# One data folder is often read by several scripts, and a trial that is no
+# good for one analysis can be fine for another, so each keeps its own
+# record rather than one script's rejection governing the rest.
+scriptName = 'Cycling_XSENSOR_IMU'
 
 # Read in files
 # only read .csv files for this work
-fPath = 'C:/Users/eric.honert/Boa Technology Inc/PFL Team - General/Testing Segments/Cycling Performance Tests/2025_Performance_CyclingLacevBOA_Specialized/Xsensor/'
+fPath = 'Z:/Testing Segments/Cycling/2025/2025_Performance_CyclingLacevBOA_Specialized/Xsensor/'
 fileExt = r".csv"
-entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) and '0_' not in fName]
+# Data-quality decisions recorded by previous runs of this script. Loading
+# these is what stops a trial being judged twice. Rejected files are left
+# where they are so they can still be opened and looked at - it is this
+# record, not the folder, that decides what gets processed.
+decisions = loadProcessingDecisions(fPath, scriptName)
+
+# Results from an out-of-date copy of this script will not match anyone
+# else's. Asked only when nothing has been decided here yet: a decision file
+# means the question was answered on an earlier run of this dataset.
+if len(decisions) == 0:
+    # Give this dialog its own window and put it in front. It is the first
+    # thing the script does, so unlike the data check further down there is no
+    # figure on screen to pull focus, and a borrowed default root can open the
+    # box behind Spyder - which just looks like the script has hung.
+    dialogRoot = tk.Tk()
+    dialogRoot.withdraw()
+    dialogRoot.attributes('-topmost', True)
+    upToDate = messagebox.askyesno("Question", "Is this script up to date with main?",
+                                   parent = dialogRoot)
+    dialogRoot.destroy()
+    # A plain error rather than SystemExit: these scripts get run a cell at a
+    # time, and SystemExit can take the console with it. This stops just as
+    # firmly, prints the reason, and leaves the console alone.
+    if upToDate == False:
+        raise RuntimeError('Pull this script from main before processing')
+
+entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) and not fName.startswith('0_')]
 
 # list of functions 
 def delimitTrialCycling(inputDF,FName,FilePath):
@@ -249,79 +289,149 @@ def intp_strokes(var,TDC):
         
     return intp_var
    
-def plotAvgCyclePressure(plantarMat, inputDC, FilePath, fTDC, fBDC):
+def plotAvgCyclePressure(inputDC, FilePath, LTDC, LBDC, RTDC, RBDC):
     """
-    Plot the average pressure across all detections at top dead center (TDC)
-    and bottom dead center (BDC). 
+    Plot the average pressure at the down stroke and the up stroke
+
+    Every foot that carries data is drawn: dorsal pressure in the first column,
+    then one column per plantar insole. A trial recorded with both insoles gets
+    both side by side, because judging a two-insole trial on one foot alone
+    hides a failure in the other - which is the thing the data check exists to
+    catch.
+
     Function dependencies: need to use createTSmat for the appropriate array
     shape for the plantar and dorsal pressure
 
     Parameters
     ----------
-    plantarMat : numpy array
-        DESCRIPTION.
     inputDC : dataclass
         Created from the function "createTSmat"
     FilePath : str
         file path string
-    fTDC : numpy array
-        Top dead center detection
-    fBDC : numpy array
-        Bottom dead center detection
+    LTDC : numpy array or list
+        left top dead center detections. Empty when there is no left insole.
+    LBDC : numpy array or list
+        left bottom dead center detections
+    RTDC : numpy array or list
+        right top dead center detections. Empty when there is no right insole.
+    RBDC : numpy array or list
+        right bottom dead center detections
 
     Returns
     -------
     fig : matplotlib figure
-        Figure showing average dorsal and plantar pressure at TDC and BDC
+        Figure showing average dorsal and plantar pressure over the stroke.
+        None when the trial has no plantar pressure at all.
 
-    """  
-    # Define a blank arrays for down & upstrokes
-    downPlantar = np.zeros([len(fTDC), 31, 9])
-    upPlantar = np.zeros([len(fTDC), 31, 9])
-    
-    downDorsal = np.zeros([len(fTDC), 18, 10])
-    upDorsal = np.zeros([len(fTDC), 18, 10])
-    
-    # Compute the average downstroke and upstroke pressure for plotting
-    for ii in range(len(fTDC)-1):
-        downPlantar[ii,:,:] = np.mean(plantarMat[fTDC[ii]:fBDC[ii],:,:],axis=0)
-        upPlantar[ii,:,:] = np.mean(plantarMat[fBDC[ii]:fTDC[ii+1],:,:],axis=0)
-        downDorsal[ii,:,:] = np.mean(inputDC.dorsalMat[fTDC[ii]:fBDC[ii],:,:],axis = 0)
-        upDorsal[ii,:,:] = np.mean(inputDC.dorsalMat[fBDC[ii]:fTDC[ii+1],:,:],axis = 0)
-        
-    downPlantarAvg = np.mean(downPlantar, axis = 0)
-    upPlantarAvg = np.mean(upPlantar, axis = 0)
+    """
+    # Work out which feet were actually recorded. Both insoles, one, or neither
+    # are all possible, and the figure has to cope with each
+    feetNames = []
+    feetMats = []
+    feetTDC = []
+    feetBDC = []
+    # Fewer than two detections is not a stroke, so that foot has nothing to
+    # average - treat it as absent rather than meaning a panel of NaNs
+    if len(inputDC.LplantarMat) != 0 and len(LTDC) > 1:
+        feetNames.append('Left Plantar')
+        feetMats.append(inputDC.LplantarMat)
+        feetTDC.append(LTDC)
+        feetBDC.append(LBDC)
+    if len(inputDC.RplantarMat) != 0 and len(RTDC) > 1:
+        feetNames.append('Right Plantar')
+        feetMats.append(inputDC.RplantarMat)
+        feetTDC.append(RTDC)
+        feetBDC.append(RBDC)
+
+    # Say so rather than leaving a blank screen in front of the data check
+    # question - a silent empty plot reads as "nothing wrong"
+    if len(feetNames) == 0:
+        print('No plantar pressure detected for this trial, nothing plotted')
+        return None
+
+    # Average each foot over the down stroke and the up stroke. One stroke runs
+    # from a top dead center to the next, so there is one fewer stroke than
+    # there are detections - preallocating len(TDC) would leave a row of zeros
+    # in the mean and pull every average down.
+    downPlantarAvg = []
+    upPlantarAvg = []
+    for ff in range(len(feetNames)):
+        thisMat = feetMats[ff]
+        thisTDC = feetTDC[ff]
+        thisBDC = feetBDC[ff]
+        nStrokes = len(thisTDC) - 1
+        # Preallocate
+        downPlantar = np.zeros([nStrokes, 31, 9])
+        upPlantar = np.zeros([nStrokes, 31, 9])
+        for ii in range(nStrokes):
+            downPlantar[ii,:,:] = np.mean(thisMat[thisTDC[ii]:thisBDC[ii],:,:],axis=0)
+            upPlantar[ii,:,:] = np.mean(thisMat[thisBDC[ii]:thisTDC[ii+1],:,:],axis=0)
+        downPlantarAvg.append(np.mean(downPlantar, axis = 0))
+        upPlantarAvg.append(np.mean(upPlantar, axis = 0))
+
+    # Dorsal is a single sensor, so it is averaged over the first available
+    # foot's crank timing. Note: with two insoles the dorsal column follows
+    # that foot alone.
+    refTDC = feetTDC[0]
+    refBDC = feetBDC[0]
+    nStrokes = len(refTDC) - 1
+    # Preallocate
+    downDorsal = np.zeros([nStrokes, 18, 10])
+    upDorsal = np.zeros([nStrokes, 18, 10])
+    for ii in range(nStrokes):
+        downDorsal[ii,:,:] = np.mean(inputDC.dorsalMat[refTDC[ii]:refBDC[ii],:,:],axis=0)
+        upDorsal[ii,:,:] = np.mean(inputDC.dorsalMat[refBDC[ii]:refTDC[ii+1],:,:],axis=0)
+
     downDorsalAvg = np.mean(downDorsal, axis = 0)
     upDorsalAvg = np.mean(upDorsal, axis = 0)
-    
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2,2)
-    ax1 = sns.heatmap(downDorsalAvg, ax = ax1, cmap="mako", vmin = 0, vmax = np.max(downDorsalAvg))
-    ax1.set_title('Dorsal Pressure') 
-    ax1.set_ylabel('Average Down Stroke')
-    
-    
-    ax2 = sns.heatmap(downPlantarAvg, ax = ax2, cmap="mako", vmin = 0, vmax = np.max(downPlantarAvg))
-    ax2.set_title('Plantar Pressure') 
-    
-    ax3 = sns.heatmap(upDorsalAvg, ax = ax3, cmap = 'mako', vmin = 0, vmax = np.max(upDorsalAvg))
-    ax3.set_ylabel('Average Up Stroke')
-    
-    ax4 = sns.heatmap(upPlantarAvg, ax = ax4, cmap = 'mako', vmin = 0, vmax = np.max(downPlantarAvg)) # Max from the downstroke to see the differences between up and down
-    
-    fig.set_size_inches(5, 8)
-    
-    plt.suptitle(inputDC.subject +' '+ inputDC. movement +' '+ inputDC.config)
+
+    # One row per stroke, one column for dorsal plus one per foot
+    nCols = 1 + len(feetNames)
+    fig, axes = plt.subplots(2, nCols, squeeze = False)
+    rowNames = ['Average Down Stroke', 'Average Up Stroke']
+    dorsalAvgs = [downDorsalAvg, upDorsalAvg]
+    plantarAvgs = [downPlantarAvg, upPlantarAvg]
+
+    # Both rows are scaled to the down stroke, so the drop from down to up is
+    # visible rather than normalised away. The feet share a scale for the same
+    # reason: an asymmetry between them is the thing worth seeing.
+    dorsalMax = np.max(downDorsalAvg)
+    plantarMax = 0
+    for ff in range(len(feetNames)):
+        thisMax = np.max(downPlantarAvg[ff])
+        if thisMax > plantarMax:
+            plantarMax = thisMax
+
+    for rr in range(2):
+        thisDorsal = dorsalAvgs[rr]
+        dorsalAx = axes[rr][0]
+        sns.heatmap(thisDorsal, ax = dorsalAx, cmap = 'mako', vmin = 0,
+                    vmax = dorsalMax)
+        dorsalAx.set_ylabel(rowNames[rr])
+        if rr == 0:
+            dorsalAx.set_title('Dorsal Pressure')
+
+        for ff in range(len(feetNames)):
+            thisPlantar = plantarAvgs[rr][ff]
+            plantarAx = axes[rr][ff+1]
+            sns.heatmap(thisPlantar, ax = plantarAx, cmap = 'mako', vmin = 0,
+                        vmax = plantarMax)
+            if rr == 0:
+                plantarAx.set_title(feetNames[ff])
+
+    fig.set_size_inches(2.5*nCols, 8)
+
+    plt.suptitle(inputDC.subject +' '+ inputDC.movement +' '+ inputDC.config)
     plt.tight_layout()
     plt.margins(0.1)
-    
+
     saveFolder= FilePath + '2DPlots'
-    
+
     if os.path.exists(saveFolder) == False:
         os.mkdir(saveFolder)
-        
-    plt.savefig(saveFolder + '/' + inputDC.subject +' '+ inputDC.movement +' '+ inputDC.config + '.png')
-    return fig  
 
+    plt.savefig(saveFolder + '/' + inputDC.subject +' '+ inputDC.movement +' '+ inputDC.config + '.png')
+    return fig
 #############################################################################################################################################################
 
 
@@ -345,9 +455,24 @@ instepMax=[]
 
 for fName in entries:
     print(fName)    
+    # Clear the previous trial's cyclic detections. They are assigned
+    # inside conditionals, so a trial that skips a detection would keep
+    # the last trial's events and be processed against them silently.
+    LTDC = []
+    LBDC = []
+    RTDC = []
+    RBDC = []
+
     subName = fName.split(sep = "_")[0]
     ConfigTmp = fName.split(sep="_")[1]
     trialTmp = fName.split(sep = "_")[3].split(sep = ".")[0]
+
+    # A trial rejected in a previous run is skipped. The file is still there
+    # to open and look at: the recorded decision governs, not the folder
+    priorDecision = decisions.get(fName, '')
+    if priorDecision == 'bad' and data_check != 2:
+        print('Previously excluded, skipping: ' + fName)
+        continue
     
     tmpDat = readXSENSORFile(fName,fPath)
     [tmpDat,sprintStart] = delimitTrialCycling(tmpDat,fName,fPath)
@@ -361,31 +486,46 @@ for fName in entries:
         [RTDC,RBDC] = findCycleEvents(tmpDat.Racc[:,0],tmpDat.time)
 
     answer = True # if data check is off. 
-    if data_check == 1:
-        # Create the heat plot of the plantar/dorsal pressure
-        if len(tmpDat.RplantarMat) != 0:
-            plotAvgCyclePressure(tmpDat.RplantarMat, tmpDat, fPath, RTDC, RBDC)
-        elif len(tmpDat.LplantarMat) != 0:
-            plotAvgCyclePressure(tmpDat.LplantarMat, tmpDat, fPath, LTDC, LBDC)
-        
-        # Create the debugging plot for time continuous estimated force
-        plt.figure()
-        if len(tmpDat.RplantarMat) != 0:
-            plt.plot(intp_strokes(tmpDat.RForce,RTDC))
-        elif len(tmpDat.LplantarMat) != 0:
-            plt.plot(intp_strokes(tmpDat.LForce,LTDC))
-        plt.xlabel('% Stroke')
-        plt.ylabel('Insole Force (N)')
-        
-        # Save the debugging figure
+    if priorDecision == 'good' and data_check == 1:
+        print('Previously accepted, not asking again: ' + fName)
+    elif data_check >= 1:
+        # Draw every foot that was recorded, then the force traces, and only
+        # then ask. The question is asked once per trial, so everything the
+        # answer depends on has to be on screen before it appears.
+        plotAvgCyclePressure(tmpDat, fPath, LTDC, LBDC, RTDC, RBDC)
+
+        # Save a force trace per foot, not just whichever one came first
         saveFolder= fPath + 'ForcePlots'
         if os.path.exists(saveFolder) == False:
-            os.mkdir(saveFolder)    
-        plt.savefig(saveFolder + '/' + subName + '_' + ConfigTmp + '_' + trialTmp +'.png')
-        
+            os.mkdir(saveFolder)
+
+        if len(tmpDat.LplantarMat) != 0 and len(LTDC) != 0:
+            plt.figure()
+            plt.plot(intp_strokes(tmpDat.LForce,LTDC))
+            plt.xlabel('% Stroke')
+            plt.ylabel('Left Insole Force (N)')
+            plt.savefig(saveFolder + '/' + subName + '_' + ConfigTmp + '_' + trialTmp + '_Left.png')
+
+        if len(tmpDat.RplantarMat) != 0 and len(RTDC) != 0:
+            plt.figure()
+            plt.plot(intp_strokes(tmpDat.RForce,RTDC))
+            plt.xlabel('% Stroke')
+            plt.ylabel('Right Insole Force (N)')
+            plt.savefig(saveFolder + '/' + subName + '_' + ConfigTmp + '_' + trialTmp + '_Right.png')
+
         answer = messagebox.askyesno("Question","Is data clean?")
         
     plt.close('all')
+    # Record the decision straight away, inside the loop, so a run that
+    # fails later keeps every decision made so far
+    if priorDecision == '' or data_check == 2:
+        if answer == False:
+            saveProcessingDecision(fPath, scriptName, fName, 'bad',
+                                   Subject=subName, Config=ConfigTmp,
+                                   reason='rejected at the data check')
+        else:
+            saveProcessingDecision(fPath, scriptName, fName, 'good',
+                                   Subject=subName, Config=ConfigTmp)
     if answer == False:
         print('Adding file to bad file list')
         badFileList.append(fName)
@@ -455,13 +595,10 @@ outcomes = pd.DataFrame({'Subject': list(subject), 'Movement':list(movement), 'C
                           })
 
 outfileName = fPath + '0_CompiledResults.csv'
-if save_on == 1:
-    if os.path.exists(outfileName) == False:
-    
-        outcomes.to_csv(outfileName, header=True, index = False)
-
-    else:
-        outcomes.to_csv(outfileName, mode='a', header=False, index = False) 
+if save_on == 1 and data_check < 2:
+    # Note: written fresh each run, never appended. Appending duplicates every
+    # row when a study is re-processed after more data has been collected.
+    outcomes.to_csv(outfileName, header=True, index = False)
                 
         
         

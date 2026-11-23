@@ -21,15 +21,29 @@ import matplotlib.pyplot as plt
 import os
 import seaborn as sns
 from dataclasses import dataclass
+import tkinter as tk
 from tkinter import messagebox
 import scipy.signal as sig
-from XSENSORFunctions import readXSENSORFile, delimitTrial, createTSmat, zeroInsoleForce, findGaitEvents
+from XSENSORFunctions import (readXSENSORFile, delimitTrial, createTSmat, zeroInsoleForce, findGaitEvents,
+                              loadProcessingDecisions, saveProcessingDecision)
 
 
 
 
 save_on = 1
-data_check = 0
+# 0 = no data check, nothing is asked or recorded
+# 1 = ask only about trials with no recorded decision (the normal setting)
+# 2 = re-review EVERY trial, including ones previously rejected. Use after
+#     changing processing, when earlier decisions may no longer hold. This
+#     mode is good for reruning files with a different threshold or examining
+#     files after a different filter has been applied.
+data_check = 1
+
+# Names this script's decision file, 0_ProcessingDecisions_<scriptName>.csv.
+# One data folder is often read by several scripts, and a trial that is no
+# good for one analysis can be fine for another, so each keeps its own
+# record rather than one script's rejection governing the rest.
+scriptName = 'ShinCalf_v2'
 
 
 # Read in files
@@ -38,7 +52,33 @@ data_check = 0
 fPath = 'C:\\Users\\bethany.kilpatrick\\BOA Technology Inc\\PFL Team - General\\Testing Segments\\EndurancePerformance\\2025_Mechanistic_KneeSleeveStability_Baurfeind\\Xsensor\\FullTrials\\'
 fileExt = r".csv"
 
-entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) and '0_' not in fName]
+# Data-quality decisions recorded by previous runs of this script. Loading
+# these is what stops a trial being judged twice. Rejected files are left
+# where they are so they can still be opened and looked at - it is this
+# record, not the folder, that decides what gets processed.
+decisions = loadProcessingDecisions(fPath, scriptName)
+
+# Results from an out-of-date copy of this script will not match anyone
+# else's. Asked only when nothing has been decided here yet: a decision file
+# means the question was answered on an earlier run of this dataset.
+if len(decisions) == 0:
+    # Give this dialog its own window and put it in front. It is the first
+    # thing the script does, so unlike the data check further down there is no
+    # figure on screen to pull focus, and a borrowed default root can open the
+    # box behind Spyder - which just looks like the script has hung.
+    dialogRoot = tk.Tk()
+    dialogRoot.withdraw()
+    dialogRoot.attributes('-topmost', True)
+    upToDate = messagebox.askyesno("Question", "Is this script up to date with main?",
+                                   parent = dialogRoot)
+    dialogRoot.destroy()
+    # A plain error rather than SystemExit: these scripts get run a cell at a
+    # time, and SystemExit can take the console with it. This stops just as
+    # firmly, prints the reason, and leaves the console alone.
+    if upToDate == False:
+        raise RuntimeError('Pull this script from main before processing')
+
+entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) and not fName.startswith('0_')]
 entries_FrontBack = [fName for fName in os.listdir(fPath) if (fName.endswith(fileExt) and 'FrontBack' in fName)]
 entries_FootDorsum = [fName for fName in os.listdir(fPath) if (fName.endswith(fileExt) and 'FootDorsum' in fName)  ]
 
@@ -273,8 +313,18 @@ if len(entries_FrontBack) > len(entries_FootDorsum):
             
         
 
+# Each trial contributes one row, gathered here
+allOutcomes = []
+
 for entry in parentList:
     print(entry )  
+    # A trial rejected in a previous run is skipped. The file is still there
+    # to open and look at: the recorded decision governs, not the folder
+    priorDecision = decisions.get(entry, '')
+    if priorDecision == 'bad' and data_check != 2:
+        print('Previously excluded, skipping: ' + entry)
+        continue
+    
     
     # entry = parentList[12] 
     
@@ -303,12 +353,11 @@ for entry in parentList:
                 fb_found = 1
                 frontBackDat = createAvg_FB_Mat(entries_FrontBack[ii],fPath)  
                 
-    elif "FrontBack" in entry: 
-        fb_found = 1  
-        fd_found = 0 
-        frontBackDat = createAvg_FB_Mat(entry)   
-    else:  
-        # Fallback if neither FootDorsum nor FrontBack is in entry
+    else:
+        # Everything that is not a FootDorsum entry is read as a FrontBack
+        # file. The FrontBack test that used to sit above this did the same
+        # thing, but called the reader with the file path missing and left
+        # the subject, config and trial as the previous trial's.
         subject = entry.split(sep="_")[0] 
         config = entry.split(sep="_")[1]
         trial = entry.split(sep="_")[3].split(sep='.')[0]  
@@ -322,28 +371,47 @@ for entry in parentList:
    
         
     answer = True
-    if data_check == 1 and "FootDorsum" in entry:  
-        if  len(plantDorDat.LplantarMat) != 0:
-            plotAvgStaticFDPressure(plantDorDat.LplantarMat,plantDorDat, fPath) 
-       
-            
-        if  len(plantDorDat.RplantarMat) != 0:
-            plotAvgStaticFDPressure(plantDorDat.RplantarMat,plantDorDat,fPath)   
+    # Show whatever this trial actually has, then ask once. fd_found and
+    # fb_found say which of the two sensor sets this entry ended up with - a
+    # FootDorsum trial does not always have a matching FrontBack file, and
+    # plotting one that is not there shows the previous trial's data.
+    if priorDecision == 'good' and data_check == 1:
+        print('Previously accepted, not asking again: ' + entry)
+    elif data_check >= 1:
+        if fd_found == 1:
+            if len(plantDorDat.LplantarMat) != 0:
+                plotAvgStaticFDPressure(plantDorDat.LplantarMat, plantDorDat, fPath)
 
-    else:
-        plotAvgStaticFBPressure( frontBackDat , fPath)
-        
+            if len(plantDorDat.RplantarMat) != 0:
+                plotAvgStaticFDPressure(plantDorDat.RplantarMat, plantDorDat, fPath)
+
+        if fb_found == 1:
+            plotAvgStaticFBPressure(frontBackDat, fPath)
 
         answer = messagebox.askyesno("Question","Is data clean?") # If entire rows of sensels are blank, its not clean!
-    
+        plt.close('all')
+
         if answer == False:
-            plt.close('all')
             print('Adding file to bad file list')
-            #badFileList.append(fName)
-        
-        if answer == True:
-            plt.close('all')
+        else:
             print('Estimating point estimates')
+    
+    # Record the decision straight away, inside the loop, so a run that
+    # fails later keeps every decision made so far
+    if priorDecision == '' or data_check == 2:
+        if answer == False:
+            saveProcessingDecision(fPath, scriptName, entry, 'bad',
+                                   Subject=subject, Config=config,
+                                   reason='rejected at the data check')
+        else:
+            saveProcessingDecision(fPath, scriptName, entry, 'good',
+                                   Subject=subject, Config=config)
+
+    # A rejected trial is skipped, not just noted. Until now the answer
+    # only printed - the metrics below ran either way, so rejecting a
+    # trial still put it in the results file.
+    if answer == False:
+        continue
 
 
 
@@ -473,12 +541,18 @@ for entry in parentList:
 
                        
           
-    outfileName = fPath + '0_CompiledResults_Static.csv'
-    if save_on == 1:
-        if os.path.exists(outfileName) == False:
-            outcomes.to_csv(outfileName, header=True, index = False)
-        else:
-            outcomes.to_csv(outfileName, mode='a', header=False, index = False) 
+    # One row per trial, written out after the loop
+    allOutcomes.append(outcomes)
+
+# Collected across the loop and written once. Writing from inside the
+# loop meant appending, and appending duplicates every row whenever a
+# study is re-processed after more data has been collected.
+outcomes = pd.concat(allOutcomes, ignore_index = True)
+
+outfileName = fPath + '0_CompiledResults_Static.csv'
+if save_on == 1 and data_check < 2:
+    outcomes.to_csv(outfileName, header=True, index = False)
+
             
     
              

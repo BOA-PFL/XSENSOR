@@ -8,9 +8,11 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-import seaborn as sns
-from dataclasses import dataclass
+import tkinter as tk
 from tkinter import messagebox
+from XSENSORFunctions import (readXSENSORFile, delimitTrial, createTSmat,
+                              EnsureTurnsAlternate, loadProcessingDecisions,
+                              saveProcessingDecision)
 import scipy.signal as sig
 
 
@@ -30,80 +32,168 @@ plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
 # Read in files
 # only read .asc files for this work
-fPath = 'C:\\Users\\Kate.Harrison\\Boa Technology Inc\\PFL Team - General\\Testing Segments\\Snow Performance\\EH_Snowboard_BurtonWrap_Perf_Dec2024\\XSENSOR\\'
+fPath = 'Z:\\Testing Segments\\SnowSports\\Snowboard\\2026_Mechanistic_SnowboardWrapMechII_K2\\Xsensor\\Cropped\\'
 fileExt = r".csv"
-entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) ]
+# Names this script's decision file, 0_ProcessingDecisions_<scriptName>.csv.
+# One data folder is often read by several scripts, and a trial that is no
+# good for one analysis can be fine for another, so each keeps its own
+# record rather than one script's rejection governing the rest.
+scriptName = 'SnowboardPressure_LR'
 
-# turn_det_nob = 0.75 # filter frequency for turn detection: may need to be different for different subjects
+# Data-quality decisions recorded by previous runs of this script. Loading
+# these is what stops a trial being judged twice. Rejected files are left
+# where they are so they can still be opened and looked at - it is this
+# record, not the folder, that decides what gets processed.
+decisions = loadProcessingDecisions(fPath, scriptName)
 
-save_on = 1
-data_check = 0
+# Results from an out-of-date copy of this script will not match anyone
+# else's. Asked only when nothing has been decided here yet: a decision file
+# means the question was answered on an earlier run of this dataset.
+if len(decisions) == 0:
+    # Give this dialog its own window and put it in front. It is the first
+    # thing the script does, so unlike the data check further down there is no
+    # figure on screen to pull focus, and a borrowed default root can open the
+    # box behind Spyder - which just looks like the script has hung.
+    dialogRoot = tk.Tk()
+    dialogRoot.withdraw()
+    dialogRoot.attributes('-topmost', True)
+    upToDate = messagebox.askyesno("Question", "Is this script up to date with main?",
+                                   parent = dialogRoot)
+    dialogRoot.destroy()
+    # A plain error rather than SystemExit: these scripts get run a cell at a
+    # time, and SystemExit can take the console with it. This stops just as
+    # firmly, prints the reason, and leaves the console alone.
+    if upToDate == False:
+        raise RuntimeError('Pull this script from main before processing')
+
+entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) and not fName.startswith('0_')]
 
 
-freq = 100 # sampling frequency
+save_on = 0
+# 0 = no data check, nothing is asked or recorded
+# 1 = ask only about trials with no recorded decision (the normal setting)
+# 2 = re-review EVERY trial, including ones previously rejected. Use after
+#     changing processing, when earlier decisions may no longer hold. This
+#     mode is good for reruning files with a different threshold or examining
+#     files after a different filter has been applied.
+data_check = 1
+
+# Which signal finds the turns.
+# 'IMU'   = the Z gyro, which reads board rotation directly (the default)
+# 'force' = the toe/heel force split, which only infers the edge change from
+#           where the load sits. Kept as a fallback for trials where an
+#           insole IMU is missing, saturated or noisy.
+turn_detection = 'IMU'
+
+# Turn detection knobs. These are the defaults for the cohort. Either can be
+# overridden per athlete in the block at the top of the trial loop - riders
+# differ in how tightly they link turns, and in how much slow drift sits in
+# the gyro, so neither of these generalises as well as it looks.
+turn_det_nob = 0.5  # gyro cut-off (Hz)
+turn_dist_nob = 2.0 # shortest time (s) allowed between two turns on the same edge
 # list of functions 
 # finding landings on the force plate once the filtered force exceeds the force threshold
-
-def delimitTrial(inputDF,FName):
+    
+def findSnowboardTurns(dat, cut_hz, min_turn_s, rideDir):
     """
-     This function uses ginput to delimit the start and end of a trial
-    You will need to indicate on the plot when to start/end the trial. 
-    You must use tkinter or plotting outside the console to use this function
+    Determine snowboard turn detection from the Z gyroscope onboard the
+    XSENSOR SPK insoles.
+
     Parameters
     ----------
-    inputDF : Pandas DataFrame
-        DF containing all desired output variables.
-    zForce : numpy array 
-        of force data from which we will subset the dataframe
+    dat : dataclass
+        Created from the function "createTSmat"
+    cut_hz : float
+        Cut-off frequency for the gyroscope used to find turning indices
+    min_turn_s : float
+        Shortest time, in seconds, allowed between two turns on the same
+        edge. Converted to samples here from the measured rate.
+    rideDir : str
+        'Regular' or 'Goofy'. Sets which direction of board rotation is a
+        toe-edge turn.
 
     Returns
     -------
-    outputDat: dataframe subset to the beginning and end of jumps.
+    Heelpeaks : array
+        Indices of the heel-edge turns
+    Toepeaks : array
+        Indices of the toe-edge turns
+    heel_sig : array
+        Detection signal the heel-edge peaks were found in
+    toe_sig : array
+        Detection signal the toe-edge peaks were found in
 
     """
+    # Set up the filter from the measured sample rate rather than a constant,
+    # the same way the ski detection does
+    fs = 1.0 / np.mean(np.diff(dat.time))
+    w = cut_hz / (fs / 2.0) # normalized cutoff
+    b, a = sig.butter(2, w, 'low') # 2nd order filter
 
-    # generic function to plot and start/end trial #
-    if os.path.exists(fPath+FName+'TrialSeg.npy'):
-        trial_segment_old = np.load(fPath+FName+'TrialSeg.npy', allow_pickle =True)
-        trialStart = trial_segment_old[1][0,0]
-        trialEnd = trial_segment_old[1][1,0]
-        if data_check == 1:
-            plt.figure()
-            plt.plot(np.mean(inputDF.iloc[:,18:238], axis = 1)*6895*0.014699)
-            plt.plot(np.mean(inputDF.iloc[:,250:470], axis = 1)*6895*0.014699)
-            plt.axvspan(int(np.floor(trialStart)), int(np.floor(trialEnd)), color = 'lightgray', alpha = 0.5)
-        
-        
-        inputDF = inputDF.iloc[int(np.floor(trialStart)) : int(np.floor(trialEnd)),:]
-        outputDat = inputDF.reset_index(drop = True)
-                
-    else: 
-        
-        #inputDF = dat
-        fig, ax = plt.subplots()
-        
-        LForce = np.mean(inputDF.iloc[:,18:238], axis = 1)*6895*0.014699
-        RForce = np.mean(inputDF.iloc[:,250:470], axis = 1)*6895*0.014699
-       
-        print('Select a point on the plot to represent the beginning & end of trial')
+    # Both insoles are bolted to the same board, so they turn together and
+    # see the same yaw rate. Averaging the two is steadier than either on its
+    # own. Unlike skiing there is no independent inside/outside foot here.
+    Lgyro_det = sig.filtfilt(b, a, dat.Lgyr[:,2])
+    Rgyro_det = sig.filtfilt(b, a, dat.Rgyr[:,2])
+    gyro_det = (Lgyro_det + Rgyro_det) / 2.0
+
+    # Take the resting offset out before anything is compared across zero.
+    # Both insoles sit at a binding angle, so their Z axis is not vertical and
+    # the averaged signal rests well off zero - measured at -3 deg/s on one
+    # rider and +9 on another, consistent across both of that rider's insoles.
+    # Over a two minute run that is several hundred degrees of rotation that
+    # never happened, and left in it makes an excursion one way and an
+    # excursion the other way incomparable. The median is used rather than the
+    # mean so the turns themselves do not drag the estimate.
+    gyro_det = gyro_det - np.median(gyro_det)
+
+    # Yaw runs one way through a toe-edge turn and the other way through a
+    # heel-edge turn. Which sign is which depends on which foot leads, so the
+    # rider's stance picks it rather than it being baked in.
+    if rideDir == 'Goofy':
+        toe_sig = gyro_det * -1
+    else:
+        toe_sig = gyro_det
+    heel_sig = toe_sig * -1
+
+    # Both edges are scaled by the SAME number, so a toe turn and a heel turn
+    # are judged on one yardstick. A fixed threshold in deg/s does not carry
+    # across riders - one rider's toe-edge yaw is routinely smaller than their
+    # heel-edge yaw, so a single absolute cut-off keeps most of the strong
+    # edge and about half of the weak one. Scaling each edge by its own
+    # maximum fixes that and introduces something worse: it divides one edge
+    # by the signal's peak and the other by whatever the opposite excursion
+    # reached, which on MattAnderson_Regular_Instep_5 was 43 against 7 deg/s
+    # and amplified the heel side roughly six fold.
+    scale = np.max(np.abs(gyro_det))
+    toe_norm = toe_sig / scale
+    heel_norm = heel_sig / scale
+
+    # find_peaks wants the spacing in samples, so it comes from the measured
+    # rate rather than a fixed 200. Those agree at 100 Hz and quietly stop
+    # agreeing the moment a collection is run at anything else.
+    minGap = round(min_turn_s * fs)
+
+    Toepeaks, _ = sig.find_peaks(toe_norm, prominence = 0.3, distance = minGap)
+    Heelpeaks, _ = sig.find_peaks(heel_norm, prominence = 0.3, distance = minGap)
+
+    # Nothing to alternate if an edge went undetected. Returning early keeps
+    # the caller's plots working so the trial can be looked at and rejected.
+    if len(Toepeaks) == 0 or len(Heelpeaks) == 0:
+        return Heelpeaks, Toepeaks, heel_norm, toe_norm
+
+    # Turns alternate toe, heel, toe, heel. Where two detections land on the
+    # same edge in a row, the taller one is kept - same clean-up the force
+    # detection applies.
+    if Toepeaks[0] < Heelpeaks[0]:
+        Toepeaks, Heelpeaks = EnsureTurnsAlternate(toe_norm, heel_norm, Toepeaks, Heelpeaks)
+
+    elif Toepeaks[0] > Heelpeaks[0]:
+        Heelpeaks, Toepeaks = EnsureTurnsAlternate(heel_norm, toe_norm, Heelpeaks, Toepeaks)
+
+    return Heelpeaks, Toepeaks, heel_norm, toe_norm
 
 
-        ax.plot(LForce, label = 'Left Force')
-        ax.plot(RForce, label = 'Rigth Force')
-        fig.legend()
-        pts = np.asarray(plt.ginput(2, timeout=-1))
-        plt.close()
-        outputDat = inputDF.iloc[int(np.floor(pts[0,0])) : int(np.floor(pts[1,0])),:]
-        outputDat = outputDat.reset_index(drop = True)
-        trial_segment = np.array([FName, pts], dtype = object)
-        np.save(fPath+FName+'TrialSeg.npy',trial_segment)
-
-    return(outputDat)
-
-
-
-
-    
 def findTurns(ToeForce, HeelForce, fs, fc):
     """
     Function to determine foot contacts (here HS or heel strikes) and toe-off (TO)
@@ -122,12 +212,11 @@ def findTurns(ToeForce, HeelForce, fs, fc):
 
     """
     
-    # ToeForce = tmpDat.ToeForce
-    # HeelForce = tmpDat.HeelForce
+    # ToeForce = ToeForce
+    # HeelForce = HeelForce
     # fs = 100
     # fc = 0.5
     
-   
     w = fc / (fs / 2)
     b, a = sig.butter(2, w, 'low')
     
@@ -172,367 +261,147 @@ def findTurns(ToeForce, HeelForce, fs, fc):
             
     return(Heelpeaks,Toepeaks)
 
-def EnsureTurnsAlternate(turndet1,turndet2,peaks1,peaks2):
-    """
-    This function takes 2 signals that alternate (such as left and right) with
-    events that have been detected within those signals. It makes sure that the
-    detected events (or peaks) oscillates between the two signals. If there are
-    multiple events detected between events from the other signal, the event
-    with the highest peak will be kept and the others eliminated.
-
-    Parameters
-    ----------
-    turndet1 : numpy array
-        Signal associated with the detected peaks from peaks1
-    turndet2 : numpy array
-        Signal associated with the detected peaks from peaks2
-    peaks1 : numpy array
-        Peaks detected from the function "find_peaks" (scipy library) from turndet1
-    peaks2 : numpy array
-        Peaks detected from the function "find_peaks" (scipy library) from turndet2
-
-    Returns
-    -------
-    peaks1 : numpy array
-        Cleaned peaks1 that oscillates with peaks2
-    peaks2 : numpy array
-        Cleaned peaks1 that oscillates with peaks1
-
-    """
-    # If the are multiple detected peaks after the last turn detection
-    if peaks1[-2] > peaks2[-1]:
-        idx_multiple = np.where(peaks1>peaks2[-1])[0]
-        idx = np.argmax(turndet1[peaks1[idx_multiple]])
-        # Remove the other detected peaks
-        idx_remove = np.delete(idx_multiple,idx)
-        peaks1 = np.delete(peaks1,idx_remove)
-    
-    if peaks2[-2] > peaks1[-1]:
-        idx_multiple = np.where(peaks2>peaks1[-1])[0]
-        idx = np.argmax(turndet2[peaks2[idx_multiple]])
-        # Remove the other detected peaks
-        idx_remove = np.delete(idx_multiple,idx)
-        peaks2 = np.delete(peaks2,idx_remove)
-    
-    # Ensure that the entire signal oscillates between peaks1 and peaks2
-    jj = 0
-    it = 0
-    while jj <= len(peaks2)-2 and it < 1000:
-        it = it + 1
-        if peaks1[jj] < peaks2[jj] and peaks1[jj+1] > peaks2 [jj] and peaks1[jj+1] < peaks2 [jj+1]:
-            # A normal turn
-            jj = jj+1
-        else:
-            if peaks2[jj+1] < peaks1[jj+1]:
-                # Multiple detected peaks from the following signal before a peak from the leading signal
-                idx_multiple = np.where((peaks2>peaks1[jj])*(peaks2<peaks1[jj+1])==True)[0]
-                # Figure out which of multiple peaks is higher
-                idx = np.argmax(turndet2[peaks2[idx_multiple]])
-                # Remove the other detected peaks
-                idx_remove = np.delete(idx_multiple,idx)
-                peaks2 = np.delete(peaks2,idx_remove)
-            else:
-                # Multiple detected peaks from the leading signal before a peak from the following signal
-                if jj == 0:
-                    idx_multiple = np.where(peaks1<peaks2[jj])[0]  
-                else:
-                    idx_multiple = np.where((peaks1>peaks2[jj-1])*(peaks1<peaks2[jj])==True)[0]    
-                idx = np.argmax(turndet1[peaks1[idx_multiple]])
-                # Remove the other detected peaks
-                idx_remove = np.delete(idx_multiple,idx)
-                peaks1 = np.delete(peaks1,idx_remove)
-        
-    return(peaks1,peaks2)
-
-
-
-
-   
-@dataclass    
-class tsData:
-
-    
-    LMat: np.array
-    LToe: np.array 
-    LForefoot: np.array 
-    LffToe: np.array
-    LmfHeel: np.array
-    LMidfoot: np.array 
-    LHeel: np.array 
-    LLateral: np.array
-    LMedial: np.array
-    
-    RMat: np.array
-    RToe: np.array 
-    RForefoot: np.array 
-    RffToe: np.array
-    RmfHeel: np.array
-    RMidfoot: np.array 
-    RHeel: np.array 
-    RLateral: np.array
-    RMedial: np.array
-    
-    LForce: np.array
-    RForce: np.array
-    ToeForce: np.array
-    HeelForce:np.array
-    
-    # RTurns: np.array 
-    # LTurns: np.array
-    
-    config: str
-    subject: str
-    
-    fullDat: pd.DataFrame #entire stored dataframe. 
-    #this class is useful for plotting and subsequent analysis
-    
-    # below is a method of the dataclass
-    # def plotAvgPressure(self):
-        
-    #     earlyTurnLeft = np.zeros([len(self.RTurns), 31, 9])
-    #     midTurnLeft = np.zeros([len(self.RTurns), 31, 9])
-    #     lateTurnLeft = np.zeros([len(self.RTurns), 31, 9])
-        
-    #     earlyTurnRight = np.zeros([len(self.RTurns), 31, 9])
-    #     midTurnRight = np.zeros([len(self.RTurns), 31, 9])
-    #     lateTurnRight = np.zeros([len(self.RTurns), 31, 9])
-        
-       
-        
-    #     for i in range(len(self.RTurns)):
-            
-    #         earlyTurnLeft[i,:,:] = self.LMat[self.RTurns[i],:,:]
-    #         midTurnLeft[i,:,:] = self.LMat[self.RTurns[i] + round((self.LTurns[i]-self.RTurns[i])/2),:,:]
-    #         lateTurnLeft[i,:,:] = self.LMat[self.LTurns[i],:,:]
-            
-    #         earlyTurnRight[i,:,:] = self.RMat[self.RTurns[i],:,:]
-    #         midTurnRight[i,:,:] = self.RMat[self.RTurns[i] + round((self.LTurns[i]-self.RTurns[i])/2),:,:]
-    #         lateTurnRight[i,:,:] = self.RMat[self.LTurns[i],:,:]
-           
-            
-    #     earlyTurnLeftAvg = np.mean(earlyTurnLeft, axis = 0)
-    #     midTurnLeftAvg = np.mean(midTurnLeft, axis = 0)
-    #     lateTurnLeftAvg = np.mean(lateTurnLeft, axis = 0)
-        
-    #     earlyTurnRightAvg = np.mean(earlyTurnRight, axis = 0)
-    #     midTurnRightAvg = np.mean(midTurnRight, axis = 0)
-    #     lateTurnRightAvg = np.mean(lateTurnRight, axis = 0)
-       
-        
-    #     fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(3,2)
-    #     ax1 = sns.heatmap(earlyTurnLeftAvg, ax = ax1, cmap="mako", vmin = 0, vmax = np.max(midTurnLeftAvg))
-    #     ax1.set_title('Downhill Ski Pressure') 
-    #     ax1.set_ylabel('Early Turn')
-        
-    #     ax2 = sns.heatmap(earlyTurnRightAvg, ax = ax2, cmap="mako", vmin = 0, vmax = np.max(midTurnLeftAvg))
-    #     ax2.set_title('Uphill Ski Pressure') 
-        
-    #     ax3 = sns.heatmap(midTurnLeftAvg, ax = ax3, cmap = 'mako', vmin = 0, vmax = np.max(midTurnLeftAvg))
-    #     ax3.set_ylabel('Mid Turn')
-        
-    #     ax4 = sns.heatmap(midTurnRightAvg, ax = ax4, cmap = 'mako', vmin = 0, vmax = np.max(midTurnLeftAvg))
-        
-    #     ax5 = sns.heatmap(lateTurnLeftAvg, ax = ax5, cmap = 'mako', vmin = 0, vmax = np.max(midTurnLeftAvg))
-    #     ax5.set_ylabel('Late Turn')
-    
-    #     ax6 = sns.heatmap(lateTurnRightAvg, ax = ax6, cmap = 'mako', vmin = 0, vmax = np.max(midTurnLeftAvg))
-        
-    #     fig.set_size_inches(5, 10)
-        
-    #     plt.suptitle(self.subject +' '+ self.config)
-    #     plt.tight_layout()
-    #     plt.margins(0.1)
-        
-    #     saveFolder= fPath + '2DPlots'
-        
-    #     if os.path.exists(saveFolder) == False:
-    #         os.mkdir(saveFolder)
-            
-    #     plt.savefig(saveFolder + '/' + self.subject +' '+ self.config + '.png')
-    #     return fig  
-
-
-
-def createTSmat(inputName):
-    """ 
-    Reads in file, creates 3D time series matrix (foot length, foot width, time) to be plotted and features
-    are extracted. The result is a dataclass which can be used for further plotting. Requires findGaitEvents function.
-    """
-
-    inputName = entries[42]
-
-    # dat = pd.read_csv(fPath+inputName, sep=',', usecols=(columns) )  
-    dat = pd.read_csv(fPath+inputName, sep=',', header = 0 , low_memory=False)
-    
-    if dat.shape[1] <= 2:    
-        dat = pd.read_csv(fPath+inputName, sep=',', header = 1 , low_memory=False)
-   
-    dat = delimitTrial(dat, inputName)
-    subj = inputName.split(sep="_")[0]
-    config = inputName.split(sep="_")[1]
-
-    Lsensel = dat.iloc[:,18:238]
-    Rsensel = dat.iloc[:,250:470]
-    
-    # Set up filters: Note - 6 Hz is the cut-off
-    w1 = 6 / (100 / 2)
-    b1, a1 = sig.butter(2, w1, 'low')
-    
-    headers = Lsensel.columns
-    store_r = []
-    store_c = []
-
-    for name in headers:
-        store_r.append(int(name.split(sep = "_")[1])-1)
-        store_c.append(int(name.split(sep = "_")[2].split(sep=".")[0])-1)
-    
-    LMat_raw = np.zeros((dat.shape[0], np.max(store_r)+1,np.max(store_c)+1))
-    
-    for ii in range(len(headers)):
-        LMat_raw[:, store_r[ii],store_c[ii]] = Lsensel.iloc[:,ii]
-    
-    
-    ################### Need to filter the signals here.
-    LMat = sig.filtfilt(b1, a1, LMat_raw,axis=0)
-    LMat[LMat < 1] = 0
-    
-    
-    headers = Rsensel.columns
-    store_r = []
-    store_c = []
-
-    for name in headers:
-        store_r.append(int(name.split(sep = "_")[1])-1)
-        store_c.append(int(name.split(sep = "_")[2].split(sep=".")[0])-1)
-    
-    RMat_raw = np.zeros((dat.shape[0], np.max(store_r)+1,np.max(store_c)+1))
-    
-    for ii in range(len(headers)):
-        RMat_raw[:, store_r[ii],store_c[ii]] = Rsensel.iloc[:,ii]
-    
-    
-    ################### Need to filter the signals here.  
-    RMat = sig.filtfilt(b1, a1, RMat_raw,axis=0)
-    RMat[RMat <1] = 0
-    
-    LToe = LMat[:,:7,:]  
-    LForefoot = LMat[:,7:15, :] 
-    LffToe = LMat[:,:15,:]
-    LmfHeel = LMat[:, 15:, :]
-    LMidfoot = LMat[:,15:25,:] 
-    LHeel = LMat[:,25:, :] 
-    LLateral = LMat[:,:5]
-    LMedial = LMat[:,:,5:]
-           
-    RToe = RMat[:,:7,:]
-    RForefoot = RMat[:,7:15, :]
-    RffToe = RMat[:,:15, :]
-    RmfHeel = RMat[:,15:, :]
-    RMidfoot = RMat[:,15:25,:]
-    RHeel = RMat[:,25:, :]
-    RLateral = RMat[:,:,4:]
-    RMedial = RMat[:,:,:4]
-    
-    RForce = np.mean(RMat, axis = (1,2))*6895*0.014699
-    LForce = np.mean(LMat, axis = (1,2))*6895*0.014699
-    
-    ToeForce = (np.mean(LffToe, axis = (1,2)) + np.mean(RffToe, axis = (1,2))) * 6895 * 0.014699
-    HeelForce = (np.mean(LmfHeel, axis = (1,2)) + np.mean(RmfHeel, axis = (1,2))) * 6895 * 0.014699
-    
-    # The indices were garbled on the output. Disabling feature.
-    # [RT,LT] = findTurns(RForce, LForce, freq)
-    
-    result = tsData(LMat, LToe, LForefoot, LffToe, LmfHeel, LMidfoot, LHeel, LLateral, LMedial,
-                     RMat, RToe, RForefoot, RffToe, RmfHeel, RMidfoot, RHeel, RLateral, RMedial, 
-                     RForce, LForce, ToeForce, HeelForce,
-                     config, subj, dat
-                     
-                    )
-    
-    return(result)
-
-
-
 #############################################################################################################################################################
-
-
 
 badFileList = []
 
+# One row per turn, across every trial. These have to be built up outside the
+# loop: the results are written once after the loop, so re-initialising them
+# per trial would leave only the last trial's turns to save.
+# FrontTotMaxForce, BackTotMaxForce and TurnDirection were initialised here
+# too but never appended to and never reached the output, so they are gone.
+subject = []
+config = []
+trialNo = []
+TurnDir = []
+TurnTime = []
+detector = []
+ToeTotMaxForce = []
+HeelTotMaxForce = []
+maxmaxToes = []
+heelAreaP = []
+RFD = []
+RFDtime = []
+
 for fName in entries:
     print(fName)
+    # A trial rejected in a previous run is skipped. The file is still there
+    # to open and look at: the recorded decision governs, not the folder
+    priorDecision = decisions.get(fName, '')
+    if priorDecision == 'bad' and data_check != 2:
+        print('Previously excluded, skipping: ' + fName)
+        continue
     
-    #fName = entries[1]
-    
-    config = []
-    subject = []
-    trialNo = []
-    TurnDir = []
-
-    # initialize outcome variables
-    #### New List
-    HeelTotMaxForce = []
-    ToeTotMaxForce = []
-    FrontTotMaxForce = []
-    BackTotMaxForce = []
-    maxmaxToes = []
-    
-    
-    RFD = []
-    RFDtime = []
-    heelAreaP = []
-    TurnTime = []
-
-    TurnDirection = []
-    ####
+    # Clear the previous trial's cyclic detections. They are assigned
+    # inside conditionals, so a trial that skips a detection would keep
+    # the last trial's events and be processed against them silently.
+    Heelmax = []
+    Toemax = []
+    Heelturn_sig = []
+    Toeturn_sig = []
 
     subName = fName.split(sep = "_")[0]
+
+    # Turn detection settings for this athlete. Reset from the defaults every
+    # trial, so an override set for one rider cannot carry into the next one,
+    # then name the exceptions underneath. Someone who links turns quickly
+    # needs a shorter turn_dist than someone who traverses between them.
+    turn_det = turn_det_nob
+    turn_dist = turn_dist_nob
+
+    # if subName == 'AndrewRendell':
+    #     turn_dist = 1.5
+
     configTmp = fName.split(sep="_")[2]
     rideDir = fName.split(sep ="_")[1]
+    # The gyro detection flips sign on this, so a typo in a file name would
+    # silently swap every toe turn for a heel turn
+    if rideDir != 'Regular' and rideDir != 'Goofy':
+        raise ValueError('Expected Regular or Goofy in field 2 of ' + fName
+                         + ', found ' + rideDir)
     trialTmp = fName.split(sep="_")[3].split(sep ='.')[0]
-    
-    # # Create turn detection exceptions:
-    # if subName == 'TrapperSteinle':
-    #     turn_det_nob = 1
-    # elif subName == 'ZackStetson':
-    #     turn_det_nob = 1.5
-    # else:
-    #     turn_det_nob = 0.75
-    
-    
-    # Make sure the files are named FirstLast_Config_Trial# - The "if" statement won't work if there isn't a trial number next to the movement
-    
-    #dat = pd.read_csv(fPath+fName, sep=',', skiprows = 1, header = 'infer')
 
-    tmpDat = createTSmat(fName)
-    # tmpDat.plotAvgPressure()
+    tmpDat = readXSENSORFile(fName,fPath)
+    tmpDat = delimitTrial(tmpDat,fName,fPath)
+    tmpDat = createTSmat(fName, fPath, tmpDat)
     
-    # Turn detection
-   
+    # Estimate the frequency from the time stamps
+    freq = 1/np.mean(np.diff(tmpDat.time))
     
-    [Heelmax,Toemax] = findTurns(tmpDat.ToeForce, tmpDat.HeelForce, freq, 0.75)
+    # Toe-edge and heel-edge force, summed over both insoles. Rows 0-14 are
+    # toe and forefoot, rows 15 and up midfoot and heel. The constant turns
+    # mean sensel pressure into a force over the sensel area.
+    LffToe = tmpDat.LplantarMat[:,:15,:]
+    LmfHeel = tmpDat.LplantarMat[:,15:,:]
+    RffToe = tmpDat.RplantarMat[:,:15,:]
+    RmfHeel = tmpDat.RplantarMat[:,15:,:]
+    
+    ToeForce_raw = (np.mean(LffToe, axis = (1,2)) + np.mean(RffToe, axis = (1,2))) * 6895 * 0.014699
+    HeelForce_raw = (np.mean(LmfHeel, axis = (1,2)) + np.mean(RmfHeel, axis = (1,2))) * 6895 * 0.014699
+    
+    # Smoothed for turn detection. createTSmat returns the sensel matrices
+    # unfiltered on purpose - the 1 kPa cut it applies is the sensor noise
+    # floor, and zeroing after filtering would smear that noise into the
+    # signal first - so the smoothing the turn detection needs happens here.
+    w1 = 6 / (freq / 2)
+    b1, a1 = sig.butter(2, w1, 'low')
+    ToeForce = sig.filtfilt(b1, a1, ToeForce_raw)
+    HeelForce = sig.filtfilt(b1, a1, HeelForce_raw)
+    
+    # Turn detection. Not every trial has an IMU - in this collection nine of
+    # them carry no gyro columns at all - so the force detection stays in as
+    # the fallback. Which detector ran is written out with the results: two
+    # trials found with different detectors are not directly comparable, and
+    # that has to be visible in the data rather than only in the console.
+    gyroPresent = len(tmpDat.Lgyr) > 0 and len(tmpDat.Rgyr) > 0
+
+    # The plots below show whichever signal found the turns, so the markers
+    # always sit on the signal they came from.
+    if turn_detection == 'IMU' and gyroPresent == True:
+        [Heelmax,Toemax,Heelturn_sig,Toeturn_sig] = findSnowboardTurns(tmpDat, turn_det, turn_dist, rideDir)
+        detectorUsed = 'IMU'
+    else:
+        if turn_detection == 'IMU':
+            print('   no gyro in this trial - falling back to force detection')
+        [Heelmax,Toemax] = findTurns(ToeForce, HeelForce, freq, 0.75)
+        Heelturn_sig = HeelForce
+        Toeturn_sig = ToeForce
+        detectorUsed = 'force'
     
     
     
     answer = True # if data check is off. 
-    if data_check == 1:
+    if priorDecision == 'good' and data_check == 1:
+        print('Previously accepted, not asking again: ' + fName)
+    elif data_check >= 1:
         
         plt.figure()
         plt.subplot(2,1,1)
-        plt.plot(tmpDat.HeelForce)
-        plt.plot(Heelmax,tmpDat.HeelForce[Heelmax],'rs')
-        plt.ylabel('Heel Force')
-        plt.title('Raw Signal')
+        plt.plot(Heelturn_sig)
+        plt.plot(Heelmax,Heelturn_sig[Heelmax],'rs')
+        plt.ylabel('Heel Edge')
+        plt.title(fName + '  -  ' + turn_detection + ' detection')
         
       
         plt.subplot(2,1,2)
-        plt.plot(tmpDat.ToeForce)
-        plt.plot(Toemax,tmpDat.ToeForce[Toemax],'rs')
-        plt.ylabel('Toe Force')
+        plt.plot(Toeturn_sig)
+        plt.plot(Toemax,Toeturn_sig[Toemax],'rs')
+        plt.ylabel('Toe Edge')
         
         
             
         answer = messagebox.askyesno("Question","Is data clean?")
+    
+    # Record the decision straight away, inside the loop, so a run that
+    # fails later keeps every decision made so far
+    if priorDecision == '' or data_check == 2:
+        if answer == False:
+            saveProcessingDecision(fPath, scriptName, fName, 'bad',
+                                   Subject=subName, Config=configTmp,
+                                   reason='rejected at the data check')
+        else:
+            saveProcessingDecision(fPath, scriptName, fName, 'good',
+                                   Subject=subName, Config=configTmp)
     
     if answer == False:
         plt.close('all')
@@ -558,24 +427,38 @@ for fName in entries:
                     # jj = 1
                     # value = Toemax[jj]
                     
-                    # Look at a 100 frame window for the true max force
-                    # Look at the Outside (or downhill) ski
-                    if value < 100:
+                    # +/- 0.5 s around the turn peak to find the true maximum.
+                    # This was a fixed 50 frames guarded by "value < 100" - two
+                    # numbers that only agree at 100 Hz, and only agree with
+                    # each other by luck.
+                    window = round(0.5 * freq)
+                    if value < window:
+                        # Keep the window inside the trial. A negative start
+                        # would slice from the end of the signal instead.
                         window = value
-                    else:
-                        window = 50
+
+                    # +/- 0.1 s around the turn peak for the heel contact area.
+                    # The divisor below is the window actually taken, not a
+                    # constant: at the start of a trial the window is clipped,
+                    # and a fixed frame count would divide by frames that were
+                    # never in it.
+                    areaStart = value - round(0.1 * freq)
+                    if areaStart < 0:
+                        areaStart = 0
+                    areaEnd = value + round(0.1 * freq)
+                    areaFrames = len(tmpDat.LplantarHeel[areaStart:areaEnd])
                     
                     # Toe edge force
-                    ToeTotMaxForce.append(np.nanmax(tmpDat.ToeForce[value-window:value+window]))
+                    ToeTotMaxForce.append(np.nanmax(ToeForce[value-window:value+window]))
                     
                     # Look at the Inside (or uphill) ski
-                    HeelTotMaxForce.append(np.nanmax(tmpDat.HeelForce[value-window:value+window]))
+                    HeelTotMaxForce.append(np.nanmax(HeelForce[value-window:value+window]))
                     
                     # Peak toe pressure
                     if rideDir == 'Regular':
-                        maxmaxToes.append(np.nanmax(tmpDat.LToe[value-window:value+window])*6.895)
+                        maxmaxToes.append(np.nanmax(tmpDat.LplantarToe[value-window:value+window])*6.895)
                     elif rideDir == 'Goofy':
-                        maxmaxToes.append(np.nanmax(tmpDat.RToe[value-window:value+window])*6.895)
+                        maxmaxToes.append(np.nanmax(tmpDat.RplantarToe[value-window:value+window])*6.895)
                     
                     # Examine a 0.25 second window around the peak of the turn
                     # for fraction of force applied medial/lateral
@@ -583,23 +466,22 @@ for fName in entries:
                     
                     # Rate of force development
                     # Find the index of the true local maxima
-                    idx_max = np.argmax(tmpDat.ToeForce[value-window:value+window])+value-window
-                    idx_min = np.argmin(tmpDat.ToeForce[Toemax[jj-1]:idx_max-1])+Toemax[jj-1]
-                    RFD.append(np.mean(np.gradient(tmpDat.ToeForce[idx_min:idx_max],1/freq)))
+                    idx_max = np.argmax(ToeForce[value-window:value+window])+value-window
+                    idx_min = np.argmin(ToeForce[Toemax[jj-1]:idx_max-1])+Toemax[jj-1]
+                    RFD.append(np.mean(np.gradient(ToeForce[idx_min:idx_max],1/freq)))
                     RFDtime.append((idx_max-idx_min)/freq)
                     
                     # Heel Hold
                     if rideDir == 'Regular':
-                        heelAreaP.append(np.count_nonzero(tmpDat.LHeel[value-10:value+10, :, :])/(20)/36*100) # making this from 50% stance time to toe off to match big data. Consider switing to 90% to toe off?
+                        heelAreaP.append(np.count_nonzero(tmpDat.LplantarHeel[areaStart:areaEnd, :, :])/areaFrames/tmpDat.LplantarHeelSensNo*100)
                     elif rideDir == 'Goofy':
-                        heelAreaP.append(np.count_nonzero(tmpDat.RHeel[value-10:value+10, :, :])/(20)/36*100) # making this from 50% stance time to toe off to match big data. Consider switing to 90% to toe off?
+                        heelAreaP.append(np.count_nonzero(tmpDat.RplantarHeel[areaStart:areaEnd, :, :])/areaFrames/tmpDat.RplantarHeelSensNo*100)
                     # turntime
-                    
-                    heelDat = tmpDat.LHeel[value-10:value+10, :, :]
                     TurnTime.append((value-Toemax[jj-1])/freq)
                     
                     
                     TurnDir.append('Toe')
+                    detector.append(detectorUsed)
                     subject.append(subName)
                     config.append(configTmp)
                     trialNo.append(trialTmp)
@@ -619,25 +501,39 @@ for fName in entries:
 
             try:
                 if jj>0:
-                    # Look at a 100 frame window for the true max force
-                    # Look at the Outside (or downhill) ski
-                    if value < 100:
+                    # +/- 0.5 s around the turn peak to find the true maximum.
+                    # This was a fixed 50 frames guarded by "value < 100" - two
+                    # numbers that only agree at 100 Hz, and only agree with
+                    # each other by luck.
+                    window = round(0.5 * freq)
+                    if value < window:
+                        # Keep the window inside the trial. A negative start
+                        # would slice from the end of the signal instead.
                         window = value
-                    else:
-                        window = 50
+
+                    # +/- 0.1 s around the turn peak for the heel contact area.
+                    # The divisor below is the window actually taken, not a
+                    # constant: at the start of a trial the window is clipped,
+                    # and a fixed frame count would divide by frames that were
+                    # never in it.
+                    areaStart = value - round(0.1 * freq)
+                    if areaStart < 0:
+                        areaStart = 0
+                    areaEnd = value + round(0.1 * freq)
+                    areaFrames = len(tmpDat.LplantarHeel[areaStart:areaEnd])
                     
                     # Heel edge force
-                    HeelTotMaxForce.append(np.nanmax(tmpDat.HeelForce[value-window:value+window]))
+                    HeelTotMaxForce.append(np.nanmax(HeelForce[value-window:value+window]))
                     
                     # Look at the Inside (or uphill) ski
-                    ToeTotMaxForce.append(np.nanmax(tmpDat.ToeForce[value-window:value+window]))
+                    ToeTotMaxForce.append(np.nanmax(ToeForce[value-window:value+window]))
                     
                     # Peak toe pressure
                     if rideDir == 'Regular':
-                        maxmaxToes.append(np.nanmax(tmpDat.LToe[value-window:value+window])*6.895)
+                        maxmaxToes.append(np.nanmax(tmpDat.LplantarToe[value-window:value+window])*6.895)
                         
                     elif rideDir == 'Goofy':
-                        maxmaxToes.append(np.nanmax(tmpDat.RToe[value-window:value+window])*6.895)
+                        maxmaxToes.append(np.nanmax(tmpDat.RplantarToe[value-window:value+window])*6.895)
                         
                     
                     # Examine a 0.25 second window around the peak of the turn
@@ -646,23 +542,24 @@ for fName in entries:
                     
                     # Rate of force development
                     # Find the index of the true local maxima
-                    idx_max = np.argmax(tmpDat.HeelForce[value-window:value+window])+value-window
-                    idx_min = np.argmin(tmpDat.HeelForce[Heelmax[jj-1]:idx_max])+Heelmax[jj-1]
-                    RFD.append(np.mean(np.gradient(tmpDat.HeelForce[idx_min:idx_max],1/freq)))
+                    idx_max = np.argmax(HeelForce[value-window:value+window])+value-window
+                    idx_min = np.argmin(HeelForce[Heelmax[jj-1]:idx_max])+Heelmax[jj-1]
+                    RFD.append(np.mean(np.gradient(HeelForce[idx_min:idx_max],1/freq)))
                     RFDtime.append((idx_max-idx_min)/freq)
                     
                     # Heel Hold
                     if rideDir =='Regular':
-                        heelAreaP.append(np.count_nonzero(tmpDat.LHeel[value-10:value+10, :, :])/(20)/36*100) # making this from 50% stance time to toe off to match big data. Consider switing to 90% to toe off?
+                        heelAreaP.append(np.count_nonzero(tmpDat.LplantarHeel[areaStart:areaEnd, :, :])/areaFrames/tmpDat.LplantarHeelSensNo*100)
                     
                     elif rideDir == 'Goofy' :
-                        heelAreaP.append(np.count_nonzero(tmpDat.RHeel[value-10:value+10, :, :])/(20)/36*100) # making this from 50% stance time to toe off to match big data. Consider switing to 90% to toe off?
+                        heelAreaP.append(np.count_nonzero(tmpDat.RplantarHeel[areaStart:areaEnd, :, :])/areaFrames/tmpDat.RplantarHeelSensNo*100)
                     
                     # turntime
                     TurnTime.append((value-Heelmax[jj-1])/freq)
                     
                     
                     TurnDir.append('Heel')
+                    detector.append(detectorUsed)
                     subject.append(subName)
                     config.append(configTmp)
                     trialNo.append(trialTmp)
@@ -670,26 +567,20 @@ for fName in entries:
                 
             except Exception as e: print(e)
 
-    outcomes = pd.DataFrame({'Subject': list(subject), 'Config':list(config),'trialNo':list(trialNo) , 'TurnDirection':list(TurnDir), 'TurnTime':list(TurnTime),
-                              'ToeTotMaxForce':list(ToeTotMaxForce), 'HeelTotMaxForce':list(HeelTotMaxForce),
-                              'maxmaxToes':list(maxmaxToes), 'heelAreaP':list(heelAreaP), 
-                              'RFD':list(RFD), 'RFDtime':list(RFDtime)
-                              })
 
-    outfileName = fPath + '0_CompiledResults_7.csv'
-    if save_on == 1:
-        if os.path.exists(outfileName) == False:
-        
-            outcomes.to_csv(outfileName, header=True, index = False)
-    
-        else:
-            outcomes.to_csv(outfileName, mode='a', header=False, index = False) 
-        
-        
-        
-    # except:
-    #         print('Not usable data')
-    #         badFileList.append(fName)             
+# Every accepted turn from every trial, written once, after the loop.
+outcomes = pd.DataFrame({'Subject': list(subject), 'Config':list(config),'trialNo':list(trialNo) , 'TurnDirection':list(TurnDir), 'TurnTime':list(TurnTime),
+                         'ToeTotMaxForce':list(ToeTotMaxForce), 'HeelTotMaxForce':list(HeelTotMaxForce),
+                         'maxmaxToes':list(maxmaxToes), 'heelAreaP':list(heelAreaP), 
+                         'RFD':list(RFD), 'RFDtime':list(RFDtime),
+                         'TurnDetector':list(detector)
+                         })
+
+outfileName = fPath + '0_CompiledResults_8.csv'
+if save_on == 1 and data_check < 2:
+    # Note: written fresh each run, never appended. Appending duplicates
+    # every row when a study is re-processed after more data is collected.
+    outcomes.to_csv(outfileName, header=True, index = False)     
             
             
             

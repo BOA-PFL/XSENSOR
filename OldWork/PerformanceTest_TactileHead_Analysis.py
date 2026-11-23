@@ -28,7 +28,7 @@ import pandas as pd
 fPath = 'C:\\Users\\bethany.kilpatrick\\Boa Technology Inc\\PFL Team - General\\Testing Segments\\Helmets\\SmithPressure_Smith\\TVN\\MTN\\'
 fileExt = r".csv"
 
-entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) and '0_' not in fName]
+entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) and not fName.startswith('0_')]
 
 
 

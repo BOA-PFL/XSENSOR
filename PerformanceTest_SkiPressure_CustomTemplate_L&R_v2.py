@@ -9,24 +9,64 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import seaborn as sns
+import tkinter as tk
 from tkinter import messagebox
 import scipy.signal as sig
 from scipy.fft import fft, fftfreq
 from scipy.integrate import cumulative_trapezoid as cumtrapz
-from scipy.integrate import trapz
-from XSENSORFunctions import readXSENSORFile, createTSmat, delimitTrial 
+from scipy.integrate import trapezoid as trapz
+from XSENSORFunctions import (readXSENSORFile, createTSmat, delimitTrial,
+                              loadProcessingDecisions, saveProcessingDecision)
 
 
 save_on = 0
-data_check = 0
+# 0 = no data check, nothing is asked or recorded
+# 1 = ask only about trials with no recorded decision (the normal setting)
+# 2 = re-review EVERY trial, including ones previously rejected. Use after
+#     changing processing, when earlier decisions may no longer hold. This
+#     mode is good for reruning files with a different threshold or examining
+#     files after a different filter has been applied.
+data_check = 1
+
+# Names this script's decision file, 0_ProcessingDecisions_<scriptName>.csv.
+# One data folder is often read by several scripts, and a trial that is no
+# good for one analysis can be fine for another, so each keeps its own
+# record rather than one script's rejection governing the rest.
+scriptName = 'SkiPressure_LR'
 
 turn_det_nob = 0.5 # filter frequency for turn detection: may need to be different for different subjects
 
 # Read in files
 # only read .csv files for this work
-fPath = 'C:/Users/eric.honert/Boa Technology Inc/PFL Team - General/Testing Segments/Snow Performance/2025_Mech_AlpineRace/SuperG/XSENSOR/'
+fPath = 'Z:/Testing Segments/SnowSports/Ski/2025/2025_Mech_AlpineRace/SuperG/XSENSOR/'
 fileExt = r".csv"
-entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) and '0_' not in fName]
+# Data-quality decisions recorded by previous runs of this script. Loading
+# these is what stops a trial being judged twice. Rejected files are left
+# where they are so they can still be opened and looked at - it is this
+# record, not the folder, that decides what gets processed.
+decisions = loadProcessingDecisions(fPath, scriptName)
+
+# Results from an out-of-date copy of this script will not match anyone
+# else's. Asked only when nothing has been decided here yet: a decision file
+# means the question was answered on an earlier run of this dataset.
+if len(decisions) == 0:
+    # Give this dialog its own window and put it in front. It is the first
+    # thing the script does, so unlike the data check further down there is no
+    # figure on screen to pull focus, and a borrowed default root can open the
+    # box behind Spyder - which just looks like the script has hung.
+    dialogRoot = tk.Tk()
+    dialogRoot.withdraw()
+    dialogRoot.attributes('-topmost', True)
+    upToDate = messagebox.askyesno("Question", "Is this script up to date with main?",
+                                   parent = dialogRoot)
+    dialogRoot.destroy()
+    # A plain error rather than SystemExit: these scripts get run a cell at a
+    # time, and SystemExit can take the console with it. This stops just as
+    # firmly, prints the reason, and leaves the console alone.
+    if upToDate == False:
+        raise RuntimeError('Pull this script from main before processing')
+
+entries = [fName for fName in os.listdir(fPath) if fName.endswith(fileExt) and not fName.startswith('0_')]
 
 ### set plot font size ###
 SMALL_SIZE = 14
@@ -82,77 +122,6 @@ def findSkiTurns(dat, cut_hz):
     return Rpeaks, Lpeaks, Rgyro_det, Lgyro_det
 
 # Keeping this function just in case
-def EnsureTurnsAlternate(turndet1,turndet2,peaks1,peaks2):
-    """
-    This function takes 2 signals that alternate (such as left and right) with
-    events that have been detected within those signals. It makes sure that the
-    detected events (or peaks) oscillates between the two signals. If there are
-    multiple events detected between events from the other signal, the event
-    with the highest peak will be kept and the others eliminated.
-
-    Parameters
-    ----------
-    turndet1 : numpy array
-        Signal associated with the detected peaks from peaks1
-    turndet2 : numpy array
-        Signal associated with the detected peaks from peaks2
-    peaks1 : numpy array
-        Peaks detected from the function "find_peaks" (scipy library) from turndet1
-    peaks2 : numpy array
-        Peaks detected from the function "find_peaks" (scipy library) from turndet2
-
-    Returns
-    -------
-    peaks1 : numpy array
-        Cleaned peaks1 that oscillates with peaks2
-    peaks2 : numpy array
-        Cleaned peaks1 that oscillates with peaks1
-
-    """
-    # If the are multiple detected peaks after the last turn detection
-    if peaks1[-2] > peaks2[-1]:
-        idx_multiple = np.where(peaks1>peaks2[-1])[0]
-        idx = np.argmax(turndet1[peaks1[idx_multiple]])
-        # Remove the other detected peaks
-        idx_remove = np.delete(idx_multiple,idx)
-        peaks1 = np.delete(peaks1,idx_remove)
-    
-    if peaks2[-2] > peaks1[-1]:
-        idx_multiple = np.where(peaks2>peaks1[-1])[0]
-        idx = np.argmax(turndet2[peaks2[idx_multiple]])
-        # Remove the other detected peaks
-        idx_remove = np.delete(idx_multiple,idx)
-        peaks2 = np.delete(peaks2,idx_remove)
-    
-    # Ensure that the entire signal oscillates between peaks1 and peaks2
-    jj = 0
-    it = 0
-    while jj <= len(peaks2)-2 and it < 1000:
-        it = it + 1
-        if peaks1[jj] < peaks2[jj] and peaks1[jj+1] > peaks2 [jj] and peaks1[jj+1] < peaks2 [jj+1]:
-            # A normal turn
-            jj = jj+1
-        else:
-            if peaks2[jj+1] < peaks1[jj+1]:
-                # Multiple detected peaks from the following signal before a peak from the leading signal
-                idx_multiple = np.where((peaks2>peaks1[jj])*(peaks2<peaks1[jj+1])==True)[0]
-                # Figure out which of multiple peaks is higher
-                idx = np.argmax(turndet2[peaks2[idx_multiple]])
-                # Remove the other detected peaks
-                idx_remove = np.delete(idx_multiple,idx)
-                peaks2 = np.delete(peaks2,idx_remove)
-            else:
-                # Multiple detected peaks from the leading signal before a peak from the following signal
-                if jj == 0:
-                    idx_multiple = np.where(peaks1<peaks2[jj])[0]  
-                else:
-                    idx_multiple = np.where((peaks1>peaks2[jj-1])*(peaks1<peaks2[jj])==True)[0]    
-                idx = np.argmax(turndet1[peaks1[idx_multiple]])
-                # Remove the other detected peaks
-                idx_remove = np.delete(idx_multiple,idx)
-                peaks1 = np.delete(peaks1,idx_remove)
-        
-    return(peaks1,peaks2)
 
 def crop_turns_fft(var,turns,freq):
     """
@@ -219,6 +188,21 @@ freq90 = []
 
 for fName in entries:
     print(fName)
+    # A trial rejected in a previous run is skipped. The file is still there
+    # to open and look at: the recorded decision governs, not the folder
+    priorDecision = decisions.get(fName, '')
+    if priorDecision == 'bad' and data_check != 2:
+        print('Previously excluded, skipping: ' + fName)
+        continue
+    
+    # Clear the previous trial's cyclic detections. They are assigned
+    # inside conditionals, so a trial that skips a detection would keep
+    # the last trial's events and be processed against them silently.
+    LTurnIdx = []
+    RTurnIdx = []
+    Lturn_sig = []
+    Rturn_sig = []
+
     ####
 
     subName = fName.split(sep = "_")[0]
@@ -229,13 +213,17 @@ for fName in entries:
     tmpDat = readXSENSORFile(fName,fPath)
     tmpDat = delimitTrial(tmpDat,fName,fPath)
     tmpDat = createTSmat(fName, fPath, tmpDat)
-
     
+    # Estimate the frequency from the time stamps
+    freq = 1/np.mean(np.diff(tmpDat.time))
+
     # Turn detection: Turn indicies are     
     [RTurnIdx, LTurnIdx, Rturn_sig, Lturn_sig] = findSkiTurns(tmpDat, turn_det_nob)
         
     answer = True # if data check is off. 
-    if data_check == 1:
+    if priorDecision == 'good' and data_check == 1:
+        print('Previously accepted, not asking again: ' + fName)
+    elif data_check >= 1:
         
         plt.figure()
         plt.subplot(2,2,1)
@@ -266,6 +254,17 @@ for fName in entries:
             
         answer = messagebox.askyesno("Question","Is data clean?")
     
+    # Record the decision straight away, inside the loop, so a run that
+    # fails later keeps every decision made so far
+    if priorDecision == '' or data_check == 2:
+        if answer == False:
+            saveProcessingDecision(fPath, scriptName, fName, 'bad',
+                                   Subject=subName, Config=configTmp,
+                                   reason='rejected at the data check')
+        else:
+            saveProcessingDecision(fPath, scriptName, fName, 'good',
+                                   Subject=subName, Config=configTmp)
+    
     if answer == False:
         plt.close('all')
         print('Adding file to bad file list')
@@ -275,16 +274,15 @@ for fName in entries:
         plt.close('all')
         print('Estimating point estimates')
         
-        [Lfft_out,Lxf,Lfreq90] = crop_turns_fft(tmpDat.LForce,LTurnIdx,1/np.mean(np.diff(tmpDat.time)))
-        [Rfft_out,Rxf,Rfreq90] = crop_turns_fft(tmpDat.RForce,RTurnIdx,1/np.mean(np.diff(tmpDat.time)))
+        [Lfft_out,Lxf,Lfreq90] = crop_turns_fft(tmpDat.LForce,LTurnIdx,freq)
+        [Rfft_out,Rxf,Rfreq90] = crop_turns_fft(tmpDat.RForce,RTurnIdx,freq)
         
         freq90.extend(Lfreq90)
         freq90.extend(Rfreq90)
         
         # Filter the forces
         # Set Up the filter
-        fs = 1.0 / np.mean(np.diff(tmpDat.time))
-        w = 20 / (fs / 2.0)  # normalized cutoff
+        w = 20 / (freq / 2.0)  # normalized cutoff
         b, a = sig.butter(3, w, 'low') # 3rd order filter
         
         LForce = sig.filtfilt(b, a, tmpDat.LForce)
@@ -383,13 +381,10 @@ outcomes = pd.DataFrame({'Subject': list(subject), 'Config':list(config),'trialN
                           })
 
 outfileName = fPath + '0_CompiledResults_7.csv'
-if save_on == 1:
-    if os.path.exists(outfileName) == False:
-    
-        outcomes.to_csv(outfileName, header=True, index = False)
-
-    else:
-        outcomes.to_csv(outfileName, mode='a', header=False, index = False) 
+if save_on == 1 and data_check < 2:
+    # Note: written fresh each run, never appended. Appending duplicates
+    # every row when a study is re-processed after more data is collected.
+    outcomes.to_csv(outfileName, header=True, index = False)
             
             
             
